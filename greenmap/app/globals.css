@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/*
+  GreenMap design tokens — single source of truth.
+  Values are LOCKED by 06_UI_Design_Direction (iOS-native, light mode).
+  Verified identical to the greenmap-interactive.html prototype.
+  Change theme HERE, never inline in components. Dark mode = Phase 2.
+*/
+@theme {
+  /* iOS system colours */
+  --color-bg: #f2f2f7; /* grouped page background */
+  --color-card: #ffffff; /* card surfaces */
+  --color-label: #000000; /* primary text */
+  --color-secondary: #8a8a8e; /* secondary text, subtitles */
+  --color-tertiary: #c7c7cc; /* borders, dividers, chevrons, "New" marker */
+  --color-fill: #e9e9eb; /* input fills, segmented controls */
+
+  /* Brand */
+  --color-brand: #34c759; /* primary buttons, active tabs, healthy */
+  --color-brand-dark: #248a3d; /* text on light green badges */
+
+  /* Status & plant health */
+  --color-warning: #ff9f0a; /* attention (health 40–69), PREVIEW badges */
+  --color-critical: #ff3b30; /* critical (health 0–39) */
+  --color-info: #007aff; /* AI suggestions, info, water */
+
+  /* Typography — SF Pro on Apple, system sans elsewhere. No serif anywhere. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text",
+    "Helvetica Neue", "Inter", Arial, sans-serif;
+
+  /* Border radius (06 §7) */
+  --radius-card: 20px; /* cards, grouped lists */
+  --radius-btn: 14px; /* buttons */
+  --radius-input: 12px; /* inputs */
+  --radius-squarcle: 20px; /* 60×60 quick-action tiles */
+
+  /* Shadows */
+  --shadow-card: 0 4px 14px rgb(0 0 0 / 0.04);
+  --shadow-fab: 0 8px 16px rgb(52 199 89 / 0.35);
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg font-sans text-label antialiased;
+  }
+
+  /* iOS pattern: respect users who prefer reduced motion (06 §13) */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* 0.5px iOS hairline separators (Tailwind v4 custom utilities) */
+@utility hairline-t {
+  border-top: 0.5px solid rgb(0 0 0 / 0.1);
+}
+@utility hairline-b {
+  border-bottom: 0.5px solid rgb(0 0 0 / 0.1);
+}

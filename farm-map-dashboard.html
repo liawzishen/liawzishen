@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GreenMap — Farm Map Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          brand:   '#1E434A',
+          success: '#0DB074',
+          warning: '#F59E0B',
+          danger:  '#EF4444',
+          info:    '#3B82F6',
+          canvas:  '#F5F7F8',
+        },
+        fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+        boxShadow: { soft: '0 6px 20px rgba(16,40,45,0.08)' },
+      },
+    },
+  };
+</script>
+<style>
+  html, body { height: 100%; }
+  body { font-family: 'Inter', sans-serif; }
+
+  /* Aerial farm patchwork — layered gradients simulate plots + crop rows */
+  .field-bg {
+    background-color: #3c8f5e;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.07) 0 2px, transparent 2px 7px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,0.10) 0 2px, transparent 2px 64px),
+      repeating-linear-gradient(0deg,  rgba(0,0,0,0.08) 0 2px, transparent 2px 64px),
+      linear-gradient(135deg, #2c7a4b 0%, #4aa56e 40%, #357f54 70%, #2f7d50 100%);
+    transition: transform .25s ease, filter .3s ease;
+  }
+  .plot { position:absolute; mix-blend-mode:multiply; border-radius:6px; }
+  .vignette { box-shadow: inset 0 0 140px rgba(0,0,0,0.40); pointer-events:none; }
+  .dark .field-bg { filter: brightness(.82) saturate(.92); }
+
+  /* Status node */
+  .node { transition: transform .15s ease; }
+  .node:hover { transform: translate(-50%, -50%) scale(1.06); }
+  .node .circle { transition: box-shadow .15s ease; }
+  .node.is-selected { z-index: 30; }
+  .node.is-selected .circle { box-shadow: 0 0 0 4px rgba(255,255,255,.9), 0 0 0 8px rgba(13,176,116,.45), 0 10px 24px rgba(0,0,0,.3); }
+
+  /* Drawer slide */
+  #drawer { transition: transform .3s cubic-bezier(.16,1,.3,1), opacity .3s ease; }
+  #drawer.closed { transform: translateX(118%); opacity: 0; pointer-events:none; }
+
+  /* Theme switch */
+  .switch-knob { transition: transform .25s ease; }
+  .dark .switch-knob { transform: translateX(20px); }
+
+  /* Toast */
+  #toast { transition: opacity .3s ease, transform .3s ease; }
+  #toast.hide { opacity:0; transform: translate(0,8px); pointer-events:none; }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(30,67,74,.2); border-radius: 8px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+
+<body class="bg-canvas text-brand dark:bg-[#0a1e23] dark:text-slate-100">
+<div class="flex h-screen overflow-hidden">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="flex w-64 shrink-0 flex-col border-r border-slate-200/70 bg-white px-4 py-5 dark:border-white/10 dark:bg-[#0e2a30]">
+    <!-- Branding -->
+    <div class="flex items-center gap-3 px-1">
+      <div class="grid h-10 w-10 place-items-center rounded-xl bg-brand text-success">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>
+      </div>
+      <div class="leading-tight">
+        <p class="text-[17px] font-extrabold tracking-tight">GreenMap</p>
+        <p class="text-[11px] font-medium text-slate-400">Codex Hackathon KL 2026</p>
+      </div>
+    </div>
+
+    <!-- Location dropdown -->
+    <div class="relative mt-6">
+      <button id="locBtn" onclick="toggleLoc()" class="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-canvas px-3 py-2.5 text-left transition hover:border-success/50 dark:border-white/10 dark:bg-white/5">
+        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block truncate text-[12.5px] font-semibold">Sunway Smart Agro-Tech</span>
+          <span id="locZone" class="block text-[11px] text-slate-400">Zone A</span>
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div id="locMenu" class="absolute left-0 right-0 z-40 mt-1 hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft dark:border-white/10 dark:bg-[#12333a]">
+        <button onclick="pickZone('Zone A')" class="block w-full px-3 py-2 text-left text-[12.5px] hover:bg-success/10">Zone A</button>
+        <button onclick="pickZone('Zone B')" class="block w-full px-3 py-2 text-left text-[12.5px] hover:bg-success/10">Zone B</button>
+        <button onclick="pickZone('Zone C')" class="block w-full px-3 py-2 text-left text-[12.5px] hover:bg-success/10">Zone C</button>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="mt-6 flex-1 space-y-1">
+      <a href="#" data-active class="nav-item flex items-center gap-3 rounded-xl bg-success/12 px-3 py-2.5 text-[13.5px] font-semibold text-success">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-brand dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 20h10"/><path d="M12 20v-9"/><path d="M12 11c0-3 2.5-5 6-5 0 3.5-2.5 5-6 5Z"/><path d="M12 12C12 8.5 9 6 5 6c0 4 3 6 7 6Z"/></svg>
+        Plant Detail
+      </a>
+      <a href="#" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-brand dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6"/></svg>
+        AI Diagnostics
+      </a>
+      <a href="#" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-brand dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        Timeline
+      </a>
+      <a href="#" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-brand dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14a1 1 0 0 1 1 1v17l-8-4-8 4V4a1 1 0 0 1 1-1Z"/><path d="m9 11 2 2 4-4"/></svg>
+        Harvest Passport
+      </a>
+      <a href="#" class="nav-item flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-brand dark:text-slate-300 dark:hover:bg-white/5 dark:hover:text-white">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9h18l-1.5-5h-15L3 9Z"/><path d="M4 9v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 13h6"/></svg>
+        Marketplace
+      </a>
+    </nav>
+
+    <!-- Theme toggle -->
+    <button onclick="toggleTheme()" class="mt-4 flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2.5 dark:border-white/10">
+      <span class="flex items-center gap-2 text-[12.5px] font-medium text-slate-500 dark:text-slate-300">
+        <svg class="hidden dark:block" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg class="block dark:hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        <span class="dark:hidden">Light</span><span class="hidden dark:inline">Dark</span> mode
+      </span>
+      <span class="relative h-6 w-11 rounded-full bg-slate-200 dark:bg-success">
+        <span class="switch-knob absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow"></span>
+      </span>
+    </button>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="flex min-w-0 flex-1 flex-col">
+
+    <!-- Top header -->
+    <header class="flex items-center justify-between px-6 pt-5">
+      <div>
+        <h1 class="text-[20px] font-bold tracking-tight">Farm Map Dashboard</h1>
+        <p class="text-[12.5px] text-slate-400">Live crop health overview &middot; <span id="clock"></span></p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 sm:flex dark:border-white/10 dark:bg-white/5">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search plants…" class="w-36 bg-transparent text-[12.5px] outline-none placeholder:text-slate-400" />
+        </div>
+        <button class="grid h-9 w-9 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+        </button>
+        <div class="grid h-9 w-9 place-items-center rounded-full bg-brand text-[12px] font-bold text-white">AZ</div>
+      </div>
+    </header>
+
+    <!-- KPI cards -->
+    <section class="grid grid-cols-2 gap-4 px-6 pt-4 md:grid-cols-3 xl:grid-cols-5">
+      <div class="rounded-2xl bg-white p-4 shadow-soft ring-1 ring-slate-100 dark:bg-[#0e2a30] dark:ring-white/5">
+        <p class="text-[11.5px] font-semibold uppercase tracking-wide text-slate-400">Total Plants</p>
+        <p class="mt-1.5 text-[28px] font-extrabold leading-none text-brand dark:text-white">1,248</p>
+        <p class="mt-1.5 text-[11px] text-slate-400">across all zones</p>
+      </div>
+      <div class="rounded-2xl bg-white p-4 shadow-soft ring-1 ring-slate-100 dark:bg-[#0e2a30] dark:ring-white/5">
+        <div class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-success"></span><p class="text-[11.5px] font-semibold uppercase tracking-wide text-slate-400">Healthy</p></div>
+        <p class="mt-1.5 text-[28px] font-extrabold leading-none text-success">923</p>
+        <p class="mt-1.5 text-[11px] text-slate-400">&ge; 80% health</p>
+      </div>
+      <div class="rounded-2xl bg-white p-4 shadow-soft ring-1 ring-slate-100 dark:bg-[#0e2a30] dark:ring-white/5">
+        <div class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-warning"></span><p class="text-[11.5px] font-semibold uppercase tracking-wide text-slate-400">Needs Attention</p></div>
+        <p class="mt-1.5 text-[28px] font-extrabold leading-none text-warning">214</p>
+        <p class="mt-1.5 text-[11px] text-slate-400">50&ndash;79% health</p>
+      </div>
+      <div class="rounded-2xl bg-white p-4 shadow-soft ring-1 ring-slate-100 dark:bg-[#0e2a30] dark:ring-white/5">
+        <div class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-danger"></span><p class="text-[11.5px] font-semibold uppercase tracking-wide text-slate-400">Critical / Alerts</p></div>
+        <p class="mt-1.5 text-[28px] font-extrabold leading-none text-danger">67</p>
+        <p class="mt-1.5 text-[11px] text-slate-400">&lt; 50% health</p>
+      </div>
+      <div class="col-span-2 rounded-2xl bg-white p-4 shadow-soft ring-1 ring-slate-100 md:col-span-1 dark:bg-[#0e2a30] dark:ring-white/5">
+        <div class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-full bg-info"></span><p class="text-[11.5px] font-semibold uppercase tracking-wide text-slate-400">Ready For Harvest</p></div>
+        <p class="mt-1.5 text-[28px] font-extrabold leading-none text-info">44</p>
+        <p class="mt-1.5 text-[11px] text-slate-400">at maturity</p>
+      </div>
+    </section>
+
+    <!-- Map -->
+    <section class="relative m-6 mt-4 flex-1 overflow-hidden rounded-2xl shadow-soft ring-1 ring-slate-200/60 dark:ring-white/10">
+      <!-- scalable field + nodes -->
+      <div id="mapInner" class="field-bg absolute inset-0 origin-center">
+        <div class="plot" style="top:8%;left:6%;width:26%;height:30%;background:#6f8f3a;opacity:.5"></div>
+        <div class="plot" style="top:12%;left:55%;width:34%;height:26%;background:#2b6b46;opacity:.55"></div>
+        <div class="plot" style="top:58%;left:10%;width:30%;height:32%;background:#b79b54;opacity:.45"></div>
+        <div class="plot" style="top:62%;left:60%;width:30%;height:28%;background:#3f8a59;opacity:.5"></div>
+        <div class="plot" style="top:40%;left:38%;width:22%;height:22%;background:#7da245;opacity:.45"></div>
+
+        <!-- Status nodes -->
+        <button class="node absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style="top:24%;left:28%" data-id="A" onclick="selectPlant('A')">
+          <span class="circle grid h-12 w-12 place-items-center rounded-full text-[13px] font-bold text-white shadow-lg ring-4 ring-white/80" style="background:#0DB074">92%</span>
+          <span class="mt-1.5 whitespace-nowrap rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white shadow">Tomato A | 92% Health</span>
+        </button>
+        <button class="node absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style="top:58%;left:19%" data-id="B" onclick="selectPlant('B')">
+          <span class="circle grid h-12 w-12 place-items-center rounded-full text-[13px] font-bold text-white shadow-lg ring-4 ring-white/80" style="background:#F59E0B">68%</span>
+          <span class="mt-1.5 whitespace-nowrap rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white shadow">Tomato B | 68% Health</span>
+        </button>
+        <button class="node absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style="top:36%;left:62%" data-id="C" onclick="selectPlant('C')">
+          <span class="circle grid h-12 w-12 place-items-center rounded-full text-[13px] font-bold text-white shadow-lg ring-4 ring-white/80" style="background:#0DB074">86%</span>
+          <span class="mt-1.5 whitespace-nowrap rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white shadow">Tomato C | 86% Health</span>
+        </button>
+        <button class="node absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style="top:72%;left:50%" data-id="D" onclick="selectPlant('D')">
+          <span class="circle grid h-12 w-12 place-items-center rounded-full text-[13px] font-bold text-white shadow-lg ring-4 ring-white/80" style="background:#EF4444">32%</span>
+          <span class="mt-1.5 whitespace-nowrap rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white shadow">Tomato D | 32% Health</span>
+        </button>
+        <button class="node absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center" style="top:30%;left:82%" data-id="F" onclick="selectPlant('F')">
+          <span class="circle grid h-12 w-12 place-items-center rounded-full text-[13px] font-bold text-white shadow-lg ring-4 ring-white/80" style="background:#F59E0B">55%</span>
+          <span class="mt-1.5 whitespace-nowrap rounded-md bg-brand px-2 py-1 text-[11px] font-semibold text-white shadow">Tomato F | 55% Health</span>
+        </button>
+      </div>
+      <div class="vignette absolute inset-0"></div>
+
+      <!-- Map controls -->
+      <div class="absolute bottom-4 left-4 z-20 flex flex-col gap-2">
+        <button onclick="zoom(1)" aria-label="Zoom in" class="grid h-10 w-10 place-items-center rounded-lg bg-white text-[20px] font-semibold text-brand shadow-md transition hover:bg-slate-50 active:scale-95">+</button>
+        <button onclick="zoom(-1)" aria-label="Zoom out" class="grid h-10 w-10 place-items-center rounded-lg bg-white text-[22px] font-semibold text-brand shadow-md transition hover:bg-slate-50 active:scale-95">&minus;</button>
+        <button onclick="resetView()" aria-label="Recenter" class="grid h-10 w-10 place-items-center rounded-lg bg-white text-brand shadow-md transition hover:bg-slate-50 active:scale-95">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <!-- Add Plant -->
+      <button onclick="toast('Add Plant — demo action')" class="absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-xl bg-success px-4 py-3 text-[14px] font-semibold text-white shadow-lg shadow-success/30 transition hover:brightness-105 active:scale-95">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        Add Plant
+      </button>
+
+      <!-- Floating detail drawer -->
+      <aside id="drawer" class="absolute right-4 top-4 z-30 w-72 rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-200/70 dark:bg-[#0e2a30] dark:ring-white/10">
+        <div class="flex items-start justify-between">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Plant Node</p>
+            <h3 id="d-name" class="text-[19px] font-bold leading-tight">Tomato A</h3>
+          </div>
+          <button onclick="dismiss()" aria-label="Close" class="grid h-7 w-7 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand dark:hover:bg-white/10">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="mt-4 flex items-end gap-2">
+          <span id="d-pct" class="text-[44px] font-extrabold leading-none" style="color:#0DB074">92%</span>
+          <span id="d-status" class="mb-1 text-[14px] font-semibold" style="color:#0DB074">Healthy</span>
+        </div>
+
+        <!-- mini health bar -->
+        <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+          <div id="d-bar" class="h-full rounded-full" style="width:92%;background:#0DB074"></div>
+        </div>
+
+        <dl class="mt-4 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <dt class="text-[12.5px] text-slate-400">Location</dt>
+            <dd id="d-loc" class="text-[12.5px] font-semibold">Zone A &middot; Row 12</dd>
+          </div>
+          <div class="flex items-center justify-between">
+            <dt class="text-[12.5px] text-slate-400">Last updated</dt>
+            <dd id="d-upd" class="text-[12.5px] font-semibold">10 min ago</dd>
+          </div>
+        </dl>
+
+        <button onclick="toast('Opening full plant detail…')" class="mt-5 w-full rounded-xl bg-success py-3 text-[14px] font-semibold text-white shadow-lg shadow-success/30 transition hover:brightness-105 active:scale-[.98]">View Details</button>
+        <button onclick="dismiss()" class="mt-2 w-full py-2 text-[13px] font-medium text-slate-400 transition hover:text-brand dark:hover:text-white">Dismiss</button>
+      </aside>
+    </section>
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="hide fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-brand px-4 py-2.5 text-[13px] font-medium text-white shadow-2xl"></div>
+
+<script>
+  const PLANTS = {
+    A: { name: 'Tomato A', pct: 92, loc: 'Zone A &middot; Row 12', upd: '10 min ago' },
+    B: { name: 'Tomato B', pct: 68, loc: 'Zone A &middot; Row 8',  upd: '25 min ago' },
+    C: { name: 'Tomato C', pct: 86, loc: 'Zone B &middot; Row 3',  upd: '5 min ago'  },
+    D: { name: 'Tomato D', pct: 32, loc: 'Zone C &middot; Row 15', upd: '1 hr ago'   },
+    F: { name: 'Tomato F', pct: 55, loc: 'Zone B &middot; Row 7',  upd: '40 min ago' },
+  };
+
+  function statusOf(pct) {
+    if (pct >= 80) return { label: 'Healthy',         color: '#0DB074' };
+    if (pct >= 50) return { label: 'Needs Attention', color: '#F59E0B' };
+    return { label: 'Critical', color: '#EF4444' };
+  }
+
+  const drawer = document.getElementById('drawer');
+
+  function selectPlant(id) {
+    const p = PLANTS[id];
+    if (!p) return;
+    const s = statusOf(p.pct);
+    document.getElementById('d-name').textContent = p.name;
+    document.getElementById('d-pct').textContent = p.pct + '%';
+    document.getElementById('d-pct').style.color = s.color;
+    const st = document.getElementById('d-status');
+    st.textContent = s.label;
+    st.style.color = s.color;
+    const bar = document.getElementById('d-bar');
+    bar.style.width = p.pct + '%';
+    bar.style.background = s.color;
+    document.getElementById('d-loc').innerHTML = p.loc;
+    document.getElementById('d-upd').textContent = p.upd;
+    drawer.classList.remove('closed');
+
+    document.querySelectorAll('.node').forEach((n) =>
+      n.classList.toggle('is-selected', n.dataset.id === id)
+    );
+  }
+
+  function dismiss() {
+    drawer.classList.add('closed');
+    document.querySelectorAll('.node').forEach((n) => n.classList.remove('is-selected'));
+  }
+
+  // Zoom
+  let z = 1;
+  const mapInner = document.getElementById('mapInner');
+  function applyZoom() { mapInner.style.transform = 'scale(' + z + ')'; }
+  function zoom(dir) { z = Math.min(1.6, Math.max(0.8, +(z + dir * 0.15).toFixed(2))); applyZoom(); }
+  function resetView() { z = 1; applyZoom(); }
+
+  // Theme
+  function toggleTheme() { document.documentElement.classList.toggle('dark'); }
+
+  // Location dropdown
+  const locMenu = document.getElementById('locMenu');
+  function toggleLoc() { locMenu.classList.toggle('hidden'); }
+  function pickZone(zone) {
+    document.getElementById('locZone').textContent = zone;
+    locMenu.classList.add('hidden');
+    toast('Switched to ' + zone);
+  }
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#locBtn') && !e.target.closest('#locMenu')) locMenu.classList.add('hidden');
+  });
+
+  // Toast
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.remove('hide');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.add('hide'), 2200);
+  }
+
+  // Live clock
+  function tick() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.toLocaleString('en-MY', {
+      weekday: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  }
+  tick(); setInterval(tick, 30000);
+
+  // Default selection (drawer populated for Tomato A, per spec)
+  selectPlant('A');
+</script>
+</body>
+</html>

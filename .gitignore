@@ -1,0 +1,33 @@
+# ── Dependencies ─────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Next.js / build output ───────────────────────────────────
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+
+# ── Environment / secrets — NEVER commit real keys ───────────
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+**/*.log
+
+# ── Vercel / TypeScript build info ───────────────────────────
+.vercel
+**/.vercel
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# ── OS cruft ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

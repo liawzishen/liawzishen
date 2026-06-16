@@ -1,0 +1,223 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useFarmSetup } from "@/contexts/farm-setup-context";
+import { createClient } from "@/lib/supabase/client";
+import { TopNav } from "@/components/layout/TopNav";
+import { StepDots } from "@/components/layout/StepDots";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/utils";
+import type { BackgroundType } from "@/types/database";
+
+const OPTIONS: {
+  value: BackgroundType;
+  icon: string;
+  title: string;
+  desc: string;
+}[] = [
+  {
+    value: "smart",
+    icon: "🎨",
+    title: "Smart Background",
+    desc: "Auto-generated stylised farm — ready instantly",
+  },
+  {
+    value: "upload",
+    icon: "📷",
+    title: "Upload Photo",
+    desc: "Use your own aerial photo (JPG / PNG, max 10MB)",
+  },
+  {
+    value: "satellite",
+    icon: "🛰️",
+    title: "Satellite View",
+    desc: "Live address search — coming in a later update",
+  },
+];
+
+/** A stylised "smart" preview (no external image needed). */
+function SmartPreview({ label }: { label?: string }) {
+  return (
+    <div
+      className="relative h-full w-full"
+      style={{
+        background:
+          "linear-gradient(135deg, #DFF5E1 0%, #C9EAD0 100%)",
+        backgroundImage:
+          "radial-gradient(rgba(52,199,89,0.35) 2px, transparent 2px)",
+        backgroundSize: "22px 22px",
+      }}
+    >
+      {label && (
+        <span className="absolute bottom-2 left-2 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-medium text-brand-dark">
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+export default function SetupMapPage() {
+  const router = useRouter();
+  const { name, backgroundType, backgroundUrl, update } = useFarmSetup();
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    setUploadError(null);
+
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("File is larger than 10MB.");
+      return;
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setUploadError("Please use a JPG, PNG or WEBP image.");
+      return;
+    }
+
+    setUploading(true);
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const ext = file.name.split(".").pop() ?? "jpg";
+    const path = `${user?.id ?? "anon"}/${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("farm-backgrounds")
+      .upload(path, file, { upsert: true });
+
+    if (error) {
+      setUploadError(error.message);
+      setUploading(false);
+      return;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("farm-backgrounds").getPublicUrl(path);
+
+    update({ backgroundUrl: publicUrl });
+    setUploading(false);
+  }
+
+  // Satellite has no live image yet → store the type but preview as smart.
+  const canContinue =
+    backgroundType === "upload" ? Boolean(backgroundUrl) : true;
+
+  return (
+    <main className="pb-28">
+      <TopNav title="Set Up Farm" backHref="/farms/new/profile" />
+      <StepDots step={2} />
+
+      <div className="px-6 pt-2">
+        <h1 className="text-[28px] font-bold leading-tight">Choose Your Map</h1>
+        <p className="mt-1 text-[15px] text-secondary">
+          Pick a background for your farm canvas.
+        </p>
+
+        {/* Option cards */}
+        <div className="mt-5 space-y-3">
+          {OPTIONS.map((opt) => {
+            const selected = backgroundType === opt.value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() =>
+                  update({ backgroundType: opt.value })
+                }
+                aria-pressed={selected}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-card p-4 text-left transition",
+                  selected
+                    ? "bg-brand/10 ring-2 ring-brand"
+                    : "bg-card shadow-card ring-1 ring-transparent"
+                )}
+              >
+                <span aria-hidden className="text-[24px]">
+                  {opt.icon}
+                </span>
+                <span className="flex-1">
+                  <span className="flex items-center gap-1.5 text-[15px] font-semibold">
+                    {opt.title}
+                    {selected && <span className="text-brand">✓</span>}
+                  </span>
+                  <span className="mt-0.5 block text-[13px] leading-snug text-secondary">
+                    {opt.desc}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Conditional input */}
+        {backgroundType === "upload" && (
+          <div className="mt-4">
+            <label className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-secondary">
+              Upload Image
+            </label>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => handleFile(e.target.files?.[0])}
+              className="block w-full text-[14px] text-secondary file:mr-3 file:rounded-btn file:border-0 file:bg-brand file:px-4 file:py-2 file:text-white"
+            />
+            {uploading && (
+              <p className="mt-2 text-[13px] text-info">Uploading…</p>
+            )}
+            {uploadError && (
+              <p className="mt-2 text-[13px] text-critical">{uploadError}</p>
+            )}
+          </div>
+        )}
+
+        {backgroundType === "satellite" && (
+          <div className="mt-4">
+            <Input
+              label="Farm Address"
+              placeholder="Live search arrives in a later update"
+              disabled
+            />
+            <p className="mt-2 text-[13px] text-secondary">
+              For now this uses a smart background. Live satellite search is a
+              later feature — your choice is still saved.
+            </p>
+          </div>
+        )}
+
+        {/* 16:9 preview */}
+        <p className="mb-1.5 mt-6 text-[12px] font-semibold uppercase tracking-wide text-secondary">
+          Preview
+        </p>
+        <div className="aspect-video w-full overflow-hidden rounded-card shadow-card">
+          {backgroundType === "upload" && backgroundUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={backgroundUrl}
+              alt="Farm background preview"
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <SmartPreview label={name || "Your farm"} />
+          )}
+        </div>
+      </div>
+
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-bg/85 px-6 py-4 backdrop-blur-xl">
+        <Button
+          full
+          disabled={!canContinue || uploading}
+          onClick={() => router.push("/farms/new/zones")}
+        >
+          Next: Add Zones
+        </Button>
+      </div>
+    </main>
+  );
+}
