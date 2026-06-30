@@ -110,6 +110,8 @@ export function SunflowerScene({
   const angCur = useRef<number[]>(FLOWERS.map((f) => f.tilt));
   const gust = useRef<number[]>(FLOWERS.map(() => 0));
   const prevStrength = useRef(strength);
+  const rectsRef = useRef<DOMRect[]>([]);
+  const reducedMotion = useRef(false);
 
   const withered = mode === "login" && penalty >= 3;
   const maxed = mode === "register" && typing && strength >= 4;
@@ -169,6 +171,32 @@ export function SunflowerScene({
     mouse.current = { x: window.innerWidth / 2, y: window.innerHeight * 0.28 };
     sunTarget.current = { ...mouse.current };
     sunEase.current = { ...mouse.current };
+    reducedMotion.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    // Container rects are stable (fixed-size SVGs positioned by %/bottom), so
+    // measure once and re-measure only on resize / scroll — never per frame.
+    // This removes a forced layout reflow on every animation frame.
+    const measure = () => {
+      rectsRef.current = FLOWERS.map(
+        (_, i) => containerRefs.current[i]?.getBoundingClientRect() as DOMRect
+      );
+    };
+    measure();
+    const scene = containerRefs.current[0]?.parentElement ?? null;
+    const ro =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (ro && scene) ro.observe(scene);
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, { passive: true });
+
+    // Hoisted out of the loop — one closure instead of one per flower per frame.
+    const bez = (t: number, a: number, b: number, c: number, d: number) => {
+      const u = 1 - t;
+      return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
+    };
+
     const t0 = performance.now();
     let raf = 0;
 
@@ -187,13 +215,8 @@ export function SunflowerScene({
         }px)`;
       }
 
-      // batch reads first (one layout / frame)
-      const rects = FLOWERS.map((_, i) =>
-        containerRefs.current[i]?.getBoundingClientRect()
-      );
-
       FLOWERS.forEach((f, i) => {
-        const rect = rects[i];
+        const rect = rectsRef.current[i];
         const stem = stemRefs.current[i];
         const head = headRefs.current[i];
         if (!rect || !stem || !head) return;
@@ -203,7 +226,9 @@ export function SunflowerScene({
         const baseScreenX = rect.left + rect.width / 2;
         const tipY0 = BASE_Y - f.stem;
         const headRefY = rect.top + tipY0 * sy;
-        const idle = Math.sin(time * f.sway + f.phase) * IDLE_AMP;
+        const idle = reducedMotion.current
+          ? 0
+          : Math.sin(time * f.sway + f.phase) * IDLE_AMP;
 
         gust.current[i] *= 0.9;
 
@@ -249,10 +274,6 @@ export function SunflowerScene({
         );
 
         // leaves ride the curve and open (perk) / fold with reach
-        const bez = (t: number, a: number, b: number, c: number, d: number) => {
-          const u = 1 - t;
-          return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
-        };
         const leafA = leafARefs.current[i];
         const leafB = leafBRefs.current[i];
         if (leafA) {
@@ -300,8 +321,32 @@ export function SunflowerScene({
 
       raf = requestAnimationFrame(loop);
     };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+
+    const start = () => {
+      if (!raf) raf = requestAnimationFrame(loop);
+    };
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+    // Pause the loop while the tab is hidden (no wasted CPU in the background).
+    const onVisibility = () => {
+      if (document.hidden) stop();
+      else {
+        measure();
+        start();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    start();
+
+    return () => {
+      stop();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure);
+      document.removeEventListener("visibilitychange", onVisibility);
+      ro?.disconnect();
+    };
   }, []);
 
   // Pointer sources.

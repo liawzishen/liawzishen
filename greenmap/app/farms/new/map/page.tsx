@@ -33,7 +33,7 @@ const OPTIONS: {
     value: "satellite",
     icon: "🛰️",
     title: "Satellite View",
-    desc: "Live address search — coming in a later update",
+    desc: "Find your farm by address — live satellite imagery",
   },
 ];
 
@@ -64,6 +64,9 @@ export default function SetupMapPage() {
   const { name, backgroundType, backgroundUrl, update } = useFarmSetup();
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [satQuery, setSatQuery] = useState("");
+  const [satLoading, setSatLoading] = useState(false);
+  const [satError, setSatError] = useState<string | null>(null);
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
@@ -105,7 +108,31 @@ export default function SetupMapPage() {
     setUploading(false);
   }
 
-  // Satellite has no live image yet → store the type but preview as smart.
+  async function searchSatellite() {
+    const q = satQuery.trim();
+    if (!q) return;
+    setSatError(null);
+    setSatLoading(true);
+    try {
+      const res = await fetch("/api/satellite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: q }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSatError(data.error ?? "Could not fetch a satellite image.");
+        return;
+      }
+      update({ backgroundType: "satellite", backgroundUrl: data.url });
+    } catch {
+      setSatError("Network error — please try again.");
+    } finally {
+      setSatLoading(false);
+    }
+  }
+
+  // Upload needs a finished upload; satellite is optional (smart fallback).
   const canContinue =
     backgroundType === "upload" ? Boolean(backgroundUrl) : true;
 
@@ -178,16 +205,33 @@ export default function SetupMapPage() {
         )}
 
         {backgroundType === "satellite" && (
-          <div className="mt-4">
+          <div className="mt-4 space-y-2.5">
             <Input
               label="Farm Address"
-              placeholder="Live search arrives in a later update"
-              disabled
+              placeholder="e.g. Kluang, Johor"
+              value={satQuery}
+              onChange={(e) => setSatQuery(e.target.value)}
             />
-            <p className="mt-2 text-[13px] text-secondary">
-              For now this uses a smart background. Live satellite search is a
-              later feature — your choice is still saved.
-            </p>
+            <Button
+              variant="fill"
+              size="sm"
+              onClick={searchSatellite}
+              disabled={satLoading || satQuery.trim().length === 0}
+            >
+              {satLoading ? "Searching…" : "🛰️ Find satellite image"}
+            </Button>
+            {satError ? (
+              <p className="text-[13px] text-critical">{satError}</p>
+            ) : backgroundUrl ? (
+              <p className="text-[13px] text-brand-dark">
+                Satellite image found — see the preview below.
+              </p>
+            ) : (
+              <p className="text-[13px] text-secondary">
+                Search your town or address to pull a live satellite image. If
+                it can&apos;t be found, the smart background is used.
+              </p>
+            )}
           </div>
         )}
 
@@ -196,7 +240,8 @@ export default function SetupMapPage() {
           Preview
         </p>
         <div className="aspect-video w-full overflow-hidden rounded-card shadow-card">
-          {backgroundType === "upload" && backgroundUrl ? (
+          {(backgroundType === "upload" || backgroundType === "satellite") &&
+          backgroundUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={backgroundUrl}

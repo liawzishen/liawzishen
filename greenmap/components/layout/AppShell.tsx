@@ -22,7 +22,7 @@ export function AppShell({
 
   const tabs = [
     { href: base, label: "Home", icon: "🏠", exact: true },
-    { href: `${base}/map`, label: "Map", icon: "🗺️", exact: false },
+    { href: `${base}/field`, label: "Map", icon: "🗺️", exact: false },
     { href: `${base}/sales`, label: "Sales", icon: "💰", exact: false },
     { href: `${base}/profile`, label: "Profile", icon: "👤", exact: false },
   ];

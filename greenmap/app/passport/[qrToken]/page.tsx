@@ -86,6 +86,9 @@ export default async function PublicPassportPage({
     `See how ${plant.name} (${plant.type}) was grown on GreenMap: ${url}`
   )}`;
 
+  // Only the owning grower sees a way to list this harvest for sale.
+  const isOwner = !!user && farm.user_id === user.id;
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-[440px] flex-col px-5 pb-12 pt-10">
       <header className="relative flex h-7 items-center justify-center">
@@ -180,11 +183,24 @@ export default async function PublicPassportPage({
       <div className="mt-7">
         <QrBlock url={url} />
       </div>
+      {isOwner && (
+        <Link
+          href={`/farms/${farm.id}/sales/new`}
+          className="relative mt-4 flex w-full items-center justify-center rounded-btn bg-brand py-3 text-[15px] font-semibold text-white active:opacity-90"
+        >
+          💰 Sell This Harvest
+          <span className="absolute right-3 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-white">
+            PREVIEW
+          </span>
+        </Link>
+      )}
       <a
         href={waLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="mt-4 block w-full rounded-btn bg-brand py-3 text-center text-[15px] font-semibold text-white"
+        className={`mt-4 block w-full rounded-btn py-3 text-center text-[15px] font-semibold ${
+          isOwner ? "bg-fill text-brand" : "bg-brand text-white"
+        }`}
       >
         Share on WhatsApp
       </a>

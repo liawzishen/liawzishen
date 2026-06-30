@@ -1,8 +1,7 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/layout/AppShell";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { SignOutButton } from "@/components/auth/SignOutButton";
+import { ProfileClient } from "@/components/profile/ProfileClient";
 
 export default async function ProfilePage({
   params,
@@ -14,44 +13,44 @@ export default async function ProfilePage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/auth");
 
-  const meta = (user?.user_metadata ?? {}) as { name?: string; role?: string };
-  const rows = [
-    { label: "Name", value: meta.name ?? "—" },
-    { label: "Email", value: user?.email ?? "—" },
-    { label: "Role", value: meta.role === "consumer" ? "Consumer" : "Grower" },
-  ];
+  const meta = (user.user_metadata ?? {}) as {
+    name?: string;
+    role?: string;
+    headline?: string;
+    avatar_url?: string;
+  };
+
+  // profiles mirrors name + holds the Verified Grower flag.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("name, is_verified")
+    .eq("id", user.id)
+    .maybeSingle();
+  const p = profile as { name: string; is_verified: boolean } | null;
+
+  const name = (meta.name || p?.name || "").toString();
+  const role = meta.role === "consumer" ? "consumer" : "grower";
 
   return (
     <AppShell farmId={farmId}>
-      <main className="px-6 pt-14">
+      <main className="px-5 pb-10 pt-12">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           Account
         </p>
-        <h1 className="mt-1 text-[34px] font-bold leading-tight">Profile</h1>
+        <h1 className="mb-5 mt-1 text-[28px] font-bold leading-tight">Profile</h1>
 
-        <Card className="mt-6 p-0">
-          {rows.map((row, i) => (
-            <div
-              key={row.label}
-              className={`flex items-center justify-between p-4 ${i > 0 ? "hairline-t" : ""}`}
-            >
-              <span className="text-[15px] text-secondary">{row.label}</span>
-              <span className="text-[15px] font-medium">{row.value}</span>
-            </div>
-          ))}
-        </Card>
-
-        <Button href="/farms" variant="fill" full className="mt-4">
-          Switch Farm
-        </Button>
-        <div className="mt-3">
-          <SignOutButton full />
-        </div>
-
-        <p className="mt-4 text-center text-[12px] text-secondary">
-          Verified Grower status is set in Phase 2 (profiles table).
-        </p>
+        <ProfileClient
+          userId={user.id}
+          email={user.email ?? "—"}
+          role={role}
+          initialName={name}
+          headline={(meta.headline ?? "").toString()}
+          avatarUrl={meta.avatar_url ?? null}
+          isVerified={p?.is_verified ?? false}
+          memberSince={user.created_at}
+        />
       </main>
     </AppShell>
   );

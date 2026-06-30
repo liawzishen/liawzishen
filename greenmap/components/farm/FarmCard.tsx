@@ -19,7 +19,9 @@ export function FarmCard({
     >
       {/* Background thumbnail */}
       <div className="relative h-28 w-full">
-        {farm.background_type === "upload" && farm.background_url ? (
+        {farm.background_url &&
+        (farm.background_type === "upload" ||
+          farm.background_type === "satellite") ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={farm.background_url}

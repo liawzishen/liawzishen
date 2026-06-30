@@ -21,7 +21,7 @@ interface PlantInfo {
   upd: string;
 }
 
-const DOT = "•"; // middle dot, kept as an escape so the source stays ASCII
+const DOT = "\u2022";
 
 const PLANTS: Record<PlantId, PlantInfo> = {
   A: { name: "Tomato A", pct: 92, loc: `Zone A ${DOT} Row 12`, upd: "10 min ago" },
@@ -53,9 +53,9 @@ const KPIS: {
   sub: string;
 }[] = [
   { label: "Total Plants", value: "1,248", sub: "across all zones" },
-  { label: "Healthy", value: "923", color: "#0DB074", dot: "#0DB074", sub: ">= 80% health" },
-  { label: "Needs Attention", value: "214", color: "#F59E0B", dot: "#F59E0B", sub: "50-79% health" },
-  { label: "Critical / Alerts", value: "67", color: "#EF4444", dot: "#EF4444", sub: "< 50% health" },
+  { label: "Healthy (>=80%)", value: "923", color: "#0DB074", dot: "#0DB074", sub: "stable crop health" },
+  { label: "Needs Attention (50-79%)", value: "214", color: "#F59E0B", dot: "#F59E0B", sub: "review soon" },
+  { label: "Critical / Alerts (<50%)", value: "67", color: "#EF4444", dot: "#EF4444", sub: "urgent intervention" },
   { label: "Ready For Harvest", value: "44", color: "#3B82F6", dot: "#3B82F6", sub: "at maturity" },
 ];
 
@@ -210,9 +210,9 @@ export function FarmDashboard() {
   ];
 
   return (
-    <div className={`flex h-screen overflow-hidden font-sans ${t.page}`}>
+    <div className={`fixed inset-0 z-50 flex h-dvh w-screen overflow-hidden font-sans ${t.page}`}>
       {/* ============ SIDEBAR ============ */}
-      <aside className={`flex w-64 shrink-0 flex-col border-r ${t.border} ${t.panel} px-4 py-5`}>
+      <aside className={`flex w-[280px] shrink-0 flex-col border-r ${t.border} ${t.panel} px-4 py-5`}>
         <div className="flex items-center gap-3 px-1">
           <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#1E434A] text-[#0DB074]">
             <svg {...svg} width={22} height={22}>
@@ -239,8 +239,10 @@ export function FarmDashboard() {
               </svg>
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[12.5px] font-semibold">Sunway Smart Agro-Tech</span>
-              <span className="block text-[11px] text-slate-400">{zone}</span>
+              <span className="block truncate text-[12px] font-semibold">
+                Sunway Smart Agro-Tech {DOT} {zone}
+              </span>
+              <span className="block text-[11px] text-slate-400">Location switcher</span>
             </span>
             <svg {...svg} width={16} height={16} className="text-slate-400">
               <path d="m6 9 6 6 6-6" />
@@ -467,16 +469,13 @@ export function FarmDashboard() {
             {sel && selStatus && (
               <>
                 <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      Plant Node
-                    </p>
-                    <h3 className="text-[19px] font-bold leading-tight">{sel.name}</h3>
-                  </div>
+                  <h3 className="text-[19px] font-bold leading-tight">{sel.name}</h3>
                   <button
                     onClick={() => setSelected(null)}
                     aria-label="Close"
-                    className="grid h-7 w-7 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-[#1E434A] dark:hover:bg-white/10"
+                    className={`grid h-7 w-7 place-items-center rounded-lg text-slate-400 transition ${
+                      dark ? "hover:bg-white/10 hover:text-white" : "hover:bg-slate-100 hover:text-[#1E434A]"
+                    }`}
                   >
                     <svg {...svg} width={16} height={16} strokeWidth={2.2}>
                       <path d="M18 6 6 18M6 6l12 12" />
@@ -493,7 +492,7 @@ export function FarmDashboard() {
                   </span>
                 </div>
 
-                <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+                <div className={`mt-3 h-2 w-full overflow-hidden rounded-full ${dark ? "bg-white/10" : "bg-slate-100"}`}>
                   <div
                     className="h-full rounded-full transition-all"
                     style={{ width: `${sel.pct}%`, background: selStatus.color }}
@@ -506,8 +505,8 @@ export function FarmDashboard() {
                     <dd className="text-[12.5px] font-semibold">{sel.loc}</dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt className="text-[12.5px] text-slate-400">Last updated</dt>
-                    <dd className="text-[12.5px] font-semibold">{sel.upd}</dd>
+                    <dt className="text-[12.5px] text-slate-400">Timestamp</dt>
+                    <dd className="text-[12.5px] font-semibold">Last updated: {sel.upd}</dd>
                   </div>
                 </dl>
 
@@ -519,7 +518,9 @@ export function FarmDashboard() {
                 </button>
                 <button
                   onClick={() => setSelected(null)}
-                  className="mt-2 w-full py-2 text-[13px] font-medium text-slate-400 transition hover:text-[#1E434A] dark:hover:text-white"
+                  className={`mt-2 w-full py-2 text-[13px] font-medium text-slate-400 transition ${
+                    dark ? "hover:text-white" : "hover:text-[#1E434A]"
+                  }`}
                 >
                   Dismiss
                 </button>

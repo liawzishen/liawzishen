@@ -71,7 +71,11 @@ export function FarmMapCanvas({
   }, [CANVAS_W, CANVAS_H]);
 
   useEffect(() => {
-    if (farm.background_type === "upload" && farm.background_url) {
+    if (
+      farm.background_url &&
+      (farm.background_type === "upload" ||
+        farm.background_type === "satellite")
+    ) {
       const img = new window.Image();
       img.crossOrigin = "anonymous";
       img.src = farm.background_url;

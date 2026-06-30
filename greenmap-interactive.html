@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenMap — Interactive Prototype (Phase 4)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ BASE DESIGN SYSTEM ============ */
+  :root{
+    --sys-bg:#F5F7F8; --sys-card:#FFFFFF; --sys-label:#11181C; --sys-secondary:#6B7280;
+    --sys-tertiary:#E5E7EB; --sys-fill:#EEF1F2; --brand:#0DB074; --brand-dark:#0A8A5C;
+    --teal:#1E434A; --warning:#F59E0B; --critical:#EF4444; --info:#3B82F6;
+    --font:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  body{ background:#DEE4E5; font-family:var(--font); color:var(--sys-label); padding:0; }
+
+  .screen-label{ font-size:12px; font-weight:600; color:#2a2a2a; display:flex; align-items:center; gap:8px; }
+  .screen-label .num{ background:var(--brand); color:white; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; }
+
+  .iphone{ width:393px; height:852px; background:var(--sys-bg); border-radius:56px; overflow:hidden; position:relative; box-shadow:0 22px 60px rgba(16,40,46,0.16), inset 0 0 0 9px #0b0b0d, inset 0 0 0 12px #26272b; }
+  .safe-top{ height:54px; width:100%; position:relative; }
+  .safe-top::after{ content:""; position:absolute; top:13px; left:50%; transform:translateX(-50%); width:112px; height:33px; background:#0b0b0d; border-radius:20px; box-shadow:inset -6px 0 0 -3px #1c1c1f; }
+  .scroll{ height:100%; overflow-y:auto; padding-bottom:110px; }
+  .scroll::-webkit-scrollbar{ display:none; }
+  .scroll.no-tab{ padding-bottom:24px; }
+
+  .ios-header{ padding:8px 24px; display:flex; justify-content:space-between; align-items:flex-end; }
+  .eyebrow{ font-size:12px; font-weight:600; color:var(--sys-secondary); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+  .large-title{ font-size:32px; font-weight:700; letter-spacing:-0.02em; color:var(--teal); font-family:'Plus Jakarta Sans',sans-serif; }
+  .avatar{ width:40px; height:40px; border-radius:20px; background:#D1D9DA; display:flex; align-items:center; justify-content:center; font-size:18px; }
+
+  .card{ background:var(--sys-card); border-radius:20px; box-shadow:0 4px 14px rgba(16,40,46,0.05); transition:box-shadow .2s, transform .2s; }
+  .section{ padding:0 24px; margin-top:24px; }
+  .section-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .section-title{ font-size:13px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:var(--sys-secondary); }
+  .section-link{ font-size:14px; color:var(--brand); font-weight:600; text-decoration:none; }
+
+  .btn{ width:100%; min-height:48px; height:50px; border:none; border-radius:14px; font-family:var(--font); font-size:17px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:transform .12s, filter .15s, box-shadow .18s; }
+  .btn:hover{ filter:brightness(1.03); }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{ background:var(--brand); color:white; }
+  .btn-primary:hover{ box-shadow:0 10px 22px rgba(13,176,116,0.28); }
+  .btn-fill{ background:var(--sys-fill); color:var(--sys-label); }
+
+  .field{ width:100%; min-height:48px; height:48px; background:var(--sys-fill); border:1px solid var(--sys-tertiary); border-radius:12px; padding:0 16px; font-family:var(--font); font-size:16px; color:var(--sys-label); }
+  .field::placeholder{ color:var(--sys-secondary); }
+  .field-label{ font-size:12px; font-weight:600; color:var(--sys-secondary); margin:0 0 6px 4px; display:block; letter-spacing:0.03em; }
+
+  .list{ background:var(--sys-card); border-radius:20px; overflow:hidden; box-shadow:0 4px 14px rgba(16,40,46,0.05); }
+  .list-item{ display:flex; align-items:center; min-height:52px; padding:14px 16px; border-bottom:0.5px solid var(--sys-tertiary); transition:background .15s; }
+  .list-item:last-child{ border-bottom:none; }
+  .list-item[data-go]:hover{ background:rgba(13,176,116,0.045); }
+  .list-icon{ width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-right:14px; font-size:18px; flex-shrink:0; }
+  .list-body{ flex:1; min-width:0; }
+  .list-title{ font-size:15px; font-weight:500; margin-bottom:2px; }
+  .list-sub{ font-size:13px; color:var(--sys-secondary); }
+  .chevron{ color:var(--sys-tertiary); font-weight:600; font-size:18px; }
+
+  .stat{ background:var(--sys-card); border-radius:16px; padding:12px 8px; text-align:center; box-shadow:0 4px 14px rgba(16,40,46,0.05); }
+  .stat .v{ font-size:22px; font-weight:700; line-height:1; font-family:'Plus Jakarta Sans',sans-serif; }
+  .stat .l{ font-size:11px; color:var(--sys-secondary); margin-top:5px; line-height:1.1; }
+
+  .kpi{ min-width:124px; width:124px; background:var(--sys-card); border-radius:16px; padding:13px; box-shadow:0 4px 14px rgba(16,40,46,0.05); flex-shrink:0; }
+  .kpi .ic{ width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; }
+  .kpi .v{ font-size:22px; font-weight:700; margin-top:10px; line-height:1; font-family:'Plus Jakarta Sans',sans-serif; }
+  .kpi .l{ font-size:11px; font-weight:500; color:var(--sys-secondary); margin-top:5px; line-height:1.1; }
+
+  .pin{ position:absolute; width:34px; height:34px; background:var(--sys-card); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:'Plus Jakarta Sans',sans-serif; box-shadow:0 4px 12px rgba(0,0,0,0.18); border:3px solid var(--brand); transform:translate(-50%,-50%); transition:transform .14s, box-shadow .14s; }
+  .pin:hover{ transform:translate(-50%,-50%) scale(1.12); box-shadow:0 8px 20px rgba(0,0,0,.22); z-index:5; }
+  .pin.sel{ transform:translate(-50%,-50%) scale(1.18); box-shadow:0 0 0 4px rgba(13,176,116,.28), 0 8px 20px rgba(0,0,0,.22); z-index:6; }
+  .pin.healthy{ border-color:var(--brand); color:var(--brand-dark); }
+  .pin.attention{ border-color:var(--warning); color:#B45309; }
+  .pin.critical{ border-color:var(--critical); color:var(--critical); }
+  .pin.newp{ border-color:var(--sys-tertiary); color:var(--sys-secondary); }
+  .farmbg{ background:#CAD8CF; background-image:radial-gradient(#B2C6B8 18%,transparent 18%); background-size:18px 18px; }
+
+  .tabbar{ position:absolute; bottom:0; width:100%; height:88px; background:rgba(255,255,255,0.86); backdrop-filter:blur(25px); -webkit-backdrop-filter:blur(25px); border-top:0.5px solid rgba(0,0,0,0.08); display:flex; justify-content:space-around; padding:12px 16px 32px; }
+  .tab{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; min-width:44px; min-height:44px; color:var(--sys-secondary); text-decoration:none; font-size:10px; font-weight:500; cursor:pointer; }
+  .tab.active{ color:var(--brand); }
+  .tab .ti{ font-size:22px; }
+  .tab .fab{ background:var(--brand); color:white; width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-top:-16px; font-size:20px; box-shadow:0 8px 16px rgba(13,176,116,0.35); }
+
+  .badge{ display:inline-flex; align-items:center; gap:4px; padding:5px 11px; border-radius:999px; font-size:12px; font-weight:600; line-height:1; border:1px solid transparent; }
+  .b-healthy,.badge.ok{ background:#E7F7F0; color:#0A8A5C; border-color:rgba(13,176,116,.22); }
+  .b-attention{ background:#FEF3E2; color:#B45309; border-color:rgba(245,158,11,.26); }
+  .b-critical{ background:#FDECEC; color:#B91C1C; border-color:rgba(239,68,68,.22); }
+  .b-completed{ background:#E7F7F0; color:#0A8A5C; }
+  .b-pending{ background:#FEF3E2; color:#B45309; }
+  .b-overdue{ background:#FDECEC; color:#B91C1C; }
+  .b-ai,.b-info{ background:#EAF1FE; color:#1D4ED8; border-color:rgba(59,130,246,.22); }
+  .b-manual{ background:#EEF1F2; color:#374151; border-color:var(--sys-tertiary); }
+  .badge.preview{ background:#FEF3E2; color:#B45309; }
+
+  .nav-bar{ padding:10px 16px; display:flex; align-items:center; gap:6px; font-size:17px; color:var(--brand); font-weight:500; cursor:pointer; }
+  .progress{ display:flex; gap:6px; margin:8px 0 16px; }
+  .progress span{ flex:1; height:4px; border-radius:2px; background:var(--sys-tertiary); }
+  .progress span.on{ background:var(--brand); }
+  .sticky-cta{ position:absolute; bottom:0; left:0; right:0; padding:12px 24px 32px; background:linear-gradient(transparent,var(--sys-bg) 25%); }
+
+  /* ============ INTERACTIVE SHELL ============ */
+  .topbar{ position:fixed; top:0; left:0; right:0; height:56px; background:rgba(255,255,255,0.9); backdrop-filter:blur(20px); border-bottom:0.5px solid rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:space-between; padding:0 20px; z-index:1000; }
+  .topbar .brand{ font-weight:800; font-size:17px; color:var(--teal); font-family:'Plus Jakarta Sans',sans-serif; }
+  .topbar .brand span{ color:var(--brand); }
+  .seg{ display:flex; background:#E6E9EA; border-radius:9px; padding:2px; }
+  .seg button{ border:none; background:transparent; padding:7px 14px; border-radius:7px; font-family:var(--font); font-size:13.5px; font-weight:600; color:var(--sys-secondary); cursor:pointer; }
+  .seg button.on{ background:white; color:var(--sys-label); box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .app-body{ padding-top:56px; }
+
+  .grid-mode{ max-width:1340px; margin:0 auto; padding:32px 20px; display:flex; flex-wrap:wrap; gap:30px; }
+  .grid-mode .screen-card{ display:flex; flex-direction:column; gap:10px; cursor:pointer; transition:transform .15s; }
+  .grid-mode .screen-card:hover{ transform:translateY(-4px); }
+  .grid-mode .screen-card:hover .iphone{ box-shadow:0 22px 60px rgba(13,176,116,0.25); }
+
+  .play-mode{ display:flex; flex-direction:column; align-items:center; padding:32px 20px 60px; min-height:calc(100vh - 56px); }
+  .play-mode .screen-card{ display:none; }
+  .play-mode .screen-card.active{ display:block; }
+  .play-mode .screen-label{ display:none; }
+  .play-nav{ display:flex; gap:12px; margin-top:20px; align-items:center; }
+  .play-nav button{ border:none; background:white; border-radius:10px; padding:10px 18px; font-family:var(--font); font-weight:600; font-size:14px; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,0.08); color:var(--sys-label); }
+  .play-nav button:disabled{ opacity:0.4; cursor:default; }
+  .play-nav .cur{ font-size:13px; color:#555; min-width:200px; text-align:center; }
+  [data-go]{ cursor:pointer; transition:transform .12s; }
+  [data-go]:active{ transform:scale(0.985); }
+  .jump{ position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,0.82); color:white; border-radius:14px; padding:8px; display:none; gap:4px; z-index:1000; max-width:92vw; overflow-x:auto; }
+  .jump button{ border:none; background:transparent; color:white; font-size:11px; padding:6px 10px; border-radius:8px; cursor:pointer; white-space:nowrap; }
+  .jump button.on{ background:var(--brand); }
+
+  /* ============ DESKTOP SaaS DASHBOARD ============ */
+  .mode-view{ display:none; }
+  .mode-view.on{ display:block; }
+  .gm-app{ display:grid; grid-template-columns:248px 1fr; min-height:calc(100vh - 56px); background:var(--sys-bg); }
+  .gm-side{ background:var(--teal); padding:20px 14px; display:flex; flex-direction:column; gap:3px; position:sticky; top:56px; height:calc(100vh - 56px); }
+  .gm-side .logo{ font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:19px; color:#fff; padding:6px 10px 18px; display:flex; align-items:center; gap:8px; }
+  .gm-nav{ display:flex; align-items:center; gap:12px; padding:11px 12px; border-radius:12px; color:#A9C4C2; font-size:14px; font-weight:600; cursor:pointer; min-height:44px; transition:background .15s, color .15s; }
+  .gm-nav svg{ width:19px; height:19px; flex-shrink:0; }
+  .gm-nav:hover{ background:rgba(255,255,255,0.07); color:#fff; }
+  .gm-nav.active{ background:var(--brand); color:#fff; }
+  .gm-side .sp{ flex:1; }
+  .gm-user{ display:flex; align-items:center; gap:10px; padding:10px; border-radius:14px; background:rgba(255,255,255,0.06); color:#fff; }
+  .gm-user .av{ width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.16); display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+  .gm-main{ padding:26px 30px 60px; max-width:1320px; }
+  .gm-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
+  .gm-head h1{ font-family:'Plus Jakarta Sans',sans-serif; font-size:28px; color:var(--teal); font-weight:800; }
+  .gm-head .sub{ color:var(--sys-secondary); font-size:14px; margin-top:3px; }
+  .gm-kpis{ display:grid; grid-template-columns:repeat(5,1fr); gap:16px; margin-bottom:22px; }
+  .gm-kpi{ background:var(--sys-card); border:1px solid var(--sys-tertiary); border-radius:20px; padding:18px; box-shadow:0 4px 14px rgba(16,40,46,0.05); transition:transform .18s, box-shadow .18s; }
+  .gm-kpi:hover{ transform:translateY(-3px); box-shadow:0 10px 28px rgba(16,40,46,0.09); }
+  .gm-kpi .ic{ width:36px; height:36px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; }
+  .gm-kpi .v{ font-family:'Plus Jakarta Sans',sans-serif; font-size:30px; font-weight:800; margin-top:12px; line-height:1; }
+  .gm-kpi .l{ font-size:12.5px; color:var(--sys-secondary); margin-top:5px; font-weight:500; }
+  .gm-grid{ display:grid; grid-template-columns:1.55fr 1fr; gap:20px; align-items:start; }
+  .gm-card{ background:var(--sys-card); border:1px solid var(--sys-tertiary); border-radius:24px; box-shadow:0 4px 14px rgba(16,40,46,0.05); overflow:hidden; }
+  .gm-card .hd{ display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--sys-tertiary); }
+  .gm-card .hd h3{ font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; color:var(--teal); font-weight:700; }
+  .gm-card .hd a{ font-size:13px; color:var(--brand); font-weight:600; text-decoration:none; cursor:pointer; }
+  .gm-card .bd{ padding:16px 20px; }
+  .gm-row{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--sys-tertiary); }
+  .gm-row:last-child{ border-bottom:none; }
+  .gm-ic{ width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; }
+  .gm-mapwrap{ position:relative; height:380px; overflow:hidden; }
+  .gm-mapinner{ position:absolute; inset:0; transform-origin:center; transition:transform .22s; }
+  .gm-add{ position:absolute; left:14px; top:14px; z-index:3; background:var(--brand); color:#fff; border:none; border-radius:11px; padding:10px 14px; font-family:var(--font); font-weight:700; font-size:13px; cursor:pointer; box-shadow:0 6px 16px rgba(13,176,116,.32); display:flex; gap:6px; align-items:center; }
+  .gm-add:active{ transform:scale(.97); }
+  .gm-zoom{ position:absolute; right:14px; bottom:14px; z-index:3; display:flex; flex-direction:column; background:var(--sys-card); border:1px solid var(--sys-tertiary); border-radius:12px; overflow:hidden; box-shadow:0 4px 14px rgba(16,40,46,0.05); }
+  .gm-zoom button{ width:40px; height:40px; border:none; background:transparent; font-size:20px; cursor:pointer; color:var(--teal); }
+  .gm-zoom button:first-child{ border-bottom:1px solid var(--sys-tertiary); }
+  .gm-legend{ position:absolute; left:14px; bottom:14px; z-index:3; display:flex; gap:10px; background:rgba(255,255,255,.92); border:1px solid var(--sys-tertiary); border-radius:10px; padding:7px 11px; font-size:11px; font-weight:600; color:var(--sys-secondary); }
+  .gm-legend span{ display:flex; align-items:center; gap:5px; }
+  .gm-legend i{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .gm-panel{ position:absolute; right:0; top:0; bottom:0; width:264px; background:rgba(255,255,255,.97); backdrop-filter:blur(10px); border-left:1px solid var(--sys-tertiary); padding:20px; transform:translateX(100%); transition:transform .28s; overflow:auto; z-index:4; }
+  .gm-panel.open{ transform:translateX(0); }
+  .gm-panel .x{ position:absolute; right:14px; top:14px; cursor:pointer; color:var(--sys-secondary); font-size:20px; }
+  @media (max-width:1100px){ .gm-kpis{ grid-template-columns:repeat(3,1fr); } .gm-grid{ grid-template-columns:1fr; } }
+  @media (max-width:860px){ .gm-app{ grid-template-columns:1fr; } .gm-side{ display:none; } .gm-main{ padding:18px 16px 90px; } .gm-mobnav{ display:flex; } .gm-kpis{ grid-template-columns:repeat(2,1fr); } .gm-panel{ width:100%; } }
+  .gm-mobnav{ display:none; position:fixed; bottom:0; left:0; right:0; height:64px; background:rgba(255,255,255,.94); backdrop-filter:blur(18px); border-top:1px solid var(--sys-tertiary); justify-content:space-around; align-items:center; z-index:900; }
+  .gm-mobnav a{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:10px; color:var(--sys-secondary); min-width:44px; min-height:44px; cursor:pointer; font-weight:600; }
+  .gm-mobnav a.active{ color:var(--brand); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">🌱 Green<span>Map</span> — Prototype · Phase 4</div>
+  <div class="seg">
+    <button id="btnDesk" onclick="setMode('desktop')">🖥 Desktop App</button>
+    <button id="btnGrid" class="on" onclick="setMode('grid')">📱 Mobile Screens</button>
+    <button id="btnPlay" onclick="setMode('play')">▶ Play</button>
+  </div>
+</div>
+<div class="app-body">
+
+  <!-- ════════ DESKTOP SaaS DASHBOARD VIEW ════════ -->
+  <div id="deskView" class="mode-view">
+    <div class="gm-app">
+      <aside class="gm-side">
+        <div class="logo">🌱 GreenMap</div>
+        <div class="gm-nav active" data-route="Farm Dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg> Home</div>
+        <div class="gm-nav" data-route="Farm Map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 4-6 3v13l6-3 6 3 6-3V4l-6 3-6-3Z"/><path d="M9 4v13M15 7v13"/></svg> Farm Map</div>
+        <div class="gm-nav" data-route="AI Scan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.6 4.4L18 10l-4.4 1.6L12 16l-1.6-4.4L6 10l4.4-1.6L12 4Z"/></svg> AI Scan</div>
+        <div class="gm-nav" data-route="Records"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9.5 4h5v2.5h-5z"/><path d="M9 11h6M9 15h4"/></svg> Records</div>
+        <div class="gm-nav" data-route="Tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/></svg> Tasks</div>
+        <div class="gm-nav" data-route="Analytics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10M12 21V4M19 21v-8M3 21h18"/></svg> Analytics</div>
+        <div class="gm-nav" data-route="Profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4 3.8-6 7.5-6s7.5 2 7.5 6"/></svg> Profile</div>
+        <div class="sp"></div>
+        <div class="gm-user"><div class="av">👨🏽‍🌾</div><div style="line-height:1.25;min-width:0;"><div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Ahmad bin Abdullah</div><div style="font-size:11px;color:#A9C4C2;">✓ Verified Grower</div></div></div>
+      </aside>
+
+      <main class="gm-main">
+        <div class="gm-head">
+          <div>
+            <h1 id="gmTitle">Farm Dashboard</h1>
+            <div class="sub" id="gmSub">Ladang Hijau · Johor · Saturday, 20 June 2026</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <span class="badge b-healthy">● Live</span>
+            <button class="btn btn-primary" style="width:auto;padding:0 18px;min-height:44px;height:44px;font-size:14px;">✨ New AI Scan</button>
+          </div>
+        </div>
+
+        <div class="gm-kpis">
+          <div class="gm-kpi"><div class="ic" style="background:rgba(30,67,74,.1);color:var(--teal);">🌿</div><div class="v" style="color:var(--teal);">24</div><div class="l">Total Plants</div></div>
+          <div class="gm-kpi"><div class="ic" style="background:#E7F7F0;color:#0A8A5C;">✓</div><div class="v" style="color:var(--brand);">18</div><div class="l">Healthy</div></div>
+          <div class="gm-kpi"><div class="ic" style="background:#FEF3E2;color:#B45309;">!</div><div class="v" style="color:var(--warning);">5</div><div class="l">Needs Attention</div></div>
+          <div class="gm-kpi"><div class="ic" style="background:#FDECEC;color:#B91C1C;">⚠</div><div class="v" style="color:var(--critical);">1</div><div class="l">Critical</div></div>
+          <div class="gm-kpi"><div class="ic" style="background:#EAF1FE;color:#1D4ED8;">📦</div><div class="v" style="color:var(--info);">3</div><div class="l">Ready to Harvest</div></div>
+        </div>
+
+        <div class="gm-grid">
+          <div class="gm-card">
+            <div class="hd"><h3>Farm Map · Zone A</h3><a data-go="field">Open full map ›</a></div>
+            <div class="gm-mapwrap" id="gmMapWrap">
+              <button class="gm-add" id="gmAdd">＋ Add Plant</button>
+              <div class="gm-mapinner farmbg" id="gmMapInner">
+                <div class="pin healthy"   style="left:24%;top:22%;" data-name="Tomato A" data-score="92" data-zone="Zone A · Row 12" data-status="healthy"   data-note="Watered 2h ago">92</div>
+                <div class="pin healthy"   style="left:60%;top:28%;" data-name="Tomato C" data-score="88" data-zone="Zone B · Row 3"  data-status="healthy"   data-note="Healthy &amp; fruiting">88</div>
+                <div class="pin attention" style="left:40%;top:50%;" data-name="Tomato B" data-score="61" data-zone="Zone A · Row 8"  data-status="attention" data-note="Soil moisture low">61</div>
+                <div class="pin attention" style="left:78%;top:44%;" data-name="Chili B"  data-score="55" data-zone="Zone B · Row 7"  data-status="attention" data-note="Fertilizer due">55</div>
+                <div class="pin critical"  style="left:30%;top:72%;" data-name="Lettuce C" data-score="34" data-zone="Zone C · Row 15" data-status="critical"  data-note="Check irrigation now">34</div>
+                <div class="pin healthy"   style="left:66%;top:74%;" data-name="Tomato D" data-score="79" data-zone="Zone B · Row 9"  data-status="healthy"   data-note="Healthy">79</div>
+              </div>
+              <div class="gm-legend"><span><i style="background:var(--brand)"></i>Healthy</span><span><i style="background:var(--warning)"></i>Attention</span><span><i style="background:var(--critical)"></i>Critical</span></div>
+              <div class="gm-zoom"><button data-zoom="in" aria-label="Zoom in">＋</button><button data-zoom="out" aria-label="Zoom out">−</button></div>
+              <div class="gm-panel" id="gmPanel"><span class="x" data-panel="close">✕</span><div id="gmPanelBody"></div></div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:20px;">
+            <div class="gm-card">
+              <div class="hd"><h3>Today's Tasks</h3><span class="badge b-pending">5 to do</span></div>
+              <div class="bd" style="padding-top:4px;padding-bottom:4px;">
+                <div class="gm-row"><div class="gm-ic" style="background:#E7F7F0;">🧺</div><div style="flex:1;"><div style="font-weight:600;font-size:14px;">Harvest 3 plants</div><div style="font-size:12px;color:var(--sys-secondary);">Zone A · ready now</div></div><span class="badge b-completed">Ready</span></div>
+                <div class="gm-row"><div class="gm-ic" style="background:#EAF1FE;">💧</div><div style="flex:1;"><div style="font-weight:600;font-size:14px;">Water 4 plants</div><div style="font-size:12px;color:var(--sys-secondary);">Last watered 3d ago</div></div><span class="badge b-pending">Due</span></div>
+                <div class="gm-row"><div class="gm-ic" style="background:#FEF3E2;">🌿</div><div style="flex:1;"><div style="font-weight:600;font-size:14px;">Fertilize 2 plants</div><div style="font-size:12px;color:var(--sys-secondary);">Chili B · 48h overdue</div></div><span class="badge b-overdue">Overdue</span></div>
+              </div>
+            </div>
+            <div class="gm-card">
+              <div class="hd"><h3>7-Day Health Trend</h3><span class="badge b-healthy">▲ +6%</span></div>
+              <div class="bd">
+                <svg viewBox="0 0 320 96" preserveAspectRatio="xMidYMid meet" style="width:100%;height:auto;display:block;">
+                  <defs><linearGradient id="gmTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0DB074" stop-opacity=".22"/><stop offset="1" stop-color="#0DB074" stop-opacity="0"/></linearGradient></defs>
+                  <path d="M0,70 L53,64 L106,68 L160,48 L213,40 L266,33 L320,22 L320,96 L0,96 Z" fill="url(#gmTrend)"/>
+                  <path d="M0,70 L53,64 L106,68 L160,48 L213,40 L266,33 L320,22" fill="none" stroke="#0DB074" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="320" cy="22" r="4" fill="#0DB074"/>
+                </svg>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sys-secondary);margin-top:8px;"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="gm-card" style="margin-top:20px;">
+          <div class="hd"><h3>Recent Activity</h3><a data-go="activity">View all ›</a></div>
+          <div class="bd" style="padding-top:4px;padding-bottom:4px;">
+            <div class="gm-row"><div class="gm-ic" style="background:#EAF1FE;">🔬</div><div style="flex:1;"><div style="font-weight:600;font-size:14px;">Tomato A · AI Scan</div><div style="font-size:12px;color:var(--sys-secondary);">Nitrogen deficiency detected</div></div><span class="badge b-ai">AI · 86%</span></div>
+            <div class="gm-row"><div class="gm-ic" style="background:#EAF1FE;">💧</div><div style="flex:1;"><div style="font-weight:600;font-size:14px;">Chili B · Watered</div><div style="font-size:12px;color:var(--sys-secondary);">Morning watering logged</div></div><span class="badge b-manual">Manual</span></div>
+            <div class="gm-row"><div class="gm-ic" style="background:#E7F7F0;">🌿</div><div style="flex:1;"><div style="font-weight:600;font-size:14px;">Tomato C · Fertilized</div><div style="font-size:12px;color:var(--sys-secondary);">NPK 15-15-15, 50g</div></div><span class="badge b-manual">Manual</span></div>
+          </div>
+        </div>
+      </main>
+    </div>
+    <div class="gm-mobnav">
+      <a class="active" data-route="Farm Dashboard">🏠<span>Home</span></a>
+      <a data-route="Farm Map">🗺️<span>Map</span></a>
+      <a data-route="AI Scan">✨<span>Scan</span></a>
+      <a data-route="Tasks">📋<span>Tasks</span></a>
+      <a data-route="Profile">👤<span>Profile</span></a>
+    </div>
+  </div>
+
+  <div id="stage" class="grid-mode">
+
+    <!-- 1 · LANDING -->
+    <div class="screen-card" data-slug="landing" data-idx="0">
+      <div class="screen-label"><span class="num">1</span> Landing · /</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 22px;">
+          <div style="font-size:18px;font-weight:700;color:var(--teal);">🌱 GreenMap</div>
+          <div style="font-size:15px;color:var(--brand);font-weight:600;" data-go="auth">Log In</div>
+        </div>
+        <div class="eyebrow" style="color:var(--brand-dark);">From seed to table</div>
+        <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:33px;font-weight:800;letter-spacing:-0.02em;line-height:1.12;margin-top:8px;color:var(--teal);">Every step recorded, every plant verified, every harvest trusted.</h1>
+        <p style="font-size:16px;color:var(--sys-secondary);line-height:1.45;margin-top:14px;">AI-powered farm management and harvest transparency for Malaysian smallholder farmers.</p>
+        <button class="btn btn-primary" style="margin-top:22px;" data-go="auth">Get Started</button>
+        <div class="farmbg" style="border-radius:24px;height:170px;position:relative;overflow:hidden;margin-top:24px;">
+          <div class="pin healthy" style="top:32%;left:18%;">92</div>
+          <div class="pin healthy" style="top:22%;left:56%;">88</div>
+          <div class="pin attention" style="top:60%;left:72%;">61</div>
+          <div class="pin critical" style="top:70%;left:34%;">34</div>
+        </div>
+        <div class="list" style="margin-top:22px;">
+          <div class="list-item"><div class="list-icon" style="background:#E7F7F0;">🌿</div><div class="list-body"><div class="list-title">Visibility</div><div class="list-sub">See your entire farm at a glance from bird's-eye view</div></div></div>
+          <div class="list-item"><div class="list-icon" style="background:#EAF1FE;">🤖</div><div class="list-body"><div class="list-title">Intelligence</div><div class="list-sub">AI analyses plant health and gives you a diagnosis</div></div></div>
+          <div class="list-item"><div class="list-icon" style="background:#E7F7F0;">🔍</div><div class="list-body"><div class="list-title">Transparency</div><div class="list-sub">Every plant has a traceable journey from seed to harvest</div></div></div>
+        </div>
+        <div class="section-title" style="margin:24px 0 12px;">How it works</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="card" style="display:flex;align-items:center;gap:12px;padding:14px;"><span style="width:28px;height:28px;border-radius:50%;background:var(--brand);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">1</span><span style="font-size:15px;font-weight:500;">Set up your farm map</span></div>
+          <div class="card" style="display:flex;align-items:center;gap:12px;padding:14px;"><span style="width:28px;height:28px;border-radius:50%;background:var(--brand);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">2</span><span style="font-size:15px;font-weight:500;">Record every plant's journey</span></div>
+          <div class="card" style="display:flex;align-items:center;gap:12px;padding:14px;"><span style="width:28px;height:28px;border-radius:50%;background:var(--brand);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;">3</span><span style="font-size:15px;font-weight:500;">Consumer scans QR to see the full story</span></div>
+        </div>
+        <p style="text-align:center;font-size:12px;color:var(--sys-secondary);margin-top:22px;">GreenMap · From seed to table<br>Codex Community Hackathon KL 2026 · AI for Malaysia 🇲🇾</p>
+      </div>
+      </div>
+    </div>
+
+    <!-- 2 · REGISTER / LOGIN -->
+    <div class="screen-card" data-slug="auth" data-idx="1">
+      <div class="screen-label"><span class="num">2</span> Register / Login · /auth</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div style="text-align:center;margin:4px 0 6px;"><span style="font-size:15px;font-weight:700;color:var(--brand-dark);">🌿 GreenMap</span></div>
+        <div style="height:74px;display:flex;align-items:flex-end;justify-content:center;gap:6px;margin-bottom:6px;">
+          <span style="font-size:42px;">🌻</span><span style="font-size:30px;opacity:.85;">🌻</span><span style="font-size:22px;opacity:.6;">🌱</span>
+        </div>
+        <div class="card" style="padding:22px;">
+          <h1 style="font-family:'Plus Jakarta Sans',sans-serif;text-align:center;font-size:25px;font-weight:800;color:var(--teal);">Create your account</h1>
+          <p style="text-align:center;font-size:14px;color:var(--sys-secondary);margin-top:4px;">Map your farm, track every plant, earn consumer trust.</p>
+          <div style="display:flex;background:var(--sys-fill);border-radius:10px;padding:2px;margin:18px 0;">
+            <div style="flex:1;background:white;border-radius:8px;padding:8px;text-align:center;font-size:14px;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.1);">Register</div>
+            <div style="flex:1;padding:8px;text-align:center;font-size:14px;font-weight:500;color:var(--sys-secondary);" data-go="farms">Sign In</div>
+          </div>
+          <div class="field-label">I AM A…</div>
+          <div style="display:flex;gap:12px;margin-bottom:16px;">
+            <div style="flex:1;background:rgba(13,176,116,0.1);border:2px solid var(--brand);border-radius:14px;padding:12px;"><div style="font-size:24px;">🌾</div><div style="font-weight:600;font-size:14px;margin-top:6px;">Grower ✓</div><div style="font-size:12px;color:var(--sys-secondary);">I manage a farm</div></div>
+            <div style="flex:1;background:var(--sys-fill);border:2px solid transparent;border-radius:14px;padding:12px;"><div style="font-size:24px;">🛒</div><div style="font-weight:600;font-size:14px;margin-top:6px;">Consumer</div><div style="font-size:12px;color:var(--sys-secondary);">Know my food's story</div></div>
+          </div>
+          <div class="field-label">FULL NAME</div>
+          <input class="field" placeholder="Ahmad bin Abdullah" style="margin-bottom:12px;">
+          <div class="field-label">EMAIL</div>
+          <input class="field" placeholder="you@example.com" style="margin-bottom:12px;">
+          <div class="field-label">PASSWORD</div>
+          <input class="field" type="password" placeholder="Create a strong password" style="margin-bottom:6px;">
+          <p style="font-size:12px;color:var(--sys-secondary);margin:0 0 16px 4px;">Mix uppercase, lowercase, a number &amp; a symbol (8+) to grow your sunflower 🌻</p>
+          <button class="btn btn-primary" data-go="farms">Create Account</button>
+        </div>
+        <p style="text-align:center;font-size:14px;color:var(--sys-secondary);margin-top:16px;">Already have an account? <span style="color:var(--brand);font-weight:600;" data-go="farms">Sign In</span></p>
+      </div>
+      </div>
+    </div>
+
+    <!-- 3 · FARM SELECTOR -->
+    <div class="screen-card" data-slug="farms" data-idx="2">
+      <div class="screen-label"><span class="num">3</span> Farm Selector · /farms</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll no-tab">
+        <div class="ios-header"><div><div class="eyebrow">Welcome, Ahmad</div><div class="large-title">Your Farms</div></div><div class="avatar">👨🏽‍🌾</div></div>
+        <div class="section" style="margin-top:18px;">
+          <div class="card" style="overflow:hidden;margin-bottom:16px;" data-go="home">
+            <div class="farmbg" style="height:96px;position:relative;">
+              <div class="pin healthy" style="top:34%;left:18%;width:26px;height:26px;">92</div>
+              <div class="pin attention" style="top:58%;left:46%;width:26px;height:26px;">61</div>
+            </div>
+            <div style="padding:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:18px;font-weight:600;">Ladang Hijau</div><span class="chevron">›</span></div>
+              <div style="font-size:14px;color:var(--sys-secondary);margin-top:4px;">📍 Johor · 🍅 Tomato · 24 plants</div>
+            </div>
+          </div>
+          <div class="card" style="overflow:hidden;margin-bottom:16px;" data-go="home">
+            <div class="farmbg" style="height:96px;position:relative;background:#D6D0C8;background-image:radial-gradient(#C6BCB0 18%,transparent 18%);">
+              <div class="pin healthy" style="top:36%;left:22%;width:26px;height:26px;">85</div>
+              <div class="pin critical" style="top:54%;left:58%;width:26px;height:26px;">34</div>
+            </div>
+            <div style="padding:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:18px;font-weight:600;">Kebun Siti</div><span class="chevron">›</span></div>
+              <div style="font-size:14px;color:var(--sys-secondary);margin-top:4px;">📍 Selangor · 🌶️ Chili · 12 plants</div>
+            </div>
+          </div>
+          <button class="btn btn-fill" style="color:var(--brand);" data-go="setup1"><span style="font-size:20px;">+</span> Create New Farm</button>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- 4 · SETUP · PROFILE -->
+    <div class="screen-card" data-slug="setup1" data-idx="3">
+      <div class="screen-label"><span class="num">4</span> Setup · Profile · /farms/new/profile</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="farms">‹ Back</div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div class="progress"><span class="on"></span><span></span><span></span></div>
+        <div class="eyebrow">Step 1 of 3</div>
+        <h1 class="large-title" style="font-size:27px;margin-bottom:20px;">Tell us about<br>your farm</h1>
+        <div class="field-label">FARM NAME</div>
+        <input class="field" placeholder="e.g. Ladang Hijau" style="margin-bottom:16px;">
+        <div class="field-label">LOCATION</div>
+        <input class="field" placeholder="Select state ›" style="margin-bottom:16px;">
+        <div class="field-label">FARM SIZE</div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+          <div style="flex:1;background:rgba(13,176,116,0.1);border:2px solid var(--brand);border-radius:14px;padding:13px 8px;text-align:center;"><div style="font-weight:600;font-size:15px;">Small</div><div style="font-size:11px;color:var(--sys-secondary);">&lt; 2ha</div></div>
+          <div style="flex:1;background:var(--sys-fill);border-radius:14px;padding:13px 8px;text-align:center;"><div style="font-weight:600;font-size:15px;">Medium</div><div style="font-size:11px;color:var(--sys-secondary);">2–5ha</div></div>
+          <div style="flex:1;background:var(--sys-fill);border-radius:14px;padding:13px 8px;text-align:center;"><div style="font-weight:600;font-size:15px;">Large</div><div style="font-size:11px;color:var(--sys-secondary);">5ha+</div></div>
+        </div>
+        <div class="field-label">MAIN CROP</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <div class="badge" style="background:var(--brand);color:white;padding:9px 16px;font-size:14px;">Tomato</div>
+          <div class="badge" style="background:var(--sys-fill);padding:9px 16px;font-size:14px;">Chili</div>
+          <div class="badge" style="background:var(--sys-fill);padding:9px 16px;font-size:14px;">Leafy Veg</div>
+          <div class="badge" style="background:var(--sys-fill);padding:9px 16px;font-size:14px;">Herbs</div>
+          <div class="badge" style="background:var(--sys-fill);padding:9px 16px;font-size:14px;">Mixed</div>
+        </div>
+      </div>
+      <div class="sticky-cta"><button class="btn btn-primary" data-go="setup2">Continue</button></div>
+      </div>
+    </div>
+
+    <!-- 5 · SETUP · MAP -->
+    <div class="screen-card" data-slug="setup2" data-idx="4">
+      <div class="screen-label"><span class="num">5</span> Setup · Map · /farms/new/map</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="setup1">‹ Back</div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div class="progress"><span class="on"></span><span class="on"></span><span></span></div>
+        <div class="eyebrow">Step 2 of 3</div>
+        <h1 class="large-title" style="font-size:27px;margin-bottom:18px;">Map your farm</h1>
+        <div class="list" style="margin-bottom:16px;">
+          <div class="list-item"><div class="list-icon" style="background:#EAF1FE;">🗺️</div><div class="list-body"><div class="list-title">Satellite View</div><div class="list-sub">Mapbox satellite image</div></div><span class="chevron">○</span></div>
+          <div class="list-item"><div class="list-icon" style="background:#FEF3E2;">📷</div><div class="list-body"><div class="list-title">Upload Photo</div><div class="list-sub">Drone or aerial photo</div></div><span class="chevron">○</span></div>
+          <div class="list-item" style="background:rgba(13,176,116,0.07);"><div class="list-icon" style="background:rgba(13,176,116,0.15);">✨</div><div class="list-body"><div class="list-title">Smart Background</div><div class="list-sub">Auto-generated, always works</div></div><span style="color:var(--brand);font-size:18px;">✓</span></div>
+        </div>
+        <div class="farmbg" style="border-radius:20px;height:180px;position:relative;overflow:hidden;">
+          <div class="pin healthy" style="top:28%;left:24%;">92</div>
+          <div class="pin attention" style="top:58%;left:58%;">61</div>
+        </div>
+        <p style="text-align:center;font-size:13px;color:var(--sys-secondary);margin-top:10px;">This will be your farm map background</p>
+      </div>
+      <div class="sticky-cta"><button class="btn btn-primary" data-go="setup3">Confirm Map</button></div>
+      </div>
+    </div>
+
+    <!-- 6 · SETUP · ZONES -->
+    <div class="screen-card" data-slug="setup3" data-idx="5">
+      <div class="screen-label"><span class="num">6</span> Setup · Zones · /farms/new/zones</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="setup2">‹ Back</div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span></div>
+        <div class="eyebrow">Step 3 of 3</div>
+        <h1 class="large-title" style="font-size:27px;margin-bottom:18px;">Almost ready</h1>
+        <div class="card" style="overflow:hidden;margin-bottom:18px;">
+          <div class="farmbg" style="height:90px;"></div>
+          <div style="padding:14px 16px;font-size:14px;color:var(--sys-secondary);">Ladang Hijau · Small · Tomato</div>
+        </div>
+        <p style="font-size:14px;color:var(--sys-secondary);margin-bottom:12px;">Add zones to organise your farm (optional)</p>
+        <div class="list" style="margin-bottom:14px;">
+          <div class="list-item"><span style="width:12px;height:12px;border-radius:50%;background:var(--brand);margin-right:14px;"></span><div class="list-body"><div class="list-title">Tomato Rows</div></div><span class="chevron">✏️</span></div>
+          <div class="list-item"><span style="width:12px;height:12px;border-radius:50%;background:var(--info);margin-right:14px;"></span><div class="list-body"><div class="list-title">Irrigation</div></div><span class="chevron">✏️</span></div>
+        </div>
+        <button class="btn btn-fill" style="color:var(--brand);"><span style="font-size:18px;">+</span> Add Zone</button>
+      </div>
+      <div class="sticky-cta"><button class="btn btn-primary" data-go="home">Enter My Farm</button></div>
+      </div>
+    </div>
+
+    <!-- 7 · HOME / TODAY -->
+    <div class="screen-card" data-slug="home" data-idx="6">
+      <div class="screen-label"><span class="num">7</span> Home · Today · /farms/[id]</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll">
+        <div style="padding:16px 20px 0;">
+          <div class="eyebrow">Saturday, 20 June</div>
+          <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:27px;font-weight:800;color:var(--teal);margin-top:2px;">Hi, Ahmad 👋</h1>
+          <p style="font-size:14px;color:var(--sys-secondary);margin-top:2px;">Ladang Hijau</p>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px;">
+            <div class="stat"><div class="v" style="color:var(--teal);">24</div><div class="l">Plants</div></div>
+            <div class="stat"><div class="v" style="color:var(--brand);">18</div><div class="l">Healthy</div></div>
+            <div class="stat"><div class="v" style="color:var(--warning);">5</div><div class="l">Need Care</div></div>
+            <div class="stat"><div class="v" style="color:var(--info);">3</div><div class="l">Harvest</div></div>
+          </div>
+        </div>
+        <div class="section" style="margin-top:24px;">
+          <div class="section-head"><div class="section-title">Today's Tasks</div><span style="font-size:12px;color:var(--sys-secondary);font-weight:500;">5 to do</span></div>
+          <div class="card" style="margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;"><span style="font-size:18px;">🧺</span><span style="font-size:14px;font-weight:600;flex:1;">Ready to Harvest</span><span class="badge b-completed">3</span><span style="color:var(--sys-tertiary);">▾</span></div>
+            <div style="padding:0 14px 14px;"><div style="display:flex;align-items:center;gap:12px;background:var(--sys-fill);border-radius:12px;padding:12px;" data-go="harvest"><div style="flex:1;"><div style="font-size:14px;font-weight:500;">Tomato A</div><div style="font-size:12px;color:var(--sys-secondary);">Ready since 18 Jun</div></div><span style="font-size:13px;font-weight:600;color:var(--brand);">Harvest ›</span></div></div>
+          </div>
+          <div class="card" style="margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;"><span style="font-size:18px;">💧</span><span style="font-size:14px;font-weight:600;flex:1;">Needs Watering</span><span class="badge b-pending">4</span><button class="badge b-info" style="border:none;cursor:pointer;">Water All</button></div>
+            <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:12px;background:var(--sys-fill);border-radius:12px;padding:12px;"><div style="flex:1;"><div style="font-size:14px;font-weight:500;">Tomato C</div><div style="font-size:12px;color:var(--sys-secondary);">Last watered 3d ago</div></div><span style="width:24px;height:24px;border-radius:50%;border:2px solid var(--sys-tertiary);"></span></div>
+              <div style="display:flex;align-items:center;gap:12px;background:var(--sys-fill);border-radius:12px;padding:12px;"><div style="flex:1;"><div style="font-size:14px;font-weight:500;">Chili B</div><div style="font-size:12px;color:var(--sys-secondary);">Last watered 4d ago</div></div><span style="width:24px;height:24px;border-radius:50%;border:2px solid var(--sys-tertiary);"></span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px;"><span style="font-size:18px;">🌿</span><span style="font-size:14px;font-weight:600;flex:1;">Needs Fertilizing</span><span class="badge b-overdue">2</span><button class="badge b-info" style="border:none;cursor:pointer;">Fertilize All</button></div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title" style="margin-bottom:12px;">Sales</div>
+          <div class="card" style="padding:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:15px;font-weight:600;">Your Harvest, Sold</span><span class="badge b-manual">Coming soon</span></div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px;">
+              <div style="background:var(--sys-fill);border-radius:12px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--sys-secondary);">—</div><div style="font-size:10px;color:var(--sys-secondary);margin-top:2px;">Products Sold</div></div>
+              <div style="background:var(--sys-fill);border-radius:12px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--sys-secondary);">—</div><div style="font-size:10px;color:var(--sys-secondary);margin-top:2px;">Active Listings</div></div>
+              <div style="background:var(--sys-fill);border-radius:12px;padding:12px;text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--sys-secondary);">—</div><div style="font-size:10px;color:var(--sys-secondary);margin-top:2px;">Revenue</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title" style="margin-bottom:12px;">Recent Activity</div>
+          <div class="list">
+            <div class="list-item"><div class="list-icon" style="background:var(--sys-fill);">🔬</div><div class="list-body"><div class="list-title">Tomato A · AI Scan</div><div class="list-sub">Nitrogen deficiency · 86%</div></div><span style="font-size:12px;color:var(--sys-secondary);">2h</span></div>
+            <div class="list-item"><div class="list-icon" style="background:var(--sys-fill);">💧</div><div class="list-body"><div class="list-title">Chili B · Watered</div></div><span style="font-size:12px;color:var(--sys-secondary);">5h</span></div>
+            <div class="list-item"><div class="list-icon" style="background:var(--sys-fill);">🌿</div><div class="list-body"><div class="list-title">Tomato C · Fertilized</div><div class="list-sub">NPK 15-15-15</div></div><span style="font-size:12px;color:var(--sys-secondary);">1d</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar">
+        <a class="tab active"><div class="ti">🏠</div>Home</a><a class="tab"><div class="ti">🗺️</div>Map</a><a class="tab"><div class="fab">✨</div><span style="margin-top:2px;">Scan</span></a><a class="tab"><div class="ti">💰</div>Sales</a><a class="tab"><div class="ti">👤</div>Profile</a>
+      </div>
+      </div>
+    </div>
+
+    <!-- 8 · MAP · MY FARMS -->
+    <div class="screen-card" data-slug="map" data-idx="7">
+      <div class="screen-label"><span class="num">8</span> Map · My Farms · /farms/[id]/map</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll">
+        <div style="padding:16px 20px 0;">
+          <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:27px;font-weight:800;color:var(--teal);">Your Farms</h1>
+          <p style="font-size:14px;color:var(--sys-secondary);margin-top:2px;">2 farms · tap one to open its map</p>
+        </div>
+        <div class="section" style="margin-top:18px;">
+          <div class="card" style="overflow:hidden;margin-bottom:16px;" data-go="field">
+            <div class="farmbg" style="height:120px;position:relative;">
+              <div class="pin healthy" style="top:30%;left:18%;width:26px;height:26px;">92</div>
+              <div class="pin attention" style="top:58%;left:44%;width:26px;height:26px;">61</div>
+              <div class="pin critical" style="top:40%;left:72%;width:26px;height:26px;">34</div>
+            </div>
+            <div style="padding:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:18px;font-weight:600;">Ladang Hijau</div><span class="chevron">›</span></div>
+              <div style="font-size:14px;color:var(--sys-secondary);margin-top:4px;">📍 Johor · 🍅 Tomato · 24 plants</div>
+            </div>
+          </div>
+          <div class="card" style="overflow:hidden;margin-bottom:16px;" data-go="field">
+            <div class="farmbg" style="height:120px;position:relative;background:#D6D0C8;background-image:radial-gradient(#C6BCB0 18%,transparent 18%);">
+              <div class="pin healthy" style="top:36%;left:24%;width:26px;height:26px;">85</div>
+              <div class="pin attention" style="top:56%;left:60%;width:26px;height:26px;">58</div>
+            </div>
+            <div style="padding:16px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:18px;font-weight:600;">Kebun Siti</div><span class="chevron">›</span></div>
+              <div style="font-size:14px;color:var(--sys-secondary);margin-top:4px;">📍 Selangor · 🌶️ Chili · 12 plants</div>
+            </div>
+          </div>
+          <button class="btn btn-fill" style="color:var(--brand);" data-go="setup1"><span style="font-size:18px;">+</span> Create New Farm</button>
+        </div>
+      </div>
+      <div class="tabbar">
+        <a class="tab"><div class="ti">🏠</div>Home</a><a class="tab active"><div class="ti">🗺️</div>Map</a><a class="tab"><div class="fab">✨</div><span style="margin-top:2px;">Scan</span></a><a class="tab"><div class="ti">💰</div>Sales</a><a class="tab"><div class="ti">👤</div>Profile</a>
+      </div>
+      </div>
+    </div>
+
+    <!-- 9 · FIELD VIEW -->
+    <div class="screen-card" data-slug="field" data-idx="8">
+      <div class="screen-label"><span class="num">9</span> Field View · Map + KPIs · /farms/[id]/field</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="map">‹ Ladang Hijau</div>
+      <div class="scroll no-tab">
+        <div style="padding:0 20px;">
+          <p style="font-size:14px;color:var(--sys-secondary);">Tomato · Johor · tap a marker for details</p>
+          <div style="display:flex;overflow-x:auto;gap:12px;margin:16px 0;padding-bottom:2px;">
+            <div class="kpi"><div class="ic" style="background:rgba(30,67,74,.1);color:var(--teal);">🌿</div><div class="v" style="color:var(--teal);">24</div><div class="l">Total Plants</div></div>
+            <div class="kpi"><div class="ic" style="background:#E7F7F0;color:#0A8A5C;">✓</div><div class="v" style="color:var(--brand);">18</div><div class="l">Healthy</div></div>
+            <div class="kpi"><div class="ic" style="background:#FEF3E2;color:#B45309;">!</div><div class="v" style="color:var(--warning);">5</div><div class="l">Needs Attention</div></div>
+            <div class="kpi"><div class="ic" style="background:#FDECEC;color:#B91C1C;">⚠</div><div class="v" style="color:var(--critical);">1</div><div class="l">Critical</div></div>
+            <div class="kpi"><div class="ic" style="background:#EAF1FE;color:#1D4ED8;">📦</div><div class="v" style="color:var(--info);">3</div><div class="l">Ready For Harvest</div></div>
+          </div>
+          <div class="farmbg" style="border-radius:22px;height:430px;position:relative;overflow:hidden;">
+            <span class="badge" style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,0.9);color:var(--teal);font-size:11px;">Zone A · Tomato Rows</span>
+            <div class="pin healthy" style="top:20%;left:24%;" data-go="plant">92</div>
+            <div class="pin healthy" style="top:30%;left:60%;">88</div>
+            <div class="pin attention" style="top:52%;left:38%;">61</div>
+            <div class="pin attention" style="top:46%;left:78%;">55</div>
+            <div class="pin critical" style="top:70%;left:30%;">34</div>
+            <div class="pin healthy" style="top:74%;left:64%;">79</div>
+            <div class="pin newp" style="top:60%;left:14%;">+</div>
+          </div>
+          <p style="text-align:center;font-size:12px;color:var(--sys-secondary);margin-top:10px;">Pinch to zoom · drag to pan · tap + to add a plant</p>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- 10 · PLANT DETAIL -->
+    <div class="screen-card" data-slug="plant" data-idx="9">
+      <div class="screen-label"><span class="num">10</span> Plant Detail · /farms/[id]/plants/[pid]</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="field">‹ Plant Detail</div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:27px;font-weight:800;color:var(--teal);">Tomato A</h1>
+        <p style="font-size:14px;color:var(--sys-secondary);margin-top:2px;">Cherry Tomato · Tomato Rows</p>
+        <div class="card" style="padding:20px;text-align:center;margin-top:18px;">
+          <div class="section-title">Health Score</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:48px;font-weight:800;line-height:1;color:var(--brand);margin-top:4px;">92%</div>
+          <div style="margin-top:8px;"><span class="badge b-healthy">● Healthy</span></div>
+        </div>
+        <div class="card" style="padding:16px;margin-top:16px;background:rgba(59,130,246,0.06);display:flex;gap:14px;">
+          <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✨</div>
+          <div><div style="font-weight:600;font-size:14px;color:var(--info);margin-bottom:3px;">AI Suggestion</div><div style="font-size:14px;line-height:1.4;">Water this evening — soil moisture is dropping below optimal for fruiting tomatoes.</div></div>
+        </div>
+        <div class="card" style="padding:16px;margin-top:16px;">
+          <div class="section-title" style="margin-bottom:8px;">7-Day Trend</div>
+          <svg width="100%" height="70" viewBox="0 0 300 70" preserveAspectRatio="none">
+            <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0DB074" stop-opacity="0.25"/><stop offset="100%" stop-color="#0DB074" stop-opacity="0"/></linearGradient></defs>
+            <path d="M0,34 L50,30 L100,33 L150,22 L200,18 L250,15 L300,10 L300,70 L0,70 Z" fill="url(#g1)"/>
+            <path d="M0,34 L50,30 L100,33 L150,22 L200,18 L250,15 L300,10" fill="none" stroke="#0DB074" stroke-width="2.5"/>
+          </svg>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--sys-secondary);margin-top:4px;"><span>Mon</span><span>Wed</span><span>Fri</span><span>Sun</span></div>
+        </div>
+        <div class="card" style="padding:16px;margin-top:16px;">
+          <div class="section-title" style="margin-bottom:10px;">Set Status</div>
+          <div style="display:flex;gap:8px;">
+            <div class="badge" style="flex:1;justify-content:center;background:var(--brand);color:white;padding:10px;">Healthy</div>
+            <div class="badge" style="flex:1;justify-content:center;background:var(--sys-fill);padding:10px;">Watch</div>
+            <div class="badge" style="flex:1;justify-content:center;background:var(--sys-fill);padding:10px;">Sick</div>
+          </div>
+          <p style="font-size:12px;color:var(--sys-secondary);margin-top:10px;">Your read on the plant — factored into the health score (15%).</p>
+        </div>
+        <div class="list" style="margin-top:16px;">
+          <div class="list-item"><div class="list-body"><div class="list-title">Planted</div></div><span style="font-size:15px;color:var(--sys-secondary);">12 Mar 2026</span></div>
+          <div class="list-item"><div class="list-body"><div class="list-title">Expected Harvest</div></div><span style="font-size:15px;color:var(--sys-secondary);">15 May 2026</span></div>
+          <div class="list-item"><div class="list-body"><div class="list-title">Days Since Planted</div></div><span style="font-size:15px;color:var(--sys-secondary);">65 days</span></div>
+        </div>
+        <div class="section-title" style="margin:18px 0 10px;">Quick Actions</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+          <div style="text-align:center;"><div style="width:58px;height:58px;background:var(--sys-card);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 4px 12px rgba(16,40,46,0.06);margin:0 auto 6px;">💧</div><div style="font-size:12px;color:var(--sys-secondary);">Water</div></div>
+          <div style="text-align:center;"><div style="width:58px;height:58px;background:var(--sys-card);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 4px 12px rgba(16,40,46,0.06);margin:0 auto 6px;">🌿</div><div style="font-size:12px;color:var(--sys-secondary);">Fertilize</div></div>
+          <div style="text-align:center;" data-go="scan"><div style="width:58px;height:58px;background:var(--brand);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 4px 12px rgba(13,176,116,0.3);margin:0 auto 6px;">✨</div><div style="font-size:12px;color:var(--sys-secondary);">AI Scan</div></div>
+          <div style="text-align:center;"><div style="width:58px;height:58px;background:var(--sys-card);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:23px;box-shadow:0 4px 12px rgba(16,40,46,0.06);margin:0 auto 6px;">📝</div><div style="font-size:12px;color:var(--sys-secondary);">Note</div></div>
+        </div>
+        <div class="section-head" style="margin:18px 0 10px;"><div class="section-title">Activity</div><span class="section-link" data-go="activity">View all</span></div>
+        <div class="list">
+          <div class="list-item"><div class="list-icon" style="background:var(--sys-fill);">🔬</div><div class="list-body"><div class="list-title">AI Scan</div><div class="list-sub">Nitrogen deficiency · 86%</div></div><span style="font-size:12px;color:var(--sys-secondary);">2h</span></div>
+          <div class="list-item"><div class="list-icon" style="background:var(--sys-fill);">💧</div><div class="list-body"><div class="list-title">Watered</div><div class="list-sub">Morning watering</div></div><span style="font-size:12px;color:var(--sys-secondary);">1d</span></div>
+        </div>
+        <button class="btn btn-primary" style="margin:18px 0;" data-go="harvest">Mark as Harvested</button>
+      </div>
+      </div>
+    </div>
+
+    <!-- 11 · AI SCAN -->
+    <div class="screen-card" data-slug="scan" data-idx="10">
+      <div class="screen-label"><span class="num">11</span> AI Scan · /farms/[id]/plants/[pid]/scan</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="plant">‹ Tomato A</div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:800;color:var(--teal);">AI Scan</h1>
+        <p style="font-size:14px;color:var(--sys-secondary);margin-top:2px;">Gemini Vision diagnosis</p>
+        <p style="font-size:13px;color:var(--brand);font-weight:600;margin-top:6px;">3 of 5 free scans left this month</p>
+        <div style="height:180px;border-radius:20px;background:linear-gradient(135deg,#7FB069,#C9D86F);position:relative;overflow:hidden;margin-top:16px;">
+          <div style="position:absolute;left:0;right:0;top:50%;height:2px;background:rgba(13,176,116,0.95);box-shadow:0 0 12px #0DB074;"></div>
+          <div style="position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.5);color:white;font-size:11px;padding:4px 10px;border-radius:8px;">Tomato A · Zone A</div>
+        </div>
+        <div class="card" style="padding:20px;margin-top:16px;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:var(--teal);">Nitrogen Deficiency</div>
+          <div style="display:flex;gap:8px;margin:12px 0 16px;">
+            <span class="badge b-ai">86% confidence</span>
+            <span class="badge b-attention">Moderate</span>
+          </div>
+          <div class="section-title" style="margin-bottom:10px;">Recommendations</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;">
+            <div style="display:flex;gap:10px;"><span style="color:var(--brand);">✓</span>Apply nitrogen-rich fertilizer within 2 days</div>
+            <div style="display:flex;gap:10px;"><span style="color:var(--brand);">✓</span>Check soil pH (optimal 6.0–6.8)</div>
+            <div style="display:flex;gap:10px;"><span style="color:var(--brand);">✓</span>Remove yellowing lower leaves</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="margin-top:8px;" data-go="plant">Save to Plant Record</button>
+        <button class="btn btn-fill" style="margin-top:12px;">Scan Again</button>
+      </div>
+      </div>
+    </div>
+
+    <!-- 12 · ACTIVITY TIMELINE -->
+    <div class="screen-card" data-slug="activity" data-idx="11">
+      <div class="screen-label"><span class="num">12</span> Activity Timeline · /…/activity</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="plant">‹ Tomato A</div>
+      <div class="scroll no-tab">
+        <div class="ios-header"><div><div class="eyebrow">Tomato A · full history</div><div class="large-title">Activity</div></div></div>
+        <div class="section" style="margin-top:14px;">
+          <div style="position:relative;padding-left:8px;">
+            <div style="position:absolute;left:25px;top:20px;bottom:20px;width:2px;background:var(--sys-tertiary);"></div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div style="display:flex;gap:16px;align-items:flex-start;"><div style="width:36px;height:36px;border-radius:50%;background:rgba(13,176,116,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1;border:3px solid var(--sys-bg);">🧺</div><div class="card" style="flex:1;padding:14px 16px;"><div style="font-size:12px;color:var(--sys-secondary);">Today</div><div style="font-weight:600;font-size:15px;margin:2px 0;">Harvested</div><div style="font-size:13px;color:var(--sys-secondary);">65 days of growth completed</div></div></div>
+              <div style="display:flex;gap:16px;align-items:flex-start;"><div style="width:36px;height:36px;border-radius:50%;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1;border:3px solid var(--sys-bg);">🔬</div><div class="card" style="flex:1;padding:14px 16px;"><div style="font-size:12px;color:var(--sys-secondary);">15 May</div><div style="font-weight:600;font-size:15px;margin:2px 0;">AI Scan</div><div style="font-size:13px;color:var(--sys-secondary);">Nitrogen deficiency · 86%</div></div></div>
+              <div style="display:flex;gap:16px;align-items:flex-start;"><div style="width:36px;height:36px;border-radius:50%;background:rgba(13,176,116,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1;border:3px solid var(--sys-bg);">🌿</div><div class="card" style="flex:1;padding:14px 16px;"><div style="font-size:12px;color:var(--sys-secondary);">20 Mar</div><div style="font-weight:600;font-size:15px;margin:2px 0;">Fertilized</div><div style="font-size:13px;color:var(--sys-secondary);">NPK 15-15-15, 50g</div></div></div>
+              <div style="display:flex;gap:16px;align-items:flex-start;"><div style="width:36px;height:36px;border-radius:50%;background:rgba(59,130,246,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1;border:3px solid var(--sys-bg);">💧</div><div class="card" style="flex:1;padding:14px 16px;"><div style="font-size:12px;color:var(--sys-secondary);">13 Mar</div><div style="font-weight:600;font-size:15px;margin:2px 0;">Watered</div><div style="font-size:13px;color:var(--sys-secondary);">Morning watering</div></div></div>
+              <div style="display:flex;gap:16px;align-items:flex-start;"><div style="width:36px;height:36px;border-radius:50%;background:rgba(13,176,116,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;z-index:1;border:3px solid var(--sys-bg);">🌱</div><div class="card" style="flex:1;padding:14px 16px;"><div style="font-size:12px;color:var(--sys-secondary);">12 Mar</div><div style="font-weight:600;font-size:15px;margin:2px 0;">Planted</div><div style="font-size:13px;color:var(--sys-secondary);">Cherry Tomato planted</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+
+    <!-- 13 · HARVEST CONFIRM -->
+    <div class="screen-card" data-slug="harvest" data-idx="12">
+      <div class="screen-label"><span class="num">13</span> Harvest Confirm · /…/harvest</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="plant">‹ Harvest</div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div style="text-align:center;margin-top:8px;">
+          <div style="width:64px;height:64px;border-radius:20px;background:rgba(13,176,116,0.14);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto;">🧺</div>
+          <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:25px;font-weight:800;color:var(--teal);margin-top:14px;">Harvest Tomato A?</h1>
+          <p style="font-size:14px;color:var(--sys-secondary);margin-top:6px;line-height:1.45;">This closes the plant's growing record and generates a public Harvest Passport with a scannable QR code.</p>
+        </div>
+        <div class="list" style="margin-top:20px;">
+          <div class="list-item"><div class="list-body"><div class="list-title">Grown for</div></div><span style="font-size:15px;font-weight:500;">65 days</span></div>
+          <div class="list-item"><div class="list-body"><div class="list-title">Average health</div></div><span style="font-size:15px;font-weight:500;color:var(--brand);">87%</span></div>
+          <div class="list-item"><div class="list-body"><div class="list-title">AI scans on record</div></div><span style="font-size:15px;font-weight:500;">3</span></div>
+        </div>
+        <div class="field-label" style="margin-top:18px;">YIELD (OPTIONAL)</div>
+        <input class="field" placeholder="e.g. 2.5 kg">
+        <div class="card" style="padding:14px;margin-top:16px;background:rgba(245,158,11,0.08);display:flex;gap:10px;align-items:flex-start;">
+          <span style="font-size:16px;">⚠️</span><p style="font-size:13px;color:#92560B;line-height:1.4;">Once harvested, the plant becomes read-only and its passport is published.</p>
+        </div>
+      </div>
+      <div class="sticky-cta"><button class="btn btn-primary" data-go="passport">Confirm &amp; Generate Passport</button></div>
+      </div>
+    </div>
+
+    <!-- 14 · HARVEST PASSPORT -->
+    <div class="screen-card" data-slug="passport" data-idx="13">
+      <div class="screen-label"><span class="num">14</span> Harvest Passport · generated</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="nav-bar" data-go="plant">‹ Back</div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:800;color:var(--teal);margin-bottom:16px;">Harvest Passport</h1>
+        <div style="background:linear-gradient(160deg,#FFFFFF,#EFFAF4);border:1px solid rgba(13,176,116,0.3);border-radius:24px;padding:22px;box-shadow:0 8px 30px rgba(16,40,46,0.08);margin-bottom:18px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-weight:700;color:var(--brand-dark);">🌱 GreenMap</div><span class="badge b-healthy" style="font-size:10px;">✓ VERIFIED</span></div>
+          <div style="font-size:11px;color:var(--sys-secondary);letter-spacing:0.06em;margin:12px 0 2px;">HARVEST PASSPORT</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:23px;font-weight:700;color:var(--teal);">Tomato A</div>
+          <div style="font-size:14px;color:var(--sys-secondary);margin-bottom:14px;">Cherry Tomato</div>
+          <div style="border-top:0.5px solid var(--sys-tertiary);padding-top:14px;display:flex;flex-direction:column;gap:8px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--sys-secondary);">Grower</span><span style="font-weight:500;">Ahmad bin Abdullah</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--sys-secondary);">Farm</span><span style="font-weight:500;">Ladang Hijau, Johor</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--sys-secondary);">Harvested</span><span style="font-weight:500;">20 Jun 2026</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:var(--sys-secondary);">Avg health</span><span style="font-weight:500;color:var(--brand);">87%</span></div>
+          </div>
+          <div style="border-top:0.5px solid var(--sys-tertiary);margin-top:14px;padding-top:14px;display:flex;flex-wrap:wrap;gap:8px;">
+            <span class="badge b-healthy">✅ Pesticide Free</span><span class="badge b-healthy">✅ AI Verified</span><span class="badge b-healthy">✅ Verified Grower</span>
+          </div>
+        </div>
+        <div style="text-align:center;margin-bottom:18px;">
+          <div style="width:120px;height:120px;background:white;border-radius:16px;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(16,40,46,0.08);">
+            <svg width="90" height="90" viewBox="0 0 90 90"><rect width="90" height="90" fill="white"/><g fill="#11181C"><rect x="6" y="6" width="24" height="24"/><rect x="12" y="12" width="12" height="12" fill="white"/><rect x="60" y="6" width="24" height="24"/><rect x="66" y="12" width="12" height="12" fill="white"/><rect x="6" y="60" width="24" height="24"/><rect x="12" y="66" width="12" height="12" fill="white"/><rect x="42" y="6" width="6" height="6"/><rect x="42" y="18" width="6" height="6"/><rect x="42" y="42" width="6" height="6"/><rect x="54" y="42" width="6" height="6"/><rect x="66" y="42" width="6" height="6"/><rect x="78" y="42" width="6" height="6"/><rect x="42" y="54" width="6" height="6"/><rect x="42" y="78" width="6" height="6"/><rect x="60" y="60" width="12" height="12"/><rect x="78" y="66" width="6" height="6"/></g></svg>
+          </div>
+          <div style="font-size:13px;color:var(--sys-secondary);margin-top:10px;" data-go="cqr">Tap to preview the public consumer view ›</div>
+        </div>
+        <button class="btn btn-primary" style="position:relative;margin-bottom:12px;" data-go="sales">💰 Sell This Harvest <span class="badge preview" style="position:absolute;right:12px;font-size:9px;">PREVIEW</span></button>
+        <button class="btn btn-fill" style="margin-bottom:12px;">Share via WhatsApp</button>
+        <button class="btn btn-fill">Download Image</button>
+      </div>
+      </div>
+    </div>
+
+    <!-- 15 · SALES (PREVIEW) -->
+    <div class="screen-card" data-slug="sales" data-idx="14">
+      <div class="screen-label"><span class="num">15</span> Sales · Preview · /farms/[id]/sales</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll">
+        <div style="padding:16px 24px 0;">
+          <div style="display:flex;align-items:center;gap:8px;"><div class="eyebrow" style="margin:0;">Selling</div><span class="badge preview">PREVIEW</span></div>
+          <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:32px;font-weight:800;color:var(--teal);margin-top:4px;">My Sales</h1>
+        </div>
+        <div style="padding:60px 32px;text-align:center;">
+          <div style="font-size:50px;">💰</div>
+          <h2 style="font-size:18px;font-weight:600;margin-top:14px;">Selling is a Phase 3 concept</h2>
+          <p style="font-size:14px;color:var(--sys-secondary);margin-top:8px;line-height:1.5;">Marketplace, listings and orders stay preview-only for the hackathon. A static mockup of this screen may be added in Phase 8.</p>
+        </div>
+      </div>
+      <div class="tabbar">
+        <a class="tab"><div class="ti">🏠</div>Home</a><a class="tab"><div class="ti">🗺️</div>Map</a><a class="tab"><div class="fab">✨</div><span style="margin-top:2px;">Scan</span></a><a class="tab active"><div class="ti">💰</div>Sales</a><a class="tab"><div class="ti">👤</div>Profile</a>
+      </div>
+      </div>
+    </div>
+
+    <!-- 16 · PROFILE -->
+    <div class="screen-card" data-slug="profile" data-idx="15">
+      <div class="screen-label"><span class="num">16</span> Profile · /farms/[id]/profile</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll">
+        <div style="padding:16px 24px 0;">
+          <div class="eyebrow">Account</div>
+          <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:32px;font-weight:800;color:var(--teal);margin-top:2px;">Profile</h1>
+          <div class="card" style="padding:20px;margin-top:18px;text-align:center;">
+            <div style="width:76px;height:76px;border-radius:50%;background:rgba(13,176,116,0.14);display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto;">👨🏽‍🌾</div>
+            <div style="font-size:19px;font-weight:700;margin-top:12px;">Ahmad bin Abdullah</div>
+            <div style="margin-top:6px;"><span class="badge b-healthy">✓ Verified Grower</span></div>
+            <p style="font-size:13px;color:var(--sys-secondary);margin-top:8px;">Tomato grower at Ladang Hijau, Johor 🌱</p>
+          </div>
+        </div>
+        <div class="section" style="margin-top:18px;">
+          <div class="list">
+            <div class="list-item"><div class="list-body"><div class="list-title">Email</div></div><span style="font-size:14px;color:var(--sys-secondary);">ahmad@email.com</span></div>
+            <div class="list-item"><div class="list-body"><div class="list-title">Role</div></div><span style="font-size:14px;color:var(--sys-secondary);">Grower</span></div>
+            <div class="list-item"><div class="list-body"><div class="list-title">Member since</div></div><span style="font-size:14px;color:var(--sys-secondary);">Mar 2026</span></div>
+          </div>
+          <button class="btn btn-fill" style="color:var(--critical);margin-top:18px;">Sign Out</button>
+        </div>
+      </div>
+      <div class="tabbar">
+        <a class="tab"><div class="ti">🏠</div>Home</a><a class="tab"><div class="ti">🗺️</div>Map</a><a class="tab"><div class="fab">✨</div><span style="margin-top:2px;">Scan</span></a><a class="tab"><div class="ti">💰</div>Sales</a><a class="tab active"><div class="ti">👤</div>Profile</a>
+      </div>
+      </div>
+    </div>
+
+    <!-- 17 · CONSUMER HOME -->
+    <div class="screen-card" data-slug="chome" data-idx="16">
+      <div class="screen-label"><span class="num">17</span> Consumer Home · /consumer</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div style="padding-top:14px;">
+          <div class="eyebrow">GreenMap</div>
+          <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:32px;font-weight:800;color:var(--teal);margin-top:2px;">Hi, Mei 👋</h1>
+          <p style="font-size:15px;color:var(--sys-secondary);margin-top:4px;">Know your food's story.</p>
+        </div>
+        <div class="card" style="padding:28px 22px;margin-top:28px;text-align:center;" data-go="cqr">
+          <div style="font-size:44px;">📷</div>
+          <h2 style="font-size:17px;font-weight:600;margin-top:10px;">Scan a Harvest Passport</h2>
+          <p style="font-size:14px;color:var(--sys-secondary);margin-top:8px;line-height:1.5;">Point your phone camera at a GreenMap QR code on any produce to see its full growing journey.</p>
+        </div>
+        <button class="btn btn-primary" style="margin-top:24px;" data-go="cqr">Open Camera</button>
+        <button class="btn btn-fill" style="margin-top:24px;color:var(--critical);">Sign Out</button>
+      </div>
+      </div>
+    </div>
+
+    <!-- 18 · CONSUMER QR VIEW (public) -->
+    <div class="screen-card" data-slug="cqr" data-idx="17">
+      <div class="screen-label"><span class="num">18</span> Consumer QR View · public · /passport/[token]</div>
+      <div class="iphone">
+      <div class="safe-top"></div>
+      <div class="scroll no-tab" style="padding:0 24px;">
+        <div style="text-align:center;padding:10px 0 18px;">
+          <div style="font-size:17px;font-weight:700;color:var(--brand-dark);">🌱 GreenMap</div>
+          <div style="font-size:12px;color:var(--sys-secondary);">Harvest Passport</div>
+        </div>
+        <div style="height:160px;border-radius:20px;background:linear-gradient(135deg,#FF6B5B,#E24B4A);position:relative;overflow:hidden;margin-bottom:18px;">
+          <div style="position:absolute;bottom:12px;left:12px;background:rgba(0,0,0,0.4);color:white;font-size:13px;font-weight:600;padding:6px 12px;border-radius:10px;">Tomato A · Organically Grown</div>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:18px;background:rgba(13,176,116,0.06);">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+            <span class="badge b-healthy">✅ Pesticide Free</span><span class="badge b-healthy">✅ AI Verified</span><span class="badge b-healthy">✅ Verified Grower</span>
+          </div>
+        </div>
+        <p style="font-size:16px;line-height:1.5;margin-bottom:18px;">This tomato was grown by <b>Ahmad</b> at Ladang Hijau, Johor, and carefully tended for 65 days before harvest.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;">
+          <div class="card" style="padding:14px;"><div style="font-size:12px;color:var(--sys-secondary);">Origin Farm</div><div style="font-weight:600;font-size:15px;margin-top:2px;">Ladang Hijau</div></div>
+          <div class="card" style="padding:14px;"><div style="font-size:12px;color:var(--sys-secondary);">Harvest Date</div><div style="font-weight:600;font-size:15px;margin-top:2px;">20 Jun 2026</div></div>
+          <div class="card" style="padding:14px;"><div style="font-size:12px;color:var(--sys-secondary);">Avg Health</div><div style="font-weight:600;font-size:15px;margin-top:2px;color:var(--brand);">87%</div></div>
+          <div class="card" style="padding:14px;"><div style="font-size:12px;color:var(--sys-secondary);">AI Scans</div><div style="font-weight:600;font-size:15px;margin-top:2px;">3 performed</div></div>
+        </div>
+        <div class="section-title" style="margin-bottom:10px;">Growing Journey</div>
+        <div class="list" style="margin-bottom:18px;">
+          <div class="list-item"><div class="list-icon" style="background:rgba(13,176,116,0.12);">🌱</div><div class="list-body"><div class="list-title">Planted</div><div class="list-sub">12 Mar 2026</div></div></div>
+          <div class="list-item"><div class="list-icon" style="background:rgba(59,130,246,0.12);">🔬</div><div class="list-body"><div class="list-title">AI Health Check</div><div class="list-sub">Verified healthy · 92%</div></div></div>
+          <div class="list-item"><div class="list-icon" style="background:rgba(13,176,116,0.12);">🧺</div><div class="list-body"><div class="list-title">Harvested</div><div class="list-sub">20 Jun 2026</div></div></div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom:14px;">💬 Message Farmer</button>
+        <p style="text-align:center;font-size:12px;color:var(--sys-secondary);margin-bottom:20px;">Powered by GreenMap</p>
+      </div>
+      </div>
+    </div>
+
+  </div>
+  <div class="play-nav" id="playNav" style="display:none;">
+    <button id="prevBtn" onclick="step(-1)">‹ Prev</button>
+    <span class="cur" id="curLabel"></span>
+    <button id="nextBtn" onclick="step(1)">Next ›</button>
+  </div>
+</div>
+<div class="jump" id="jump"></div>
+
+<script>
+const SLUGS = ["landing","auth","farms","setup1","setup2","setup3","home","map","field","plant","scan","activity","harvest","passport","sales","profile","chome","cqr"];
+const TITLES = ["1 Landing","2 Register / Login","3 Farm Selector","4 Setup · Profile","5 Setup · Map","6 Setup · Zones","7 Home (Today)","8 Map · My Farms","9 Field View (Map + KPIs)","10 Plant Detail","11 AI Scan","12 Activity Timeline","13 Harvest Confirm","14 Harvest Passport","15 Sales (Preview)","16 Profile","17 Consumer Home","18 Consumer QR View (public)"];
+const TABS = {"Home":"home","Map":"map","Scan":"scan","Sales":"sales","Profile":"profile"};
+let mode='desktop', cur=0;
+
+function setMode(m){
+  mode=m;
+  document.getElementById('btnDesk').classList.toggle('on', m==='desktop');
+  document.getElementById('btnGrid').classList.toggle('on', m==='grid');
+  document.getElementById('btnPlay').classList.toggle('on', m==='play');
+  document.getElementById('deskView').classList.toggle('on', m==='desktop');
+  const stage=document.getElementById('stage');
+  stage.style.display = (m==='desktop') ? 'none' : '';
+  if(m!=='desktop') stage.className = (m==='grid') ? 'grid-mode' : 'play-mode';
+  document.getElementById('playNav').style.display = (m==='play') ? 'flex' : 'none';
+  document.getElementById('jump').style.display = (m==='play') ? 'flex' : 'none';
+  if(m==='play'){ show(cur); buildJump(); }
+  window.scrollTo(0,0);
+}
+
+function show(i){
+  cur=Math.max(0,Math.min(SLUGS.length-1,i));
+  document.querySelectorAll('#stage .screen-card').forEach((c,idx)=>c.classList.toggle('active', idx===cur));
+  document.getElementById('curLabel').textContent = (cur+1)+' / '+SLUGS.length+'  ·  '+TITLES[cur];
+  document.getElementById('prevBtn').disabled = cur===0;
+  document.getElementById('nextBtn').disabled = cur===SLUGS.length-1;
+  document.querySelectorAll('#jump button').forEach((b,idx)=>b.classList.toggle('on', idx===cur));
+  window.scrollTo(0,0);
+}
+function step(d){ show(cur+d); }
+function goSlug(slug){ const i=SLUGS.indexOf(slug); if(i>=0){ show(i); } }
+
+function buildJump(){
+  const j=document.getElementById('jump'); j.innerHTML='';
+  SLUGS.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.textContent=(i+1); b.title=TITLES[i];
+    b.onclick=(e)=>{ e.stopPropagation(); show(i); };
+    if(i===cur)b.classList.add('on');
+    j.appendChild(b);
+  });
+}
+
+/* mobile prototype wiring: data-go links + bottom tab bar */
+document.querySelectorAll('#stage .screen-card').forEach((card)=>{
+  card.querySelectorAll('[data-go]').forEach(el=>{
+    el.addEventListener('click',(e)=>{ if(mode==='play'){ e.stopPropagation(); goSlug(el.dataset.go); } });
+  });
+  card.querySelectorAll('.tab').forEach(t=>{
+    const lbl=(t.textContent||'').trim();
+    for(const k in TABS){ if(lbl.includes(k)){ t.addEventListener('click',(e)=>{ if(mode==='play'){ e.stopPropagation(); goSlug(TABS[k]); } }); break; } }
+  });
+});
+document.querySelectorAll('#stage .screen-card').forEach((card,idx)=>{
+  card.addEventListener('click',()=>{ if(mode==='grid'){ cur=idx; setMode('play'); } });
+});
+
+/* desktop → mobile cross-links */
+document.querySelectorAll('#deskView [data-go]').forEach(el=>{
+  el.addEventListener('click',(e)=>{ e.stopPropagation(); setMode('play'); goSlug(el.dataset.go); });
+});
+
+/* desktop config-driven nav */
+function bindNav(sel){
+  const items=document.querySelectorAll(sel);
+  items.forEach(el=> el.addEventListener('click',()=>{
+    items.forEach(x=>x.classList.remove('active'));
+    el.classList.add('active');
+    if(el.dataset.route) document.getElementById('gmTitle').textContent = el.dataset.route;
+  }));
+}
+bindNav('.gm-nav'); bindNav('.gm-mobnav a');
+
+/* desktop interactive farm map */
+function healthRing(score,color){
+  const r=34, c=2*Math.PI*r, off=(c*(1-score/100)).toFixed(1);
+  return '<div style="position:relative;width:110px;height:110px;margin:0 auto;">'
+    +'<svg width="110" height="110" viewBox="0 0 80 80"><circle cx="40" cy="40" r="'+r+'" fill="none" stroke="#E5E7EB" stroke-width="8"/>'
+    +'<circle cx="40" cy="40" r="'+r+'" fill="none" stroke="'+color+'" stroke-width="8" stroke-linecap="round" stroke-dasharray="'+c.toFixed(1)+'" stroke-dashoffset="'+off+'" transform="rotate(-90 40 40)"/></svg>'
+    +'<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;"><span style="font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:800;font-size:27px;color:#1E434A;">'+score+'</span><span style="font-size:10px;letter-spacing:.06em;color:#6B7280;">HEALTH</span></div></div>';
+}
+(function initMap(){
+  const wrap=document.getElementById('gmMapWrap'); if(!wrap) return;
+  const inner=document.getElementById('gmMapInner');
+  const panel=document.getElementById('gmPanel');
+  const body=document.getElementById('gmPanelBody');
+  const META={ healthy:['#0DB074','Healthy','b-healthy'], attention:['#F59E0B','Needs Attention','b-attention'], critical:['#EF4444','Critical','b-critical'] };
+  inner.querySelectorAll('.pin').forEach(p=>{
+    p.addEventListener('click',(e)=>{
+      e.stopPropagation();
+      inner.querySelectorAll('.pin').forEach(x=>x.classList.remove('sel'));
+      p.classList.add('sel');
+      const m=META[p.dataset.status]||META.healthy;
+      body.innerHTML='<div style="font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:800;font-size:18px;color:#1E434A;margin-right:22px;">'+p.dataset.name+'</div>'
+        +'<div style="font-size:12px;color:#6B7280;margin:2px 0 14px;">'+p.dataset.zone+'</div>'
+        +healthRing(+p.dataset.score,m[0])
+        +'<div style="text-align:center;margin:12px 0;"><span class="badge '+m[2]+'">● '+m[1]+'</span></div>'
+        +'<div style="font-size:13px;background:#F5F7F8;border:1px solid #E5E7EB;border-radius:12px;padding:12px;line-height:1.45;"><b>AI note:</b> '+p.dataset.note+'.</div>'
+        +'<button class="btn btn-primary" style="margin-top:14px;min-height:44px;">Log Care</button>'
+        +'<button class="btn btn-fill xdetail" style="margin-top:10px;min-height:44px;">View Full Detail</button>';
+      panel.classList.add('open');
+      body.querySelector('.xdetail').onclick=()=>{ setMode('play'); goSlug('plant'); };
+    });
+  });
+  panel.querySelector('[data-panel=close]').addEventListener('click',()=>{ panel.classList.remove('open'); inner.querySelectorAll('.pin').forEach(x=>x.classList.remove('sel')); });
+  let zoom=1;
+  wrap.querySelectorAll('[data-zoom]').forEach(b=> b.addEventListener('click',()=>{
+    zoom = b.dataset.zoom==='in' ? Math.min(2.2, zoom+0.25) : Math.max(1, zoom-0.25);
+    inner.style.transform='scale('+zoom+')';
+  }));
+  document.getElementById('gmAdd').addEventListener('click',()=> toast('Add Plant — tap a spot on the map to drop a new marker'));
+})();
+
+/* tiny toast */
+let toastT;
+function toast(msg){
+  let t=document.getElementById('gmToast');
+  if(!t){ t=document.createElement('div'); t.id='gmToast';
+    t.style.cssText='position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:rgba(17,24,28,.92);color:#fff;padding:11px 18px;border-radius:12px;font-size:13px;z-index:2000;box-shadow:0 10px 30px rgba(0,0,0,.25);font-family:Inter,sans-serif;transition:opacity .3s;';
+    document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity='1'; clearTimeout(toastT); toastT=setTimeout(()=>t.style.opacity='0',2200);
+}
+
+setMode('desktop');
+</script>
+</body>
+</html>

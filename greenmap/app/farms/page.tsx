@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -19,8 +20,13 @@ export default async function FarmSelectorPage() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  // Plant counts per farm, in one query.
   const farmList = (farms ?? []) as Farm[];
+
+  // Smart entry: only show the chooser when there's a real choice to make.
+  if (farmList.length === 0) redirect("/farms/new/profile");
+  if (farmList.length === 1) redirect(`/farms/${farmList[0].id}`);
+
+  // Plant counts per farm, in one query.
   const counts: Record<string, number> = {};
   if (farmList.length > 0) {
     const { data: plants } = await supabase

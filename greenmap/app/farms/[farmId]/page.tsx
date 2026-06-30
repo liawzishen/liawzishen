@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { getFarmBundle } from "@/lib/farm/fetch";
+import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
 import { TodaysTasks, type TaskItem } from "@/components/home/TodaysTasks";
 import type { EventType } from "@/types/database";
 
@@ -48,6 +49,12 @@ export default async function FarmHomePage({
   const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
   const farmerName =
     typeof meta.name === "string" && meta.name.trim() ? meta.name : "there";
+
+  const { data: farms } = await supabase
+    .from("farms")
+    .select("id, name")
+    .eq("user_id", user?.id ?? "")
+    .order("created_at", { ascending: false });
 
   const active = plants.filter((p) => p.lifecycle_status === "active");
   const activeIds = active.map((p) => p.id);
@@ -136,7 +143,12 @@ export default async function FarmHomePage({
         <h1 className="mt-1 text-[28px] font-bold leading-tight">
           Hi, {farmerName} 👋
         </h1>
-        <p className="mt-0.5 text-[14px] text-secondary">{farm.name}</p>
+        <FarmSwitcher
+          farms={(farms ?? []) as { id: string; name: string }[]}
+          currentId={farmId}
+          currentName={farm.name}
+          className="text-[14px] font-medium text-secondary"
+        />
 
         {/* Quick stats */}
         <div className="mt-4 grid grid-cols-4 gap-3">
