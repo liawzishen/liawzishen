@@ -1,5 +1,11 @@
 # Database setup (Phase 2)
 
+> **Something not loading?** Run `npm run test:smoke` first — it checks
+> Supabase reachability (including the free-tier auto-pause), the demo login,
+> and RLS data reads, and tells you exactly which stage is broken. With the
+> dev server running, `npm run test:smoke -- --app` also verifies that pages
+> render live data end-to-end.
+
 Run the four migrations **in order** in the Supabase SQL editor, then seed demo data.
 
 ## 1. Run the migrations

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:seed": "tsx scripts/seed-demo.ts"
+    "db:seed": "tsx scripts/seed-demo.ts",
+    "test:smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
