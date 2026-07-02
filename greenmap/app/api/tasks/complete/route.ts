@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { recalculatePlantScore } from "@/lib/health/recalculate";
+import { recalculateManyPlantScores } from "@/lib/health/recalculate";
 
 /**
  * POST /api/tasks/complete  { action: "water" | "fertilize", plantIds: string[] }
@@ -59,13 +59,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insErr.message }, { status: 500 });
   }
 
-  for (const id of ownedIds) {
-    try {
-      await recalculatePlantScore(admin, id);
-    } catch {
-      // best-effort; the log is saved regardless
-    }
-  }
+  // Best-effort and parallel; the logs are saved regardless.
+  await recalculateManyPlantScores(admin, ownedIds);
 
   return NextResponse.json({ ok: true, completed: ownedIds });
 }

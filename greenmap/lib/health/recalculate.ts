@@ -67,3 +67,17 @@ export async function recalculatePlantScore(
 
   return score;
 }
+
+/**
+ * Recalculate many plants in parallel, best-effort — one plant failing never
+ * blocks the rest. Powers the batch "Water All / Fertilize All" routes, where
+ * recalculating dozens of plants one-by-one made the request scale linearly.
+ */
+export async function recalculateManyPlantScores(
+  admin: Admin,
+  plantIds: Iterable<string>
+): Promise<void> {
+  await Promise.all(
+    [...plantIds].map((id) => recalculatePlantScore(admin, id).catch(() => {}))
+  );
+}

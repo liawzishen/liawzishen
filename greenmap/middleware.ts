@@ -42,9 +42,12 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Run on everything except static files and images.
-     * (No /api routes exist yet — they arrive in Phase 5/6/7.)
+     * Run on every page, but skip:
+     *  - /api/** — every route handler authenticates itself (getUser + RLS),
+     *    so running the middleware there would just pay the Supabase session
+     *    round trip twice per API call
+     *  - Next internals and static assets
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

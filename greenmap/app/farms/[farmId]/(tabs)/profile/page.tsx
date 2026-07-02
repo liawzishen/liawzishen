@@ -1,14 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/layout/AppShell";
 import { ProfileClient } from "@/components/profile/ProfileClient";
 
-export default async function ProfilePage({
-  params,
-}: {
-  params: Promise<{ farmId: string }>;
-}) {
-  const { farmId } = await params;
+export default async function ProfilePage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -34,24 +28,22 @@ export default async function ProfilePage({
   const role = meta.role === "consumer" ? "consumer" : "grower";
 
   return (
-    <AppShell farmId={farmId}>
-      <main className="px-5 pb-10 pt-12">
-        <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
-          Account
-        </p>
-        <h1 className="mb-5 mt-1 text-[28px] font-bold leading-tight">Profile</h1>
+    <main className="px-5 pb-10 pt-12">
+      <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
+        Account
+      </p>
+      <h1 className="mb-5 mt-1 text-[28px] font-bold leading-tight">Profile</h1>
 
-        <ProfileClient
-          userId={user.id}
-          email={user.email ?? "—"}
-          role={role}
-          initialName={name}
-          headline={(meta.headline ?? "").toString()}
-          avatarUrl={meta.avatar_url ?? null}
-          isVerified={p?.is_verified ?? false}
-          memberSince={user.created_at}
-        />
-      </main>
-    </AppShell>
+      <ProfileClient
+        userId={user.id}
+        email={user.email ?? "—"}
+        role={role}
+        initialName={name}
+        headline={(meta.headline ?? "").toString()}
+        avatarUrl={meta.avatar_url ?? null}
+        isVerified={p?.is_verified ?? false}
+        memberSince={user.created_at}
+      />
+    </main>
   );
 }

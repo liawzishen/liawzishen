@@ -69,3 +69,26 @@
 @utility hairline-b {
   border-bottom: 0.5px solid rgb(0 0 0 / 0.1);
 }
+
+/*
+  Page-enter transition — iOS-style fade + rise. Every screen's root is a
+  <main> that remounts once per navigation, so this plays exactly once per
+  visit (the reduced-motion override above disables it). Ends at
+  `transform: none`, so sticky/fixed descendants are unaffected after entry.
+*/
+@layer base {
+  main {
+    animation: page-enter 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}

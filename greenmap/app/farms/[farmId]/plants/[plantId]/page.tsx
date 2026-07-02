@@ -34,40 +34,39 @@ export default async function PlantDetailPage({
   if (!plant) notFound();
   const p = plant as Plant;
 
-  let zone: Zone | null = null;
-  if (p.zone_id) {
-    const { data } = await supabase
-      .from("zones")
-      .select("*")
-      .eq("id", p.zone_id)
-      .single();
-    zone = (data as Zone) ?? null;
-  }
-
   const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const [live, { data: history }, { data: logs }, { data: analyses }] =
-    await Promise.all([
-      liveScoresForPlants(supabase, [p]),
-      supabase
-        .from("health_score_history")
-        .select("score, created_at")
-        .eq("plant_id", plantId)
-        .gte("created_at", sevenDaysAgo)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("growth_logs")
-        .select("*")
-        .eq("plant_id", plantId)
-        .order("created_at", { ascending: false })
-        .limit(5),
-      supabase
-        .from("ai_analyses")
-        .select("*")
-        .eq("plant_id", plantId)
-        .order("created_at", { ascending: false })
-        .limit(10),
-    ]);
+  const [
+    { data: zoneRow },
+    live,
+    { data: history },
+    { data: logs },
+    { data: analyses },
+  ] = await Promise.all([
+    p.zone_id
+      ? supabase.from("zones").select("*").eq("id", p.zone_id).single()
+      : Promise.resolve({ data: null }),
+    liveScoresForPlants(supabase, [p]),
+    supabase
+      .from("health_score_history")
+      .select("score, created_at")
+      .eq("plant_id", plantId)
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("growth_logs")
+      .select("*")
+      .eq("plant_id", plantId)
+      .order("created_at", { ascending: false })
+      .limit(5),
+    supabase
+      .from("ai_analyses")
+      .select("*")
+      .eq("plant_id", plantId)
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
+  const zone = (zoneRow as Zone | null) ?? null;
   const liveScore = live.get(p.id) ?? p.health_score;
   const display = healthDisplay(liveScore);
   const points = (history ?? []) as { score: number; created_at: string }[];

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { recalculatePlantScore } from "@/lib/health/recalculate";
+import { recalculateManyPlantScores } from "@/lib/health/recalculate";
 
 /**
  * POST /api/tasks/uncomplete  { action: "water" | "fertilize", plantIds: string[] }
@@ -65,13 +65,7 @@ export async function POST(req: Request) {
     }
   }
 
-  for (const id of latestId.keys()) {
-    try {
-      await recalculatePlantScore(admin, id);
-    } catch {
-      // best-effort
-    }
-  }
+  await recalculateManyPlantScores(admin, latestId.keys());
 
   return NextResponse.json({ ok: true });
 }

@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils";
  * 5-tab grower shell (06 §9): Home · Map · Scan(FAB) · Sales · Profile.
  * Frosted-bar values match the prototype exactly:
  * rgba(255,255,255,0.8) · blur ~25px · 0.5px top hairline · 88px tall.
- * Pushed sub-pages do NOT render this shell — they use <TopNav /> instead.
+ * Rendered once by app/farms/[farmId]/(tabs)/layout.tsx so the bar stays
+ * mounted across tab switches. Pushed sub-pages live outside that group and
+ * use <TopNav /> instead.
  */
 export function AppShell({
   farmId,

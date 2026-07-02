@@ -1,4 +1,3 @@
-import { AppShell } from "@/components/layout/AppShell";
 import { SalesDashboard } from "@/components/sales/SalesDashboard";
 
 /**
@@ -11,9 +10,5 @@ export default async function SalesPage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  return (
-    <AppShell farmId={farmId}>
-      <SalesDashboard farmId={farmId} />
-    </AppShell>
-  );
+  return <SalesDashboard farmId={farmId} />;
 }
