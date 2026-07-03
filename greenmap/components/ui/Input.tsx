@@ -21,7 +21,7 @@ export function Input({ label, error, className, id, ...inputProps }: InputProps
       <input
         id={inputId}
         className={cn(
-          "h-12 w-full rounded-input bg-fill px-4 text-[16px] text-label placeholder:text-secondary",
+          "h-12 w-full rounded-input border border-white/60 bg-white/70 px-4 text-[16px] text-label placeholder:text-secondary",
           "focus:outline-none focus:ring-2 focus:ring-brand/50",
           error && "ring-2 ring-critical/60"
         )}

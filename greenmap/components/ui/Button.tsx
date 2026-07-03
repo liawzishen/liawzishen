@@ -8,8 +8,9 @@ const baseClasses =
   "inline-flex items-center justify-center font-semibold transition active:opacity-80 disabled:pointer-events-none disabled:opacity-50";
 
 const variantClasses: Record<Variant, string> = {
-  primary: "bg-brand text-white", // 06 §8: brand fill, white text
-  fill: "bg-fill text-label", // iOS secondary "fill" button
+  primary:
+    "bg-gradient-brand text-white shadow-[0_6px_16px_rgb(52_199_89/0.35)] active:scale-[0.97]",
+  fill: "border border-white/60 bg-white/60 text-label backdrop-blur-md active:scale-[0.98]",
   ghost: "bg-transparent text-brand",
 };
 
