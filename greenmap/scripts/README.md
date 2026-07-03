@@ -6,7 +6,12 @@
 > dev server running, `npm run test:smoke -- --app` also verifies that pages
 > render live data end-to-end.
 
-Run the four migrations **in order** in the Supabase SQL editor, then seed demo data.
+> **Billing demo:** `npm run seed:billing` sets the demo account's billing arc
+> (Percuma, 2 of 5 scans left) WITHOUT touching farms. `npm run db:seed` wipes
+> and recreates the demo grower's farms — never run it against a backend
+> holding data you care about.
+
+Run the five migrations **in order** in the Supabase SQL editor, then seed demo data.
 
 ## 1. Run the migrations
 
@@ -16,6 +21,7 @@ Supabase Dashboard → **SQL Editor** → **New query**. Paste each file's conte
 2. `supabase/migrations/0002_profile_trigger.sql` — auto-create profile on signup (+ backfills your Phase 1 test users)
 3. `supabase/migrations/0003_rls.sql` — Row Level Security policies
 4. `supabase/migrations/0004_storage.sql` — 3 public storage buckets
+5. `supabase/migrations/0005_billing.sql` — plan tiers, scan credits, payments, listing boosts
 
 Each file is **re-runnable** — running it twice is safe.
 

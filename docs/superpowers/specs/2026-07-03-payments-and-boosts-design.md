@@ -107,7 +107,7 @@ One reusable client component on the existing `BottomSheet`. Steps: order summar
 
 ## Demo seeding
 
-`greenmap/scripts/seed-demo.ts` gains an idempotent billing block scoped to the demo account only: set `plan = 'percuma'`, delete that account's `ai_scan_usage` rows for the current month, insert exactly 3 → demo starts at "2 of 5 left". Safe to re-run; never touches other accounts. (Consistent with the standing rule: never reseed real user data.)
+The billing state lives in a NEW standalone `greenmap/scripts/seed-billing.ts` (`npm run seed:billing`) — **not** in `seed-demo.ts`, because `db:seed` wipes and recreates the demo grower's farms and must never be re-run against live data. The script is idempotent and scoped to the demo account only: set `plan = 'percuma'`, delete that account's `ai_scan_usage` rows for the current month, insert exactly 3 → demo starts at "2 of 5 left". Farms, plants and history are untouched.
 
 ## Testing & verification
 
@@ -118,7 +118,7 @@ One reusable client component on the existing `BottomSheet`. Steps: order summar
 ## Delivery
 
 - New branch `payments-and-boosts` stacked on `worktree-optimize-transitions` (PR #1 is unmerged and moved the tab pages this feature attaches to). Draft PR with base `worktree-optimize-transitions`; it auto-retargets to `main` when PR #1 merges.
-- One manual step for the user: paste `0005_billing.sql` into the Supabase SQL editor, then `npm run db:seed` for the demo billing state.
+- One manual step for the user: paste `0005_billing.sql` into the Supabase SQL editor, then `npm run seed:billing` for the demo billing state (safe: farms untouched).
 
 ## Risks / consciously accepted
 
