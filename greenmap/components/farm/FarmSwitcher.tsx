@@ -52,7 +52,7 @@ export function FarmSwitcher({
           className="fixed inset-0 z-50 flex justify-center"
           onClick={() => setOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
           <div
             className="absolute bottom-0 w-full max-w-[430px] rounded-t-[26px] glass-sheet p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}

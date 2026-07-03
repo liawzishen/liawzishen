@@ -52,7 +52,7 @@ export function BottomSheet({
         aria-label="Close"
         tabIndex={open ? 0 : -1}
         onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-black/40"
+        className="absolute inset-0 h-full w-full cursor-default bg-black/50 backdrop-blur-md"
       />
 
       {/* sheet panel */}

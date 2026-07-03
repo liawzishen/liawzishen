@@ -76,7 +76,7 @@ export function AddPlantModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-md">
       <div className="w-full max-w-[430px] rounded-t-[26px] glass-sheet p-6 pb-8">
         <h2 className="text-[20px] font-bold">Add Plant</h2>
         <p className="mt-0.5 text-[13px] text-secondary">
