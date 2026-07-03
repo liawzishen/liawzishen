@@ -246,39 +246,46 @@ export default function AuthPage() {
   );
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col justify-center px-6 py-10 md:max-w-[920px] md:flex-row md:items-center md:gap-12">
-      {/* Left column (top on phones): brand + the reactive sunflowers.
-          Side-by-side on wider screens so the flowers stay in view while the
-          user types — they respond to password strength and login attempts. */}
-      <div className="md:flex-1">
-        {/* Brand */}
-        <div className="mb-5 text-center">
-          <span className="text-[15px] font-bold text-brand-dark">
-            🌿 GreenMap
-          </span>
+    <main className="flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6">
+      {/* One garden-window container (user reference, 2026-07-04): the
+          reactive sunflowers sit at the bottom of the warm left panel like
+          mascots; the clean form panel is on the right with the mode switch
+          pinned to its bottom. Stacks vertically on phones. */}
+      <div className="w-full max-w-[430px] overflow-hidden rounded-[26px] glass md:grid md:max-w-[880px] md:grid-cols-[1.05fr_1fr]">
+        {/* Garden half */}
+        <div className="relative flex min-h-[240px] flex-col bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-[#E4F2E0]">
+          <div className="px-6 pt-6">
+            <p className="text-[15px] font-bold text-brand-dark">🌿 GreenMap</p>
+            <p className="mt-1 text-[13px] text-secondary">
+              Grow trust, from seed to sale.
+            </p>
+          </div>
+          <div className="mt-auto">
+            <SunflowerScene
+              mode={isRegister ? "register" : "login"}
+              penalty={failedAttempts}
+              strength={strength}
+              typing={password.length > 0}
+              locked={locked}
+            />
+          </div>
         </div>
 
-        <SunflowerScene
-          mode={isRegister ? "register" : "login"}
-          penalty={failedAttempts}
-          strength={strength}
-          typing={password.length > 0}
-          locked={locked}
-        />
-      </div>
-
-      {/* Right column (below on phones): the form */}
-      <div className="md:w-[400px] md:shrink-0">
-      {/* Auth card */}
-      <div className="rounded-card p-6 glass">
-        <h1 className="text-center text-[26px] font-bold leading-tight">
-          {isRegister ? "Create your account" : "Welcome back"}
-        </h1>
-        <p className="mt-1 text-center text-[15px] leading-snug text-secondary">
-          {isRegister
-            ? "Map your farm, track every plant, earn consumer trust."
-            : "Log in to continue to your farm."}
-        </p>
+        {/* Form half */}
+        <div className="flex flex-col bg-white/85 p-6 backdrop-blur-xl md:min-h-[560px] md:p-8">
+          <div className="text-center">
+            <span aria-hidden className="text-[22px]">
+              🌿
+            </span>
+            <h1 className="mt-1 text-[24px] font-bold leading-tight">
+              {isRegister ? "Create your account" : "Welcome back!"}
+            </h1>
+            <p className="mt-1 text-[14px] leading-snug text-secondary">
+              {isRegister
+                ? "Map your farm, track every plant, earn consumer trust."
+                : "Please enter your details."}
+            </p>
+          </div>
 
         <SegmentedControl
           className="mt-5"
@@ -461,11 +468,10 @@ export default function AuthPage() {
             </Button>
           </form>
         )}
-      </div>
 
-      {/* Footer switch */}
-      {!notice && (
-        <p className="mt-5 text-center text-[14px] text-secondary">
+        {/* Mode switch — pinned to the panel bottom like the reference */}
+        {!notice && (
+          <p className="mt-6 text-center text-[14px] text-secondary md:mt-auto md:pt-4">
           {isRegister ? (
             <>
               Already have an account?{" "}
@@ -490,7 +496,8 @@ export default function AuthPage() {
             </>
           )}
         </p>
-      )}
+        )}
+        </div>
       </div>
     </main>
   );
