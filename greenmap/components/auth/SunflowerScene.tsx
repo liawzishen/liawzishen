@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 /**
  * Interactive sunflower ecology for the auth screen.
@@ -134,6 +135,10 @@ export function SunflowerScene({
   const [shudder, setShudder] = useState(false);
   const [flash, setFlash] = useState<"none" | "gain" | "loss">("none");
   const [burst, setBurst] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const [hovering, setHovering] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     setIsDesktop(window.matchMedia("(hover: hover) and (pointer: fine)").matches);
@@ -471,8 +476,10 @@ export function SunflowerScene({
 
   return (
     <div
-      className="sf-scene relative h-56 w-full select-none overflow-visible sm:h-60"
+      className="sf-scene relative h-56 w-full cursor-none select-none overflow-visible sm:h-60"
       aria-hidden
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
     >
       <style>{`
         @keyframes sf-grass { 0%,100% { transform: rotate(var(--r)) skewX(-3deg); } 50% { transform: rotate(var(--r)) skewX(3deg); } }
@@ -489,8 +496,9 @@ export function SunflowerScene({
         }
       `}</style>
 
-      {/* hide the native cursor page-wide on desktop */}
-      {isDesktop && <style>{`* { cursor: none !important; }`}</style>}
+      {/* The native cursor hides only over the scene itself (cursor-none on
+          the root) — the form half keeps a normal cursor. The glowing sun
+          appears while hovering here and replaces it. */}
 
       {/* soft sky glow */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-transparent" />
@@ -728,33 +736,41 @@ export function SunflowerScene({
         ))}
       </div>
 
-      {/* desktop sun cursor (fixed → follows the mouse anywhere) */}
-      {isDesktop && (
-        <div
-          ref={sunRef}
-          className="pointer-events-none fixed left-0 top-0 z-[60] h-10 w-10 rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, #FFE08A 0%, #FFC93C 45%, rgba(255,201,60,0) 72%)",
-            boxShadow: "0 0 22px 8px rgba(255,201,60,0.55)",
-          }}
-        />
-      )}
-
-      {/* mobile tap flares */}
-      {flares.map((fl) => (
-        <div
-          key={fl.id}
-          className="pointer-events-none fixed z-[60] h-24 w-24 rounded-full"
-          style={{
-            left: fl.x - 48,
-            top: fl.y - 48,
-            background:
-              "radial-gradient(circle, rgba(255,224,138,0.8) 0%, rgba(255,201,60,0.25) 45%, rgba(255,201,60,0) 70%)",
-            animation: "sf-flare .7s ease-out forwards",
-          }}
-        />
-      ))}
+      {/* Sun cursor + tap flares are viewport-fixed, so they PORTAL to body:
+          the auth page's glass container uses backdrop-filter, which would
+          otherwise trap these fixed elements in the container's coordinate
+          space (displaced glow, clipped by the rounded frame). */}
+      {mounted &&
+        createPortal(
+          <>
+            {isDesktop && hovering && (
+              <div
+                ref={sunRef}
+                className="pointer-events-none fixed left-0 top-0 z-[60] h-10 w-10 rounded-full"
+                style={{
+                  transform: "translate(-100px, -100px)",
+                  background:
+                    "radial-gradient(circle, #FFE08A 0%, #FFC93C 45%, rgba(255,201,60,0) 72%)",
+                  boxShadow: "0 0 22px 8px rgba(255,201,60,0.55)",
+                }}
+              />
+            )}
+            {flares.map((fl) => (
+              <div
+                key={fl.id}
+                className="pointer-events-none fixed z-[60] h-24 w-24 rounded-full"
+                style={{
+                  left: fl.x - 48,
+                  top: fl.y - 48,
+                  background:
+                    "radial-gradient(circle, rgba(255,224,138,0.8) 0%, rgba(255,201,60,0.25) 45%, rgba(255,201,60,0) 70%)",
+                  animation: "sf-flare .7s ease-out forwards",
+                }}
+              />
+            ))}
+          </>,
+          document.body
+        )}
     </div>
   );
 }
