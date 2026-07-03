@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,6 +12,11 @@ import { cn } from "@/lib/utils";
  * with pointer events disabled. Backdrop tap or Escape closes it. The CSS
  * transitions automatically collapse under `prefers-reduced-motion` (see
  * globals.css). Purely presentational — pass any content as children.
+ *
+ * Rendered through a PORTAL to <body>: glass surfaces use backdrop-filter,
+ * which makes any ancestor a containing block for `fixed` descendants — a
+ * sheet declared inside a glass card would otherwise be trapped in that
+ * card's box (backdrop covering only the card, panel floating mid-screen).
  */
 export function BottomSheet({
   open,
@@ -26,6 +32,9 @@ export function BottomSheet({
   className?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;
@@ -38,7 +47,10 @@ export function BottomSheet({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  return (
+  // SSR renders nothing; the sheet only ever opens client-side anyway.
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       aria-hidden={!open}
       className={cn(
@@ -46,13 +58,13 @@ export function BottomSheet({
         open ? "opacity-100" : "pointer-events-none opacity-0"
       )}
     >
-      {/* backdrop */}
+      {/* backdrop — dark + blurred so the page fully recedes behind the sheet */}
       <button
         type="button"
         aria-label="Close"
         tabIndex={open ? 0 : -1}
         onClick={onClose}
-        className="absolute inset-0 h-full w-full cursor-default bg-black/50 backdrop-blur-md"
+        className="absolute inset-0 h-full w-full cursor-default bg-black/65 backdrop-blur-md"
       />
 
       {/* sheet panel */}
@@ -73,6 +85,7 @@ export function BottomSheet({
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-tertiary" />
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
