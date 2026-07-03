@@ -39,7 +39,10 @@ Both use a **fully built payment UI with simulated transactions** (the design do
 - `ai_scan_usage (id, user_id → profiles, created_at)` — one row per consumed scan. Needed because `/api/ai/scan` analyses **without saving** (grower confirms before `/api/ai/save-scan` persists); counting saved `ai_analyses` would make unsaved analyses free and unlimited. Usage this month = count of rows in the current calendar month — nothing to reset, no cron.
 - `payments (id, user_id, kind check in ('plan','topup','boost'), amount_rm numeric(8,2), method check in ('fpx','tng'), status text default 'simulated', meta jsonb, created_at)`.
 - `listing_boosts (id, user_id, listing_id text, package check in ('3d','7d','14d'), price_rm, starts_at, expires_at, created_at)` — `listing_id` is the mock marketplace id (e.g. `l1`). A listing is Promoted while a row with `expires_at > now()` exists.
-- RLS: `ai_scan_usage` and `payments` — select/insert own rows only (`user_id = auth.uid()`). `listing_boosts` — select for all authenticated users (every shopper sees the Promoted tag), insert own only.
+- RLS — **read-only for clients; every billing write goes through server routes using the service-role client** (else a user could set their own `plan` or insert a free boost via the REST API):
+  - `ai_scan_usage`, `payments` — select own rows only (`user_id = auth.uid()`); no insert/update/delete policies for `authenticated`.
+  - `listing_boosts` — select for all authenticated users (every shopper sees the Promoted tag); no client write policies.
+  - `profiles` — column-level protection: revoke broad `update` from `authenticated`, re-grant `update (name)` (the only column client code updates — `ProfileClient`). `plan`, `bonus_scans`, `plan_renews_at` change only via service role in `/api/payments`.
 - Idempotent (`if not exists` guards) like 0001–0004. Indexes: `ai_scan_usage (user_id, created_at desc)`, `listing_boosts (listing_id, expires_at desc)`, `payments (user_id, created_at desc)`.
 
 ### Tier + price constants — `greenmap/lib/billing/plans.ts`
@@ -61,11 +64,11 @@ Top-up: RM 1.50/scan (qty 1–10). Boosts: `3d` RM 5, `7d` RM 10, `14d` RM 15.
 
 ### Enforcement — `/api/ai/scan` (modified)
 
-After auth, before fetching the image / calling Gemini: compute allowance; if `remaining === 0` return **402** `{ error: "No scan credits left", code: "out_of_credits", resetsOn }`. On a **successful** analysis (parsed result or mock result): insert one `ai_scan_usage` row, and decrement `bonus_scans` if the monthly allowance was already exhausted. Failure fallbacks (`fallbackResult`) consume nothing. Mock mode (no `GEMINI_API_KEY`) **does** consume, so the paywall arc works without a key. Response also carries `remaining` so the UI can update the chip. Known small race: two concurrent scans can both pass the check — acceptable at demo scale, noted here deliberately.
+After auth, before fetching the image / calling Gemini: compute allowance; if `remaining === 0` return **402** `{ error: "No scan credits left", code: "out_of_credits", resetsOn }`. On a **successful** analysis (parsed result or mock result): insert one `ai_scan_usage` row and decrement `bonus_scans` if the monthly allowance was already exhausted — both via the admin (service-role) client, matching `save-scan`'s existing pattern, since clients have no write access to billing tables. Failure fallbacks (`fallbackResult`) consume nothing. Mock mode (no `GEMINI_API_KEY`) **does** consume, so the paywall arc works without a key. Response also carries `remaining` so the UI can update the chip. Known small race: two concurrent scans can both pass the check — acceptable at demo scale, noted here deliberately.
 
 ### Payments — `/api/payments` (new, POST)
 
-The single place money "moves"; body never contains an amount — the server derives price from constants:
+The single place money "moves"; body never contains an amount — the server derives price from constants and applies all effects with the service-role client:
 
 - `{ kind: 'plan', tier, method }` → validates `tier` is a paid tier ≠ current → updates `profiles.plan`, sets `plan_renews_at = now() + 30 days` → payment row.
 - `{ kind: 'topup', qty (1–10), method }` → `bonus_scans += qty`, amount = qty × 1.50 → payment row.
