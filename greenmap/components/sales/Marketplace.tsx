@@ -13,7 +13,14 @@ import { LISTINGS } from "./demo-listings";
 
 const FILTERS = ["All", "✓ Passport", "Within 10km", "Harvested today"];
 
-export function Marketplace({ farmId }: { farmId: string }) {
+export function Marketplace({
+  farmId,
+  boostedIds = [],
+}: {
+  farmId: string;
+  /** Listings with an active paid boost — shown first with a Promoted tag. */
+  boostedIds?: string[];
+}) {
   const [filter, setFilter] = useState("All");
 
   const listings = LISTINGS.filter((l) => {
@@ -22,6 +29,11 @@ export function Marketplace({ farmId }: { farmId: string }) {
     if (filter === "Harvested today") return l.freshness === "Harvested today";
     return true;
   });
+
+  const boosted = new Set(boostedIds);
+  const sorted = [...listings].sort(
+    (a, b) => Number(boosted.has(b.id)) - Number(boosted.has(a.id))
+  );
 
   return (
     <div className="pb-8">
@@ -55,13 +67,18 @@ export function Marketplace({ farmId }: { farmId: string }) {
 
       {/* Product cards */}
       <div className="mt-4 space-y-4 px-5">
-        {listings.map((l) => (
+        {sorted.map((l) => (
           <div key={l.id} className="overflow-hidden rounded-card bg-card shadow-card">
             <div className="relative h-32" style={{ background: l.gradient }}>
               <span className="absolute left-3 top-3 text-[40px]">{l.emoji}</span>
               {l.verified && (
                 <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-brand-dark">
                   ✓ Passport Verified
+                </span>
+              )}
+              {boosted.has(l.id) && (
+                <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-warning">
+                  ⚡ Promoted
                 </span>
               )}
             </div>
