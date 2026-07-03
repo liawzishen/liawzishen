@@ -13,9 +13,12 @@ import type { Listing } from "./demo-listings";
 export function ListingDetail({
   farmId,
   listing,
+  promoted,
 }: {
   farmId: string;
   listing: Listing;
+  /** True while the listing has an active paid boost (listing_boosts). */
+  promoted?: boolean;
 }) {
   const [qty, setQty] = useState(2);
   const [mode, setMode] = useState<"pickup" | "delivery">("pickup");
@@ -118,6 +121,11 @@ export function ListingDetail({
         {listing.verified && (
           <span className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[12px] font-semibold text-brand-dark">
             ✓ Passport Verified
+          </span>
+        )}
+        {promoted && (
+          <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-[12px] font-semibold text-warning">
+            ⚡ Promoted
           </span>
         )}
       </div>

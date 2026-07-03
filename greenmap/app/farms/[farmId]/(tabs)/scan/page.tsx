@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getFarmBundle } from "@/lib/farm/fetch";
 import { healthDisplay, type HealthBand } from "@/lib/health/display";
+import { createClient } from "@/lib/supabase/server";
+import { getScanAllowance, type ScanAllowance } from "@/lib/billing/usage";
 
 const BADGE_TONE: Record<HealthBand, "brand" | "warning" | "critical" | "neutral"> = {
   healthy: "brand",
@@ -25,7 +27,16 @@ export default async function ScanPickerPage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const bundle = await getFarmBundle(farmId);
+  const [bundle, allowance] = await Promise.all([
+    getFarmBundle(farmId),
+    (async (): Promise<ScanAllowance | null> => {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      return user ? getScanAllowance(supabase, user.id) : null;
+    })(),
+  ]);
   if (!bundle) notFound();
 
   const plants = bundle.plants
@@ -41,6 +52,21 @@ export default async function ScanPickerPage({
       <p className="mt-1 text-[14px] text-secondary">
         Pick a plant, snap a leaf, get an instant Gemini health check.
       </p>
+
+      {allowance && (
+        <Link
+          href={`/farms/${farmId}/plan`}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-[13px] font-semibold shadow-card transition active:bg-fill"
+        >
+          🔬{" "}
+          {allowance.remaining === null
+            ? `${allowance.planName} — unlimited scans`
+            : `${allowance.remaining} of ${(allowance.limit ?? 0) + allowance.bonus} scans left`}
+          <span aria-hidden className="text-tertiary">
+            ›
+          </span>
+        </Link>
+      )}
 
       {plants.length === 0 ? (
         <EmptyState

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "db:seed": "tsx scripts/seed-demo.ts",
+    "seed:billing": "tsx scripts/seed-billing.ts",
     "test:smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {

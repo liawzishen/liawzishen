@@ -117,6 +117,20 @@ const plants = await (
 ).json();
 ok(`plants readable — ${plants.length} in "${farms[0].name}"`);
 
+// Billing (migration 0005): payments must be readable and profiles must
+// have the plan column. Missing ⇒ tell the user exactly what to run.
+const billingProbe = await get("/rest/v1/payments?select=id&limit=1", authed);
+const planProbe = await get("/rest/v1/profiles?select=plan&limit=1", authed);
+if (!billingProbe.ok || !planProbe.ok) {
+  bad("billing tables/columns missing — migration 0005 is not applied");
+  die(
+    "Open the Supabase dashboard → SQL editor, paste the contents of\n" +
+      "  supabase/migrations/0005_billing.sql, run it, then re-run this script.\n" +
+      "  (Optional demo state afterwards: `npm run seed:billing`.)"
+  );
+}
+ok("billing tables present (payments + profiles.plan readable)");
+
 // ── stage 3 (optional): app pages render data with a real session ───────────
 if (CHECK_APP) {
   console.log(`\nStage 3 · app  (${APP_URL})`);
@@ -173,6 +187,14 @@ if (CHECK_APP) {
     die();
   }
   ok("scan tab renders");
+
+  const plan = await page(`/farms/${farms[0].id}/plan`);
+  const planHtml = await plan.text();
+  if (plan.status !== 200 || !/Percuma|Asas|Petani Pro|Tanpa Had/.test(planHtml)) {
+    bad(`My Plan page returned ${plan.status} without a tier name`);
+    die();
+  }
+  ok("My Plan page renders tier + credits");
 }
 
 console.log(
