@@ -246,22 +246,29 @@ export default function AuthPage() {
   );
 
   return (
-    <main className="flex min-h-dvh flex-col justify-center px-6 py-10">
-      {/* Brand */}
-      <div className="mb-5 text-center">
-        <span className="text-[15px] font-bold text-brand-dark">
-          🌿 GreenMap
-        </span>
+    <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col justify-center px-6 py-10 md:max-w-[920px] md:flex-row md:items-center md:gap-12">
+      {/* Left column (top on phones): brand + the reactive sunflowers.
+          Side-by-side on wider screens so the flowers stay in view while the
+          user types — they respond to password strength and login attempts. */}
+      <div className="md:flex-1">
+        {/* Brand */}
+        <div className="mb-5 text-center">
+          <span className="text-[15px] font-bold text-brand-dark">
+            🌿 GreenMap
+          </span>
+        </div>
+
+        <SunflowerScene
+          mode={isRegister ? "register" : "login"}
+          penalty={failedAttempts}
+          strength={strength}
+          typing={password.length > 0}
+          locked={locked}
+        />
       </div>
 
-      <SunflowerScene
-        mode={isRegister ? "register" : "login"}
-        penalty={failedAttempts}
-        strength={strength}
-        typing={password.length > 0}
-        locked={locked}
-      />
-
+      {/* Right column (below on phones): the form */}
+      <div className="md:w-[400px] md:shrink-0">
       {/* Auth card */}
       <div className="rounded-card p-6 glass">
         <h1 className="text-center text-[26px] font-bold leading-tight">
@@ -484,6 +491,7 @@ export default function AuthPage() {
           )}
         </p>
       )}
+      </div>
     </main>
   );
 }
