@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** White card (06 §8): radius 20, soft shadow, 16px padding. */
+/** Glass card (Liquid Glass spec): radius 20, translucent blur panel, 16px padding. */
 export function Card({
   className,
   children,
@@ -9,8 +9,6 @@ export function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("rounded-card bg-card p-4 shadow-card", className)}>
-      {children}
-    </div>
+    <div className={cn("rounded-card p-4 glass", className)}>{children}</div>
   );
 }

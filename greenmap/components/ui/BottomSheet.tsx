@@ -63,7 +63,7 @@ export function BottomSheet({
         aria-label={ariaLabel}
         tabIndex={-1}
         className={cn(
-          "relative w-full max-w-[430px] rounded-t-card bg-card px-6 pb-8 pt-3 shadow-card outline-none",
+          "relative w-full max-w-[430px] rounded-t-[26px] glass-sheet px-6 pb-8 pt-3 outline-none",
           "transition-transform duration-300 will-change-transform",
           open ? "translate-y-0" : "translate-y-full",
           className

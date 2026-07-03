@@ -132,7 +132,7 @@ export default async function FarmHomePage({
         {stats.map((s) => (
           <div
             key={s.label}
-            className="rounded-card bg-card p-3 text-center shadow-card"
+            className="rounded-card p-3 text-center glass"
           >
             <p
               className="text-[22px] font-bold leading-none"

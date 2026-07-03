@@ -263,7 +263,7 @@ export default function AuthPage() {
       />
 
       {/* Auth card */}
-      <div className="rounded-card bg-card p-6 shadow-card">
+      <div className="rounded-card p-6 glass">
         <h1 className="text-center text-[26px] font-bold leading-tight">
           {isRegister ? "Create your account" : "Welcome back"}
         </h1>

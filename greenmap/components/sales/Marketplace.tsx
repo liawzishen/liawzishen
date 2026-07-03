@@ -57,7 +57,7 @@ export function Marketplace({
             type="button"
             onClick={() => setFilter(f)}
             className={`shrink-0 rounded-full px-4 py-2 text-[13px] font-semibold transition active:scale-95 ${
-              filter === f ? "bg-brand text-white" : "bg-card text-label shadow-card"
+              filter === f ? "bg-brand text-white" : "bg-white/70 text-label shadow-card"
             }`}
           >
             {f}
@@ -68,7 +68,7 @@ export function Marketplace({
       {/* Product cards */}
       <div className="mt-4 space-y-4 px-5">
         {sorted.map((l) => (
-          <div key={l.id} className="overflow-hidden rounded-card bg-card shadow-card">
+          <div key={l.id} className="overflow-hidden rounded-card glass">
             <div className="relative h-32" style={{ background: l.gradient }}>
               <span className="absolute left-3 top-3 text-[40px]">{l.emoji}</span>
               {l.verified && (

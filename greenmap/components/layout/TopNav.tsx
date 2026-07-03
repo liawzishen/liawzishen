@@ -11,7 +11,7 @@ export function TopNav({
   right?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-20 bg-bg/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-20 glass-strong hairline-b">
       <div className="relative flex h-12 items-center justify-between px-4">
         <Link
           href={backHref}

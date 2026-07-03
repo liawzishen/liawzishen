@@ -35,7 +35,7 @@ export function PlantQuickActions({
             key={t.type}
             type="button"
             onClick={() => setLogType(t.type)}
-            className="flex flex-col items-center gap-1.5 rounded-squarcle bg-card py-3 shadow-card active:opacity-80"
+            className="flex flex-col items-center gap-1.5 rounded-squarcle py-3 glass active:opacity-80"
           >
             <span className="text-[22px]">{t.icon}</span>
             <span className="text-[11px] font-medium">{t.label}</span>
@@ -43,7 +43,7 @@ export function PlantQuickActions({
         ))}
         <Link
           href={scanHref}
-          className="flex flex-col items-center gap-1.5 rounded-squarcle bg-card py-3 shadow-card active:opacity-80"
+          className="flex flex-col items-center gap-1.5 rounded-squarcle py-3 glass active:opacity-80"
         >
           <span className="text-[22px]">🔬</span>
           <span className="text-[11px] font-medium">AI Scan</span>

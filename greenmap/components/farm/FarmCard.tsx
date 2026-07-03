@@ -15,7 +15,7 @@ export function FarmCard({
   return (
     <Link
       href={href ?? `/farms/${farm.id}`}
-      className="block overflow-hidden rounded-card bg-card shadow-card transition active:opacity-80"
+      className="block overflow-hidden rounded-card glass transition active:opacity-80"
     >
       {/* Background thumbnail */}
       <div className="relative h-28 w-full">

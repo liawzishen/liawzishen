@@ -54,7 +54,7 @@ export function FarmSwitcher({
         >
           <div className="absolute inset-0 bg-black/30" />
           <div
-            className="absolute bottom-0 w-full max-w-[430px] rounded-t-card bg-card p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-card"
+            className="absolute bottom-0 w-full max-w-[430px] rounded-t-[26px] glass-sheet p-5 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div

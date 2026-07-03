@@ -42,7 +42,7 @@ export default async function PlantScanPage({
         </p>
         <div className="mt-4">
           {blocked && allowance ? (
-            <div className="rounded-card bg-card p-6 text-center shadow-card">
+            <div className="rounded-card p-6 text-center glass">
               <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-warning/15 text-[26px]">
                 🔬
               </div>
