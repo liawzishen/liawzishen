@@ -86,7 +86,7 @@ export function ListingDetail({
         <p className="mt-6 text-[13px] font-semibold uppercase tracking-wide text-secondary">
           Order summary
         </p>
-        <div className="mt-2 rounded-card bg-card p-4 text-[14px] shadow-card">
+        <div className="mt-2 rounded-card p-4 text-[14px] glass">
           <Row
             label={`${listing.name} × ${qty} ${listing.unit}`}
             value={`RM ${(listing.price * qty).toFixed(2)}`}
@@ -104,7 +104,7 @@ export function ListingDetail({
           escrow for 24h before payout.
         </p>
 
-        <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-bg/85 px-6 py-4 backdrop-blur-xl">
+        <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
           <Button full onClick={() => setStage("done")}>
             Pay RM {total.toFixed(2)}
           </Button>
@@ -153,7 +153,7 @@ export function ListingDetail({
 
         {/* QR traceability preview */}
         {listing.verified && (
-          <div className="mt-5 rounded-card bg-card p-4 shadow-card">
+          <div className="mt-5 rounded-card p-4 glass">
             <p className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
               Traceability
             </p>
@@ -178,7 +178,7 @@ export function ListingDetail({
         )}
 
         {/* Quantity */}
-        <div className="mt-5 flex items-center justify-between rounded-card bg-card p-4 shadow-card">
+        <div className="mt-5 flex items-center justify-between rounded-card p-4 glass">
           <span className="text-[15px] font-medium">Quantity ({listing.unit})</span>
           <div className="flex items-center gap-4">
             <button
@@ -224,7 +224,7 @@ export function ListingDetail({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-bg/85 px-6 py-4 backdrop-blur-xl">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
         <Button full onClick={() => setStage("pay")}>
           Buy now · RM {total.toFixed(2)}
         </Button>
@@ -267,7 +267,7 @@ function PayRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-input bg-card p-3.5 text-left shadow-card transition active:opacity-80"
+      className="flex w-full items-center gap-3 rounded-input p-3.5 text-left glass transition active:opacity-80"
     >
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-fill text-[18px]">
         {icon}

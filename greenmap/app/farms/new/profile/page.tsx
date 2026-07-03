@@ -126,7 +126,7 @@ export default function SetupProfilePage() {
       </div>
 
       {/* Sticky footer CTA */}
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-bg/85 px-6 py-4 backdrop-blur-xl">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
         <Button full disabled={!valid} onClick={next}>
           Next: Choose Map
         </Button>

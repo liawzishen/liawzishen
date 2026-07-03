@@ -99,7 +99,7 @@ export function KpiStrip({
         {kpis.map((k) => (
           <div
             key={k.label}
-            className="w-[124px] shrink-0 rounded-card bg-card p-3 shadow-card"
+            className="w-[124px] shrink-0 rounded-card p-3 glass"
           >
             <span
               className="grid h-7 w-7 place-items-center rounded-full"

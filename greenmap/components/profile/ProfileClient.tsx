@@ -225,11 +225,11 @@ export function ProfileClient(props: Props) {
       />
 
       {/* ── Comcard ─────────────────────────────────────────────── */}
-      <section className="overflow-hidden rounded-card bg-card shadow-card">
+      <section className="overflow-hidden rounded-card glass">
         <div className="h-24 bg-gradient-to-br from-[#0DB074] via-[#15998C] to-[#1E434A]" />
         <div className="px-5 pb-5">
           <div className="relative -mt-12 inline-block">
-            <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-fill ring-4 ring-card">
+            <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-fill ring-4 ring-white/80">
               {shownAvatar ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -248,7 +248,7 @@ export function ProfileClient(props: Props) {
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 aria-label="Change photo"
-                className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-brand text-white shadow-card ring-2 ring-card active:opacity-80"
+                className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-brand text-white shadow-card ring-2 ring-white/80 active:opacity-80"
               >
                 <CameraIcon />
               </button>
@@ -310,7 +310,7 @@ export function ProfileClient(props: Props) {
       {/* ── View mode: details list + actions ───────────────────── */}
       {!editing && (
         <>
-          <div className="mt-4 overflow-hidden rounded-card bg-card shadow-card">
+          <div className="mt-4 overflow-hidden rounded-card glass">
             {[
               { label: "Name", value: shownName },
               { label: "Email", value: props.email },
@@ -342,7 +342,7 @@ export function ProfileClient(props: Props) {
 
       {/* ── Edit mode: form ─────────────────────────────────────── */}
       {editing && (
-        <div className="mt-4 rounded-card bg-card p-5 shadow-card">
+        <div className="mt-4 rounded-card p-5 glass">
           <p className="mb-4 text-[13px] font-semibold uppercase tracking-wide text-secondary">
             Edit profile
           </p>

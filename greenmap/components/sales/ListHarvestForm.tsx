@@ -144,7 +144,7 @@ export function ListHarvestForm({ farmId }: { farmId: string }) {
       </div>
 
       {/* Sticky submit */}
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-bg/85 px-6 py-4 backdrop-blur-xl">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
         <Button full onClick={() => setListed(true)} disabled={!pickup && !delivery}>
           List for Sale
         </Button>
@@ -172,7 +172,7 @@ function FulfilRow({
       onClick={onToggle}
       className="flex w-full items-center gap-3 rounded-input bg-fill p-3 text-left transition active:opacity-80"
     >
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-card text-[17px]">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/50 text-[17px]">
         {icon}
       </span>
       <div className="min-w-0 flex-1">

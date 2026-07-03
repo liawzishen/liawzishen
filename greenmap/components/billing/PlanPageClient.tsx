@@ -101,7 +101,7 @@ export function PlanPageClient({
       )}
 
       {/* ── Current plan ── */}
-      <section className="rounded-card bg-card p-5 shadow-card">
+      <section className="rounded-card p-5 glass">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
@@ -156,7 +156,7 @@ export function PlanPageClient({
           return (
             <div
               key={id}
-              className="flex items-center gap-3 rounded-card bg-card p-4 shadow-card"
+              className="flex items-center gap-3 rounded-card p-4 glass"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-[16px] font-semibold">
@@ -207,7 +207,7 @@ export function PlanPageClient({
       <h2 className="mb-2 mt-7 text-[13px] font-semibold uppercase tracking-wide text-secondary">
         Top-up scans
       </h2>
-      <div className="rounded-card bg-card p-4 shadow-card">
+      <div className="rounded-card p-4 glass">
         <p className="text-[14px]">
           Need a few more scans without upgrading?{" "}
           <b>{formatRM(TOPUP_PRICE_RM)}</b> per scan — they never expire.
@@ -218,7 +218,7 @@ export function PlanPageClient({
               type="button"
               aria-label="Fewer scans"
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="grid h-8 w-8 place-items-center rounded-full text-[18px] font-bold active:bg-card"
+              className="grid h-8 w-8 place-items-center rounded-full text-[18px] font-bold active:bg-white/60"
             >
               −
             </button>
@@ -227,7 +227,7 @@ export function PlanPageClient({
               type="button"
               aria-label="More scans"
               onClick={() => setQty((q) => Math.min(TOPUP_MAX_QTY, q + 1))}
-              className="grid h-8 w-8 place-items-center rounded-full text-[18px] font-bold active:bg-card"
+              className="grid h-8 w-8 place-items-center rounded-full text-[18px] font-bold active:bg-white/60"
             >
               ＋
             </button>
@@ -257,7 +257,7 @@ export function PlanPageClient({
       <h2 className="mb-2 mt-7 text-[13px] font-semibold uppercase tracking-wide text-secondary">
         Payment history
       </h2>
-      <div className="overflow-hidden rounded-card bg-card shadow-card">
+      <div className="overflow-hidden rounded-card glass">
         {payments.length === 0 ? (
           <p className="p-4 text-[14px] text-secondary">No payments yet.</p>
         ) : (

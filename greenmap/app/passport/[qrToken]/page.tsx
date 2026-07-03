@@ -143,7 +143,7 @@ export default async function PublicPassportPage({
       <h2 className="mb-2 mt-7 text-[13px] font-semibold uppercase tracking-wide text-secondary">
         Growing Story
       </h2>
-      <div className="rounded-card bg-card p-4 shadow-card">
+      <div className="rounded-card p-4 glass">
         {story.length === 0 ? (
           <p className="text-center text-[14px] text-secondary">
             No recorded events.

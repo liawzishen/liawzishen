@@ -56,7 +56,7 @@ export function SalesDashboard({
         {EARNINGS.map((e) => (
           <div
             key={e.label}
-            className="w-[140px] shrink-0 rounded-card bg-card p-4 shadow-card"
+            className="w-[140px] shrink-0 rounded-card p-4 glass"
           >
             <p className="text-[22px] font-bold leading-none" style={{ color: e.color }}>
               {e.value}

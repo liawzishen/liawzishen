@@ -56,7 +56,7 @@ export default async function ScanPickerPage({
       {allowance && (
         <Link
           href={`/farms/${farmId}/plan`}
-          className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-[13px] font-semibold shadow-card transition active:bg-fill"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold glass transition active:bg-white/60"
         >
           🔬{" "}
           {allowance.remaining === null

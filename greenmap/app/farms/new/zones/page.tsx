@@ -110,7 +110,7 @@ export default function SetupZonesPage() {
         </p>
 
         {/* Read-only farm summary */}
-        <div className="mt-5 flex items-center gap-3 rounded-card bg-card p-4 shadow-card">
+        <div className="mt-5 flex items-center gap-3 rounded-card p-4 glass">
           <div
             aria-hidden
             className="h-12 w-16 shrink-0 overflow-hidden rounded-input"
@@ -155,7 +155,7 @@ export default function SetupZonesPage() {
 
         {/* Add-zone mini-form */}
         {showForm ? (
-          <div className="mt-4 rounded-card bg-card p-4 shadow-card">
+          <div className="mt-4 rounded-card p-4 glass">
             <Input
               label="Zone Name"
               placeholder="e.g. Tomato Rows"
@@ -219,7 +219,7 @@ export default function SetupZonesPage() {
       </div>
 
       {/* Sticky footer: the finish action */}
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-bg/85 px-6 py-4 backdrop-blur-xl">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
         <Button full onClick={finish} disabled={saving}>
           {saving
             ? "Creating your farm…"

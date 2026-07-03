@@ -163,7 +163,7 @@ export default function SetupMapPage() {
                   "flex w-full items-center gap-3 rounded-card p-4 text-left transition",
                   selected
                     ? "bg-brand/10 ring-2 ring-brand"
-                    : "bg-card shadow-card ring-1 ring-transparent"
+                    : "glass ring-1 ring-transparent"
                 )}
               >
                 <span aria-hidden className="text-[24px]">
@@ -254,7 +254,7 @@ export default function SetupMapPage() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 bg-bg/85 px-6 py-4 backdrop-blur-xl">
+      <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
         <Button
           full
           disabled={!canContinue || uploading}

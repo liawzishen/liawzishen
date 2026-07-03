@@ -36,7 +36,7 @@ export function HarvestPassportCard({
     { l: "AI Scans", v: String(scanCount) },
   ];
   return (
-    <div className="rounded-card bg-card p-6 shadow-card ring-1 ring-slate-100">
+    <div className="rounded-card p-6 glass">
       <div className="text-center">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           Harvest Passport

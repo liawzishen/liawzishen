@@ -142,7 +142,7 @@ export function TodaysTasks({
 
   if (activeTotal === 0 && completed.length === 0) {
     return (
-      <div className="rounded-card bg-card p-6 text-center shadow-card">
+      <div className="rounded-card p-6 text-center glass">
         <p className="text-[15px] font-medium">All caught up 🎉</p>
         <p className="mt-1 text-[13px] text-secondary">No tasks need you right now.</p>
       </div>
@@ -168,7 +168,7 @@ export function TodaysTasks({
         const hidden = items.length - visible.length;
 
         return (
-          <div key={cat.key} className="overflow-hidden rounded-card bg-card shadow-card">
+          <div key={cat.key} className="overflow-hidden rounded-card glass">
             <div className="flex items-center gap-2 p-3.5">
               <button
                 type="button"
@@ -253,7 +253,7 @@ export function TodaysTasks({
 
       {/* Completed Today */}
       {completed.length > 0 && (
-        <div className="overflow-hidden rounded-card bg-card shadow-card">
+        <div className="overflow-hidden rounded-card glass">
           <button
             type="button"
             onClick={() => setDoneOpen((v) => !v)}
