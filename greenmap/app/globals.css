@@ -2,21 +2,21 @@
 
 /*
   GreenMap design tokens — single source of truth.
-  Values are LOCKED by 06_UI_Design_Direction (iOS-native, light mode).
-  Verified identical to the greenmap-interactive.html prototype.
-  Change theme HERE, never inline in components. Dark mode = Phase 2.
+  2026-07-03: Liquid Glass restyle (docs/superpowers/specs/
+  2026-07-03-apple-glass-ui-design.md) — Garden ambient wash + glass
+  surfaces. Layouts and structure unchanged. Dark mode = Phase 2.
 */
 @theme {
-  /* iOS system colours */
-  --color-bg: #f2f2f7; /* grouped page background */
-  --color-card: #ffffff; /* card surfaces */
+  /* iOS system colours (bg + secondary retuned for the glass look) */
+  --color-bg: #eef3ef; /* green-tinted base under the ambient wash */
+  --color-card: #ffffff; /* opaque surfaces (inputs on photos, QR block) */
   --color-label: #000000; /* primary text */
-  --color-secondary: #8a8a8e; /* secondary text, subtitles */
+  --color-secondary: #6d7076; /* secondary text — darkened for glass panels */
   --color-tertiary: #c7c7cc; /* borders, dividers, chevrons, "New" marker */
-  --color-fill: #e9e9eb; /* input fills, segmented controls */
+  --color-fill: #e9e9eb; /* segmented controls, pressed states */
 
   /* Brand */
-  --color-brand: #34c759; /* primary buttons, active tabs, healthy */
+  --color-brand: #34c759; /* primary actions, active tabs, healthy */
   --color-brand-dark: #248a3d; /* text on light green badges */
 
   /* Status & plant health */
@@ -35,12 +35,17 @@
   --radius-input: 12px; /* inputs */
   --radius-squarcle: 20px; /* 60×60 quick-action tiles */
 
-  /* Shadows */
-  --shadow-card: 0 4px 14px rgb(0 0 0 / 0.04);
-  --shadow-fab: 0 8px 16px rgb(52 199 89 / 0.35);
+  /* Shadows — softer, deeper, green-gray for the glass look */
+  --shadow-card: 0 8px 20px rgb(20 50 35 / 0.08);
+  --shadow-fab: 0 0 0 4px rgb(255 255 255 / 0.35), 0 6px 16px rgb(52 199 89 / 0.5);
 }
 
 @layer base {
+  :root {
+    /* Brand gradient for primary buttons + the scan FAB */
+    --gradient-brand: linear-gradient(145deg, #3ddb6c, #28b04e);
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
@@ -48,6 +53,24 @@
 
   body {
     @apply bg-bg font-sans text-label antialiased;
+  }
+
+  /*
+    Ambient Garden wash — fixed so glass panels always have colour to blur.
+    Lives on ::before (z -1) so it never scrolls and never catches events.
+  */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(42rem 42rem at 12% 8%, rgb(52 199 89 / 0.18), transparent 70%),
+      radial-gradient(48rem 48rem at 95% 22%, rgb(48 209 150 / 0.14), transparent 70%),
+      radial-gradient(50rem 50rem at 35% 95%, rgb(64 200 224 / 0.13), transparent 70%),
+      radial-gradient(36rem 36rem at 78% 65%, rgb(172 224 110 / 0.12), transparent 70%),
+      #eef3ef;
   }
 
   /* iOS pattern: respect users who prefer reduced motion (06 §13) */
@@ -68,6 +91,63 @@
 }
 @utility hairline-b {
   border-bottom: 0.5px solid rgb(0 0 0 / 0.1);
+}
+
+/*
+  Liquid Glass surfaces. `glass` = cards / top-level panels;
+  `glass-strong` = chrome (tab bar, headers, sticky CTAs);
+  `glass-sheet` = bottom sheets hosting forms (whiter for readability).
+  Each carries its own no-blur / reduced-transparency fallback.
+*/
+@utility glass {
+  background: rgb(255 255 255 / 0.55);
+  backdrop-filter: blur(16px) saturate(170%);
+  border: 1px solid rgb(255 255 255 / 0.65);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 8px 20px rgb(20 50 35 / 0.1);
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgb(255 255 255 / 0.92);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background: rgb(255 255 255 / 0.92);
+    backdrop-filter: none;
+  }
+}
+@utility glass-strong {
+  background: rgb(255 255 255 / 0.62);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgb(255 255 255 / 0.65);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 10px 26px rgb(20 50 35 / 0.14);
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgb(255 255 255 / 0.92);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background: rgb(255 255 255 / 0.92);
+    backdrop-filter: none;
+  }
+}
+@utility glass-sheet {
+  background: rgb(255 255 255 / 0.8);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgb(255 255 255 / 0.65);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    0 10px 26px rgb(20 50 35 / 0.14);
+  @supports not (backdrop-filter: blur(1px)) {
+    background: rgb(255 255 255 / 0.96);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background: rgb(255 255 255 / 0.96);
+    backdrop-filter: none;
+  }
+}
+
+/* Brand gradient fill (primary buttons, scan FAB) */
+@utility bg-gradient-brand {
+  background-image: var(--gradient-brand);
 }
 
 /*
