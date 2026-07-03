@@ -29,6 +29,8 @@ type Props = {
   avatarUrl: string | null;
   isVerified: boolean;
   memberSince: string; // ISO timestamp
+  /** Optional card rendered under the comcard in view mode (e.g. My Plan row). */
+  planSlot?: React.ReactNode;
 };
 
 const AVATAR_BUCKET = "farm-backgrounds"; // public; reused via an avatars/ prefix
@@ -293,6 +295,8 @@ export function ProfileClient(props: Props) {
           <p className="mt-1 text-[13px] text-secondary">{props.email}</p>
         </div>
       </section>
+
+      {!editing && props.planSlot}
 
       {success && (
         <p

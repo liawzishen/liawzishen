@@ -37,14 +37,19 @@ export function ScanUploader({
   plantId,
   farmId,
   cropType,
+  scansLeft,
 }: {
   plantId: string;
   farmId: string;
   cropType: string;
+  /** Scans left this month; null = unlimited; undefined = unknown (hide chip). */
+  scansLeft?: number | null;
 }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>("idle");
+  const [left, setLeft] = useState<number | null | undefined>(scansLeft);
+  const [blocked, setBlocked] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -106,7 +111,15 @@ export function ScanUploader({
         body: JSON.stringify({ plantId, imageUrl: publicUrl, cropType }),
       });
       const data = await res.json();
+      if (res.status === 402) {
+        setBlocked(true);
+        setLeft(0);
+        setPhase("preview");
+        setError("No scan credits left this month.");
+        return;
+      }
       if (!res.ok || !data?.result) throw new Error(data?.error ?? "Scan failed");
+      if (data.scansLeft !== undefined) setLeft(data.scansLeft);
       setResult(data.result as ScanResult);
       setPhase("result");
     } catch (e) {
@@ -146,6 +159,15 @@ export function ScanUploader({
         className="hidden"
       />
 
+      {left !== undefined && (
+        <p className="mb-3 text-[13px] font-medium text-secondary">
+          🔬{" "}
+          {left === null
+            ? "Unlimited scans"
+            : `${left} scan${left === 1 ? "" : "s"} left this month`}
+        </p>
+      )}
+
       {previewUrl ? (
         <div className="relative overflow-hidden rounded-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -176,6 +198,12 @@ export function ScanUploader({
         <p className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical">
           {error}
         </p>
+      )}
+
+      {blocked && (
+        <Button href={`/farms/${farmId}/plan`} full className="mt-3">
+          Get more scans
+        </Button>
       )}
 
       {(phase === "result" || phase === "saving") && result && (

@@ -31,7 +31,11 @@ export default async function FarmSelectorPage() {
   if (farmList.length > 0) {
     const { data: plants } = await supabase
       .from("plants")
-      .select("farm_id");
+      .select("farm_id")
+      .in(
+        "farm_id",
+        farmList.map((f) => f.id)
+      );
     for (const row of plants ?? []) {
       const id = (row as { farm_id: string }).farm_id;
       counts[id] = (counts[id] ?? 0) + 1;

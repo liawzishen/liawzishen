@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { BoostButton } from "@/components/billing/BoostButton";
 
 /**
  * Simulated "My Sales" hub (Phase-3 preview). Realistic demo data + a working
@@ -22,13 +23,22 @@ const ORDERS = [
   { id: "o2", buyer: "Lee Wei", item: "3 kg Red Chili", mode: "Delivery · 8 km", emoji: "🌶️" },
 ];
 
+// ids match the shared marketplace mock data (demo-listings.ts) so a boost
+// bought here shows as "Promoted" on the same card in the Marketplace.
 const LISTINGS = [
-  { emoji: "🍅", name: "Organic Cherry Tomatoes", meta: "18 kg left · RM 8/kg", expires: "Expires in 2 days", verified: true },
-  { emoji: "🌶️", name: "Fresh Red Chili", meta: "5 kg left · RM 12/kg", expires: "Expires tomorrow", verified: true },
-  { emoji: "🥬", name: "Pak Choi", meta: "30 bundles · RM 3/bundle", expires: "Listed today", verified: false },
+  { id: "l1", emoji: "🍅", name: "Organic Cherry Tomatoes", meta: "18 kg left · RM 8/kg", expires: "Expires in 2 days", verified: true },
+  { id: "l2", emoji: "🌶️", name: "Fresh Red Chili", meta: "5 kg left · RM 12/kg", expires: "Expires tomorrow", verified: true },
+  { id: "l3", emoji: "🥬", name: "Pak Choi", meta: "30 bundles · RM 3/bundle", expires: "Listed today", verified: false },
 ];
 
-export function SalesDashboard({ farmId }: { farmId: string }) {
+export function SalesDashboard({
+  farmId,
+  boosts = {},
+}: {
+  farmId: string;
+  /** listingId → active boost expires_at (ISO), from listing_boosts. */
+  boosts?: Record<string, string>;
+}) {
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
 
   return (
@@ -112,7 +122,7 @@ export function SalesDashboard({ farmId }: { farmId: string }) {
       <Card className="p-0">
         {LISTINGS.map((l, i) => (
           <div
-            key={l.name}
+            key={l.id}
             className={`flex items-center gap-3 p-4 ${i > 0 ? "hairline-t" : ""}`}
           >
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-input bg-fill text-[18px]">
@@ -125,6 +135,11 @@ export function SalesDashboard({ farmId }: { farmId: string }) {
               </p>
             </div>
             {l.verified && <Badge tone="brand">✓ Passport</Badge>}
+            <BoostButton
+              listingId={l.id}
+              listingName={l.name}
+              activeUntil={boosts[l.id] ?? null}
+            />
           </div>
         ))}
       </Card>
