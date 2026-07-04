@@ -43,6 +43,13 @@ type Props = {
   /** Register only: true once the user has typed anything. */
   typing?: boolean;
   locked?: boolean;
+  /**
+   * Fill the nearest positioned ancestor instead of being a 224px strip.
+   * The whole area becomes the sun-cursor zone, the sky spans it seamlessly,
+   * and ambient life (drifting clouds, a wandering bee) fills the space.
+   * Flowers stay planted at the bottom either way.
+   */
+  fill?: boolean;
 };
 
 // SVG coordinate system, one per flower. Root pinned at the bottom centre.
@@ -93,6 +100,7 @@ export function SunflowerScene({
   strength = 0,
   typing = false,
   locked = false,
+  fill = false,
 }: Props) {
   void locked; // visual lock is driven by `penalty`
 
@@ -476,7 +484,11 @@ export function SunflowerScene({
 
   return (
     <div
-      className="sf-scene relative h-56 w-full cursor-none select-none overflow-visible sm:h-60"
+      className={
+        fill
+          ? "sf-scene absolute inset-0 cursor-none select-none overflow-hidden"
+          : "sf-scene relative h-56 w-full cursor-none select-none overflow-visible sm:h-60"
+      }
       aria-hidden
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
@@ -489,10 +501,19 @@ export function SunflowerScene({
         @keyframes sf-particle { 0% { opacity: 0; transform: translate(0,0) scale(.4); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--px), -38px) scale(1); } }
         @keyframes sf-float { 0% { opacity: 0; transform: translate(0,6px) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--px), -42px) scale(1); } }
         @keyframes sf-fall { 0% { opacity: 1; transform: translate(0,0) rotate(0deg); } 100% { opacity: 0; transform: translate(var(--px), 120px) rotate(160deg); } }
+        @keyframes sf-cloud { 0%,100% { transform: translateX(-14px); } 50% { transform: translateX(22px); } }
+        @keyframes sf-bee {
+          0%,100% { transform: translate(0, 0) rotate(-6deg); }
+          22% { transform: translate(46px, -26px) rotate(10deg); }
+          48% { transform: translate(104px, -8px) rotate(-8deg); }
+          74% { transform: translate(52px, 16px) rotate(8deg); }
+        }
         .sf-grass-blade { animation: sf-grass var(--d) ease-in-out var(--delay) infinite; }
         .sf-shudder { animation: sf-shudder .5s ease-in-out; }
+        .sf-cloud { animation: sf-cloud var(--d) ease-in-out var(--delay) infinite; }
+        .sf-bee { animation: sf-bee 12s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .sf-grass-blade, .sf-shudder { animation: none !important; }
+          .sf-grass-blade, .sf-shudder, .sf-cloud, .sf-bee { animation: none !important; }
         }
       `}</style>
 
@@ -502,6 +523,34 @@ export function SunflowerScene({
 
       {/* soft sky glow */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-transparent" />
+
+      {/* ambient sky life — only when the scene fills a whole panel */}
+      {fill && (
+        <>
+          {[
+            { top: "12%", left: "14%", w: 120, h: 26, op: 0.4, d: "46s", delay: "0s" },
+            { top: "24%", left: "56%", w: 90, h: 20, op: 0.32, d: "58s", delay: "-18s" },
+            { top: "40%", left: "28%", w: 140, h: 30, op: 0.26, d: "70s", delay: "-33s" },
+          ].map((c, i) => (
+            <div
+              key={i}
+              className="sf-cloud pointer-events-none absolute rounded-full bg-white"
+              style={
+                {
+                  top: c.top,
+                  left: c.left,
+                  width: c.w,
+                  height: c.h,
+                  opacity: c.op,
+                  filter: "blur(7px)",
+                  "--d": c.d,
+                  "--delay": c.delay,
+                } as CSSVars
+              }
+            />
+          ))}
+        </>
+      )}
 
       {/* back grass (behind flowers) */}
       <div className="absolute inset-x-0 bottom-0 h-16">
@@ -735,6 +784,16 @@ export function SunflowerScene({
           </div>
         ))}
       </div>
+
+      {/* a little life among the flowers */}
+      {fill && (
+        <div
+          className="sf-bee pointer-events-none absolute bottom-[150px] left-[18%] text-[13px]"
+          style={{ opacity: 0.85 }}
+        >
+          🐝
+        </div>
+      )}
 
       {/* Sun cursor + tap flares are viewport-fixed, so they PORTAL to body:
           the auth page's glass container uses backdrop-filter, which would

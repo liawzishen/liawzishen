@@ -252,24 +252,25 @@ export default function AuthPage() {
           the rest of GreenMap (user feedback 2026-07-04: no dark backdrop —
           keep the ambient page background). */}
       <div className="w-full min-w-0 max-w-[880px] overflow-hidden rounded-[26px] glass sm:flex">
-        {/* Left panel — the visual panel */}
-        <div className="flex min-h-[250px] flex-col justify-between bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-[#E4F2E0] p-6 sm:w-[45%] sm:p-8">
-          <div>
+        {/* Left panel — the visual panel. The scene FILLS it (fill prop):
+            the sun cursor works across the whole pale-yellow area, the sky is
+            seamless, clouds drift up top and a bee wanders the flowers, which
+            stay planted at the base. */}
+        <div className="relative min-h-[300px] overflow-hidden bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-[#E4F2E0] sm:w-[45%]">
+          <SunflowerScene
+            fill
+            mode={isRegister ? "register" : "login"}
+            penalty={failedAttempts}
+            strength={strength}
+            typing={password.length > 0}
+            locked={locked}
+          />
+          <div className="pointer-events-none relative p-6 sm:p-8">
             <p className="text-[15px] font-bold text-brand-dark">🌿 GreenMap</p>
             <p className="mt-1.5 text-[14px] font-medium leading-snug text-[#4a554c]">
               Empowering Farms &<br />
               Connecting Tables.
             </p>
-          </div>
-          {/* Planted at the very base: escape the panel padding */}
-          <div className="-mx-6 -mb-6 sm:-mx-8 sm:-mb-8">
-            <SunflowerScene
-              mode={isRegister ? "register" : "login"}
-              penalty={failedAttempts}
-              strength={strength}
-              typing={password.length > 0}
-              locked={locked}
-            />
           </div>
         </div>
 
