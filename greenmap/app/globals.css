@@ -154,6 +154,18 @@
 }
 
 /*
+  Full-bleed escape hatch: when a page marks its <main> with .auth-breakout
+  (the split login card), the 430px phone frame un-constrains so the page can
+  use the whole viewport. Unlayered on purpose — it must beat the frame's
+  Tailwind utilities (max-w-[430px], bg-bg, sm:border-x).
+*/
+.app-frame:has(.auth-breakout) {
+  max-width: none;
+  background: transparent;
+  border: none;
+}
+
+/*
   Page-enter transition — iOS-style fade + rise. Every screen's root is a
   <main> that remounts once per navigation, so this plays exactly once per
   visit (the reduced-motion override above disables it). Ends at
