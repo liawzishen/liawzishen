@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { isPasswordValid } from "@/lib/auth/password";
 import { cn } from "@/lib/utils";
 import { SunflowerScene } from "@/components/auth/SunflowerScene";
@@ -26,6 +27,75 @@ function destinationFor(role: Role | undefined) {
 }
 
 /* ── Small inline icons (no extra packages) ─────────────────────────────── */
+
+function AppleLogo() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.05 12.54c-.03-2.62 2.14-3.88 2.24-3.94-1.22-1.79-3.12-2.03-3.8-2.06-1.61-.16-3.15.95-3.97.95-.82 0-2.08-.93-3.43-.9-1.76.03-3.39 1.02-4.29 2.6-1.83 3.18-.47 7.88 1.32 10.46.87 1.26 1.91 2.68 3.27 2.63 1.31-.05 1.81-.85 3.4-.85 1.58 0 2.03.85 3.42.82 1.42-.02 2.31-1.28 3.18-2.55 1-1.46 1.41-2.87 1.44-2.94-.03-.02-2.76-1.06-2.78-4.22ZM14.44 4.83c.72-.87 1.2-2.08 1.07-3.29-1.03.04-2.29.69-3.03 1.56-.66.77-1.25 2-1.09 3.18 1.15.09 2.33-.58 3.05-1.45Z" />
+    </svg>
+  );
+}
+
+function GoogleLogo() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#4285F4"
+        d="M23.5 12.27c0-.85-.08-1.66-.22-2.45H12v4.64h6.45a5.52 5.52 0 0 1-2.39 3.62v3h3.87c2.26-2.09 3.57-5.17 3.57-8.81Z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.96-1.07 7.93-2.92l-3.87-3c-1.07.72-2.44 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.95H1.29v3.1A11.99 11.99 0 0 0 12 24Z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.29 14.28A7.19 7.19 0 0 1 4.91 12c0-.79.14-1.56.38-2.28V6.62H1.29a12 12 0 0 0 0 10.76l4-3.1Z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.77c1.76 0 3.34.61 4.58 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A11.99 11.99 0 0 0 1.29 6.62l4 3.1C6.23 6.88 8.88 4.77 12 4.77Z"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Disabled SSO previews (user decision B, 2026-07-05): the reference layout's
+ * Apple/Google buttons, shown honestly — no OAuth is configured (and Apple
+ * sign-in needs a paid developer account), so they are real <button disabled>
+ * elements with a "coming soon" caption instead of dead clickable controls.
+ */
+function SsoBlock({ isRegister }: { isRegister: boolean }) {
+  const verb = isRegister ? "Sign up" : "Sign in";
+  return (
+    <div className="mt-3">
+      <div className="flex items-center gap-3 text-[12px] font-medium text-tertiary">
+        <span aria-hidden className="h-px flex-1 bg-black/10" />
+        OR
+        <span aria-hidden className="h-px flex-1 bg-black/10" />
+      </div>
+      <div className="mt-3 flex gap-3">
+        <button
+          type="button"
+          disabled
+          className="flex h-10 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-[12px] bg-black text-[14px] font-semibold text-white opacity-55"
+        >
+          <AppleLogo /> Apple
+        </button>
+        <button
+          type="button"
+          disabled
+          className="flex h-10 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-[12px] border border-black/10 bg-white text-[14px] font-semibold text-label opacity-70"
+        >
+          <GoogleLogo /> Google
+        </button>
+      </div>
+      <p className="mt-1.5 text-center text-[11px] text-tertiary">
+        {verb} with Apple or Google — coming soon
+      </p>
+    </div>
+  );
+}
 
 function Spinner() {
   return (
@@ -97,7 +167,7 @@ function Field({
     <div>
       <label
         htmlFor={inputId}
-        className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-secondary"
+        className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-secondary"
       >
         {label}
       </label>
@@ -106,7 +176,7 @@ function Field({
           id={inputId}
           suppressHydrationWarning
           className={cn(
-            "h-12 w-full rounded-input bg-fill px-4 text-[16px] text-label placeholder:text-secondary",
+            "h-[52px] w-full rounded-[12px] bg-[#F5F5F7] px-4 text-[16px] text-label placeholder:text-[#a0a3a7]",
             "focus:outline-none focus:ring-2 focus:ring-brand/50",
             !!trailing && "pr-12",
             error && "ring-2 ring-critical/60"
@@ -251,12 +321,12 @@ export default function AuthPage() {
           bottom); COLORS from the app's own design system so the page matches
           the rest of GreenMap (user feedback 2026-07-04: no dark backdrop —
           keep the ambient page background). */}
-      <div className="w-full min-w-0 max-w-[880px] overflow-hidden rounded-[26px] glass sm:flex sm:h-[760px]">
+      <div className="w-full min-w-0 max-w-[880px] overflow-hidden rounded-[26px] glass sm:flex sm:h-[870px]">
         {/* Left panel — the visual panel. The scene FILLS it (fill prop):
             the sun cursor works across the whole pale-yellow area, the sky is
             seamless, clouds drift up top and a bee wanders the flowers, which
             stay planted at the base. */}
-        <div className="relative min-h-[300px] overflow-hidden bg-gradient-to-b from-[#FFEFC2] via-[#FBF4DC] to-[#EAF2DC] sm:w-[45%]">
+        <div className="relative min-h-[300px] overflow-hidden bg-gradient-to-b from-[#FFEFC2] via-[#F8F4DC] to-[#DFF2E4] sm:w-[50%]">
           <SunflowerScene
             fill
             mode={isRegister ? "register" : "login"}
@@ -265,24 +335,31 @@ export default function AuthPage() {
             typing={password.length > 0}
             locked={locked}
           />
-          <div className="pointer-events-none relative p-6 sm:p-8">
-            <p className="text-[17px] font-bold text-brand-dark">🌿 GreenMap</p>
-            <p className="mt-2 text-[19px] font-semibold leading-snug text-[#3f4a41]">
-              Empowering Farms &<br />
-              Connecting Tables.
-            </p>
+          {/* Centered frosted-glass brand card (top-centered on phones so it
+              clears the flowers; true center on sm+). pointer-events-none so
+              the sun cursor keeps working through it. */}
+          <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-10 sm:items-center sm:pt-0">
+            <div className="glass rounded-[20px] px-7 py-6 text-center">
+              <p className="text-[20px] font-bold text-brand-dark">🌿 GreenMap</p>
+              <p className="mt-2 text-[15px] font-semibold leading-snug text-[#2c3a30]">
+                Empowering Farms &<br />
+                Connecting Tables.
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Right panel — the form panel */}
-        <div className="flex flex-col bg-white/85 p-6 backdrop-blur-xl sm:w-[55%] sm:overflow-y-auto sm:p-7 lg:px-12 lg:py-8">
+        <div className="flex flex-col bg-white/85 p-6 backdrop-blur-xl sm:w-[50%] sm:overflow-y-auto sm:p-7 lg:px-11 lg:py-6">
+        {/* Login's shorter content centers vertically; register fills the panel */}
+        <div className={cn(!isRegister && "sm:my-auto")}>
           <div className="text-center">
             <h1 className="text-[24px] font-bold leading-tight sm:text-[27px]">
-              {isRegister ? "Create your account" : "Welcome back!"}
+              {isRegister ? "Join GreenMap" : "Welcome back!"}
             </h1>
             <p className="mt-1.5 text-[14px] leading-snug text-secondary">
               {isRegister
-                ? "Map your farm, track every plant, earn consumer trust."
+                ? "Map your farm, track crops, build trust."
                 : "Please enter your details."}
             </p>
           </div>
@@ -314,7 +391,7 @@ export default function AuthPage() {
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-5 space-y-3.5" noValidate>
+          <form onSubmit={handleSubmit} className="mt-4 space-y-2.5" noValidate>
             {isRegister && (
               <>
                 <div>
@@ -331,10 +408,10 @@ export default function AuthPage() {
                           onClick={() => setRole(card.value)}
                           aria-pressed={selected}
                           className={cn(
-                            "rounded-input border p-3 text-left transition",
+                            "relative rounded-[14px] border p-2.5 text-left shadow-[0_2px_10px_rgb(20_50_35/0.06)] transition",
                             selected
-                              ? "border-brand bg-brand/10"
-                              : "border-tertiary/60 bg-white/70"
+                              ? "border-[#7ed49a] bg-brand/8"
+                              : "border-black/5 bg-white"
                           )}
                         >
                           <span
@@ -343,11 +420,16 @@ export default function AuthPage() {
                           >
                             {card.icon}
                           </span>
-                          <span className="mt-1.5 flex items-center gap-1 text-[15px] font-semibold">
+                          {selected && (
+                            <span
+                              aria-hidden
+                              className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-brand text-[11px] font-bold text-white"
+                            >
+                              ✓
+                            </span>
+                          )}
+                          <span className="mt-1.5 block text-[15px] font-semibold">
                             {card.title}
-                            {selected && (
-                              <span className="text-brand">✓</span>
-                            )}
                           </span>
                           <span className="mt-0.5 block text-[12px] leading-snug text-secondary">
                             {card.body}
@@ -390,12 +472,7 @@ export default function AuthPage() {
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 trailing={passwordToggle}
               />
-              {isRegister && (
-                <p className="mt-1.5 text-[13px] leading-snug text-secondary">
-                  Mix uppercase, lowercase, a number &amp; a symbol (8+ chars)
-                  to grow your sunflower 🌻
-                </p>
-              )}
+              {isRegister && <PasswordChecklist compact password={password} />}
             </div>
 
             {isRegister && (
@@ -456,8 +533,11 @@ export default function AuthPage() {
                 "Sign In"
               )}
             </Button>
+
+            <SsoBlock isRegister={isRegister} />
           </form>
         )}
+        </div>
 
         {/* Mode switch — pinned to the panel bottom like the reference */}
         {!notice && (
