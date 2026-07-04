@@ -251,7 +251,7 @@ export default function AuthPage() {
           bottom); COLORS from the app's own design system so the page matches
           the rest of GreenMap (user feedback 2026-07-04: no dark backdrop —
           keep the ambient page background). */}
-      <div className="w-full min-w-0 max-w-[880px] overflow-hidden rounded-[26px] glass sm:flex">
+      <div className="w-full min-w-0 max-w-[880px] overflow-hidden rounded-[26px] glass sm:flex sm:h-[760px]">
         {/* Left panel — the visual panel. The scene FILLS it (fill prop):
             the sun cursor works across the whole pale-yellow area, the sky is
             seamless, clouds drift up top and a bee wanders the flowers, which
@@ -275,7 +275,7 @@ export default function AuthPage() {
         </div>
 
         {/* Right panel — the form panel */}
-        <div className="flex flex-col bg-white/85 p-6 backdrop-blur-xl sm:w-[55%] sm:p-8 lg:px-12 lg:py-10">
+        <div className="flex flex-col bg-white/85 p-6 backdrop-blur-xl sm:w-[55%] sm:overflow-y-auto sm:p-7 lg:px-12 lg:py-8">
           <div className="text-center">
             <h1 className="text-[24px] font-bold leading-tight sm:text-[27px]">
               {isRegister ? "Create your account" : "Welcome back!"}
@@ -314,7 +314,7 @@ export default function AuthPage() {
             </Button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-5 space-y-4" noValidate>
+          <form onSubmit={handleSubmit} className="mt-5 space-y-3.5" noValidate>
             {isRegister && (
               <>
                 <div>
@@ -331,7 +331,7 @@ export default function AuthPage() {
                           onClick={() => setRole(card.value)}
                           aria-pressed={selected}
                           className={cn(
-                            "rounded-input border p-3.5 text-left transition",
+                            "rounded-input border p-3 text-left transition",
                             selected
                               ? "border-brand bg-brand/10"
                               : "border-tertiary/60 bg-white/70"

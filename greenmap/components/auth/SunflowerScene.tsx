@@ -505,7 +505,6 @@ export function SunflowerScene({
         @keyframes sf-float { 0% { opacity: 0; transform: translate(0,6px) scale(.5); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--px), -42px) scale(1); } }
         @keyframes sf-fall { 0% { opacity: 1; transform: translate(0,0) rotate(0deg); } 100% { opacity: 0; transform: translate(var(--px), 120px) rotate(160deg); } }
         @keyframes sf-cloud { 0%,100% { transform: translateX(-14px); } 50% { transform: translateX(22px); } }
-        @keyframes sf-sun { 0%,100% { transform: scale(1); opacity: .95; } 50% { transform: scale(1.05); opacity: 1; } }
         @keyframes sf-bfly {
           0%,100% { transform: translate(0, 0) rotate(-8deg); }
           25% { transform: translate(-28px, -14px) rotate(7deg); }
@@ -522,10 +521,9 @@ export function SunflowerScene({
         .sf-shudder { animation: sf-shudder .5s ease-in-out; }
         .sf-cloud { animation: sf-cloud var(--d) ease-in-out var(--delay) infinite; }
         .sf-bee { animation: sf-bee 12s ease-in-out infinite; }
-        .sf-sun { animation: sf-sun 6s ease-in-out infinite; }
         .sf-bfly { animation: sf-bfly 9s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .sf-grass-blade, .sf-shudder, .sf-cloud, .sf-bee, .sf-sun, .sf-bfly { animation: none !important; }
+          .sf-grass-blade, .sf-shudder, .sf-cloud, .sf-bee, .sf-bfly { animation: none !important; }
         }
       `}</style>
 
@@ -545,20 +543,7 @@ export function SunflowerScene({
       {/* ambient sky life — only when the scene fills a whole panel */}
       {fill && (
         <>
-          {/* breathing sun */}
-          <div
-            className="sf-sun pointer-events-none absolute"
-            style={{
-              top: "6%",
-              right: "7%",
-              width: 88,
-              height: 88,
-              borderRadius: "50%",
-              background:
-                "radial-gradient(circle, #FFE9A8 0%, #FFD65E 45%, rgba(255,214,94,0) 72%)",
-              boxShadow: "0 0 40px 16px rgb(255 205 80 / 0.5)",
-            }}
-          />
+          {/* no static sun here — the mouse cursor IS the sun (user request) */}
           {/* rolling hills fill the middle band, behind grass + flowers */}
           <div className="pointer-events-none absolute bottom-[-44px] left-[-18%] h-[130px] w-[75%] rounded-full bg-[#d9e3ae] opacity-75" />
           <div className="pointer-events-none absolute bottom-[-40px] right-[-22%] h-[116px] w-[78%] rounded-full bg-[#cbdb9c] opacity-70" />
