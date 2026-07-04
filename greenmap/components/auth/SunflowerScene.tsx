@@ -522,8 +522,10 @@ export function SunflowerScene({
         .sf-cloud { animation: sf-cloud var(--d) ease-in-out var(--delay) infinite; }
         .sf-bee { animation: sf-bee 12s ease-in-out infinite; }
         .sf-bfly { animation: sf-bfly 9s ease-in-out infinite; }
+        @keyframes sf-leaf { 0%,100% { transform: translate(0, 0) rotate(-14deg); } 50% { transform: translate(10px, 14px) rotate(10deg); } }
+        .sf-leaf { animation: sf-leaf 7s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .sf-grass-blade, .sf-shudder, .sf-cloud, .sf-bee, .sf-bfly { animation: none !important; }
+          .sf-grass-blade, .sf-shudder, .sf-cloud, .sf-bee, .sf-bfly, .sf-leaf { animation: none !important; }
         }
       `}</style>
 
@@ -819,6 +821,12 @@ export function SunflowerScene({
             style={{ opacity: 0.9 }}
           >
             🦋
+          </div>
+          <div
+            className="sf-leaf pointer-events-none absolute left-[14%] top-[28%] text-[14px]"
+            style={{ opacity: 0.8 }}
+          >
+            🍃
           </div>
         </>
       )}
