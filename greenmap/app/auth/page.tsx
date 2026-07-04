@@ -245,32 +245,24 @@ export default function AuthPage() {
   );
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#1a1a24] px-4 py-8 sm:px-6">
-      {/* Slightly out-of-focus glow in the dark backdrop (user spec) */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-brand/15 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-20 bottom-8 h-80 w-80 rounded-full bg-info/10 blur-3xl"
-      />
-
-      {/* Split card per the user's Gemini reference (2026-07-04): 45% art
-          panel (#eef0d5) with the live sunflowers planted at its base, 55%
-          white form panel. Stacks vertically on phones. */}
-      <div className="relative w-full max-w-[430px] overflow-hidden rounded-[24px] bg-white shadow-[0_20px_40px_rgba(0,0,0,0.4)] md:flex md:max-w-[900px]">
+    <main className="auth-breakout flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6">
+      {/* Split card — LAYOUT from the user's reference (45/55 split, tagline
+          top-left, sunflowers planted at the base, switch link at the panel
+          bottom); COLORS from the app's own design system so the page matches
+          the rest of GreenMap (user feedback 2026-07-04: no dark backdrop —
+          keep the ambient page background). */}
+      <div className="w-full min-w-0 max-w-[880px] overflow-hidden rounded-[26px] glass sm:flex">
         {/* Left panel — the visual panel */}
-        <div className="flex min-h-[260px] flex-col justify-between bg-[#eef0d5] p-10 md:w-[45%]">
-          <p className="text-[16px] font-medium leading-snug text-[#333]">
-            Empowering Farms &<br />
-            Connecting Tables.
-          </p>
-          <p aria-hidden className="text-center text-[56px] leading-none">
-            🪴
-          </p>
+        <div className="flex min-h-[250px] flex-col justify-between bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-[#E4F2E0] p-6 sm:w-[45%] sm:p-8">
+          <div>
+            <p className="text-[15px] font-bold text-brand-dark">🌿 GreenMap</p>
+            <p className="mt-1.5 text-[14px] font-medium leading-snug text-[#4a554c]">
+              Empowering Farms &<br />
+              Connecting Tables.
+            </p>
+          </div>
           {/* Planted at the very base: escape the panel padding */}
-          <div className="-mx-10 -mb-10">
+          <div className="-mx-6 -mb-6 sm:-mx-8 sm:-mb-8">
             <SunflowerScene
               mode={isRegister ? "register" : "login"}
               penalty={failedAttempts}
@@ -282,13 +274,12 @@ export default function AuthPage() {
         </div>
 
         {/* Right panel — the form panel */}
-        <div className="flex flex-col p-6 sm:px-10 md:w-[55%] md:px-[60px] md:py-10">
-          <p aria-hidden className="text-center text-[24px]">🪴&ensp;🛒</p>
-          <div className="mt-3 text-center">
-            <h1 className="text-[28px] font-bold leading-tight text-[#111] sm:text-[32px]">
+        <div className="flex flex-col bg-white/85 p-6 backdrop-blur-xl sm:w-[55%] sm:p-8 lg:px-12 lg:py-10">
+          <div className="text-center">
+            <h1 className="text-[24px] font-bold leading-tight sm:text-[27px]">
               {isRegister ? "Create your account" : "Welcome back!"}
             </h1>
-            <p className="mt-2 text-[14px] leading-snug text-[#555]">
+            <p className="mt-1.5 text-[14px] leading-snug text-secondary">
               {isRegister
                 ? "Map your farm, track every plant, earn consumer trust."
                 : "Please enter your details."}
@@ -339,10 +330,10 @@ export default function AuthPage() {
                           onClick={() => setRole(card.value)}
                           aria-pressed={selected}
                           className={cn(
-                            "rounded-[12px] border p-3.5 text-left transition",
+                            "rounded-input border p-3.5 text-left transition",
                             selected
-                              ? "border-[#85c898] bg-[#f4fbf6]"
-                              : "border-tertiary bg-white"
+                              ? "border-brand bg-brand/10"
+                              : "border-tertiary/60 bg-white/70"
                           )}
                         >
                           <span
@@ -450,7 +441,6 @@ export default function AuthPage() {
             <Button
               type="submit"
               full
-              className="bg-none bg-[#85c898] shadow-none hover:bg-[#72b585]"
               disabled={!canSubmit}
               aria-busy={loading}
             >
@@ -470,7 +460,7 @@ export default function AuthPage() {
 
         {/* Mode switch — pinned to the panel bottom like the reference */}
         {!notice && (
-          <p className="mt-6 text-center text-[14px] text-secondary md:mt-auto md:pt-4">
+          <p className="mt-6 text-center text-[14px] text-secondary sm:mt-auto sm:pt-4">
           {isRegister ? (
             <>
               Already have an account?{" "}

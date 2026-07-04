@@ -25,8 +25,10 @@ export default function RootLayout({
         {/*
           Mobile-first app frame (06 §7): target 393–430px wide.
           Desktop simply centres the frame — full desktop layouts are Phase 2.
+          Pages carrying the `auth-breakout` marker (the split login) escape
+          the frame via the .app-frame:has() rule in globals.css.
         */}
-        <div className="relative mx-auto min-h-dvh w-full max-w-[430px] bg-bg sm:border-x sm:border-black/5">
+        <div className="app-frame relative mx-auto min-h-dvh w-full max-w-[430px] bg-bg sm:border-x sm:border-black/5">
           {children}
         </div>
       </body>
