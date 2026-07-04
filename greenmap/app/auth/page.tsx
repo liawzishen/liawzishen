@@ -256,7 +256,7 @@ export default function AuthPage() {
             the sun cursor works across the whole pale-yellow area, the sky is
             seamless, clouds drift up top and a bee wanders the flowers, which
             stay planted at the base. */}
-        <div className="relative min-h-[300px] overflow-hidden bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-[#E4F2E0] sm:w-[45%]">
+        <div className="relative min-h-[300px] overflow-hidden bg-gradient-to-b from-[#FFEFC2] via-[#FBF4DC] to-[#EAF2DC] sm:w-[45%]">
           <SunflowerScene
             fill
             mode={isRegister ? "register" : "login"}
@@ -266,8 +266,8 @@ export default function AuthPage() {
             locked={locked}
           />
           <div className="pointer-events-none relative p-6 sm:p-8">
-            <p className="text-[15px] font-bold text-brand-dark">🌿 GreenMap</p>
-            <p className="mt-1.5 text-[14px] font-medium leading-snug text-[#4a554c]">
+            <p className="text-[17px] font-bold text-brand-dark">🌿 GreenMap</p>
+            <p className="mt-2 text-[19px] font-semibold leading-snug text-[#3f4a41]">
               Empowering Farms &<br />
               Connecting Tables.
             </p>
