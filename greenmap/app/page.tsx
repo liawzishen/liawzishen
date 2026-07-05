@@ -39,7 +39,9 @@ export default function LandingPage() {
   return (
     <main className="pb-10">
       <header className="flex items-center justify-between px-6 pt-5">
-        <span className="text-[17px] font-bold">🌿 GreenMap</span>
+        <span className="font-rustic text-[17px] font-bold text-[#5c3a21]">
+          🌿 GreenMap
+        </span>
         <div className="flex items-center gap-2">
           <Link href="/auth" className="px-2 text-[15px] font-medium text-brand">
             Log In
@@ -54,7 +56,7 @@ export default function LandingPage() {
         <p className="text-[12px] font-semibold uppercase tracking-widest text-brand-dark">
           From seed to table
         </p>
-        <h1 className="mt-2 text-[34px] font-bold leading-[1.15]">
+        <h1 className="mt-2 font-rustic text-[34px] font-bold leading-[1.15]">
           Every step recorded, every plant verified, every harvest trusted.
         </h1>
         <p className="mt-3 text-[16px] leading-relaxed text-secondary">
@@ -74,14 +76,14 @@ export default function LandingPage() {
             className="relative h-44 overflow-hidden rounded-card bg-brand/10"
             style={{
               backgroundImage:
-                "radial-gradient(rgba(52,199,89,0.25) 1.5px, transparent 1.5px)",
+                "radial-gradient(rgba(79,119,45,0.25) 1.5px, transparent 1.5px)",
               backgroundSize: "14px 14px",
             }}
           >
             {heroMarkers.map((m) => (
               <span
                 key={m.score}
-                className={`absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-[3px] bg-white text-[11px] font-bold shadow-card ${m.ring}`}
+                className={`absolute flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-[3px] bg-[#fdf9ee] text-[11px] font-bold shadow-card ${m.ring}`}
                 style={{ left: m.left, top: m.top }}
               >
                 {m.score}
@@ -114,11 +116,11 @@ export default function LandingPage() {
       </section>
 
       <section className="px-6 pt-8">
-        <h2 className="text-[20px] font-semibold">How it works</h2>
+        <h2 className="font-rustic text-[20px] font-semibold">How it works</h2>
         <div className="mt-3 space-y-3">
           {steps.map((step) => (
             <Card key={step.n} className="flex items-center gap-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[14px] font-bold text-white">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand font-rustic text-[14px] font-bold text-[#f6ecd5]">
                 {step.n}
               </span>
               <p className="text-[15px] font-medium">{step.title}</p>

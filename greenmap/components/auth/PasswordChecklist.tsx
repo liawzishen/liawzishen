@@ -90,7 +90,15 @@ export function PasswordChecklist({
               className={cn(
                 "flex items-center transition-colors",
                 compact ? "gap-1.5 text-[12px]" : "gap-2 text-[13px]",
-                passed ? "text-brand-dark" : "text-secondary"
+                // Compact = the rustic auth page; non-compact = the glass
+                // Profile screen (unchanged).
+                compact
+                  ? passed
+                    ? "font-rustic text-meadow-dark"
+                    : "font-rustic text-wood-medium/70"
+                  : passed
+                    ? "text-brand-dark"
+                    : "text-secondary"
               )}
             >
               <span
@@ -98,7 +106,13 @@ export function PasswordChecklist({
                 className={cn(
                   "flex shrink-0 items-center justify-center rounded-full font-bold",
                   compact ? "h-3.5 w-3.5 text-[9px]" : "h-4 w-4 text-[10px]",
-                  passed ? "bg-brand text-white" : "bg-fill text-tertiary"
+                  compact
+                    ? passed
+                      ? "bg-meadow-green text-paper-light"
+                      : "bg-wood-light/30 text-wood-medium/50"
+                    : passed
+                      ? "bg-brand text-white"
+                      : "bg-fill text-tertiary"
                 )}
               >
                 {passed ? "✓" : ""}

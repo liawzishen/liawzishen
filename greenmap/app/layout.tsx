@@ -1,5 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Fredoka } from "next/font/google";
 import "./globals.css";
+
+/*
+ * Fredoka — the rustic display face — now loads at the root (design decision
+ * 2026-07-05: the whole app converges on the login page's rustic farm theme).
+ * Exposed as --font-fredoka, consumed via the `font-rustic` utility.
+ */
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  variable: "--font-fredoka",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: { default: "GreenMap", template: "%s · GreenMap" },
@@ -8,7 +20,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F2F2F7",
+  themeColor: "#faf3e3",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -20,7 +32,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    // The font variable must live on <html> (:root): --font-rustic is defined
+    // at :root and resolves var(--font-fredoka) THERE — on a descendant it
+    // would be invisible to it and Fredoka would silently never apply.
+    <html lang="en" className={fredoka.variable}>
       <body>
         {/*
           Mobile-first app frame (06 §7): target 393–430px wide.

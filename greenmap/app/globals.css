@@ -7,17 +7,26 @@
   surfaces. Layouts and structure unchanged. Dark mode = Phase 2.
 */
 @theme {
-  /* iOS system colours (bg + secondary retuned for the glass look) */
-  --color-bg: #eef3ef; /* green-tinted base under the ambient wash */
-  --color-card: #ffffff; /* opaque surfaces (inputs on photos, QR block) */
-  --color-label: #000000; /* primary text */
-  --color-secondary: #6d7076; /* secondary text — darkened for glass panels */
-  --color-tertiary: #c7c7cc; /* borders, dividers, chevrons, "New" marker */
-  --color-fill: #e9e9eb; /* segmented controls, pressed states */
+  /*
+    Rustic farm re-theme (user decision 2026-07-05): the whole app converges
+    on the login page's parchment/wood language. The SEMANTIC token names are
+    unchanged — every page keeps reading bg/card/label/secondary/brand — only
+    the values are remapped, so no component logic is touched.
+
+    Contrast fix (user feedback: "font is not obvious enough"): primary text
+    is dark ink-brown (~14:1 on parchment) and secondary text a deep brown
+    (~6.5:1) instead of the washed-out mid-brown from the mockups.
+  */
+  --color-bg: #faf3e3; /* parchment page base */
+  --color-card: #fdf9ee; /* warm paper surfaces (inputs on photos, QR block) */
+  --color-label: #2f2013; /* primary text — dark ink brown, high contrast */
+  --color-secondary: #6b4423; /* secondary text — deep brown, ≥6:1 on paper */
+  --color-tertiary: #c2a878; /* borders, dividers, chevrons — warm sand */
+  --color-fill: #efe3c8; /* segmented controls, pressed states — paper fill */
 
   /* Brand */
-  --color-brand: #34c759; /* primary actions, active tabs, healthy */
-  --color-brand-dark: #248a3d; /* text on light green badges */
+  --color-brand: #4f772d; /* meadow green — primary actions, healthy */
+  --color-brand-dark: #31572c; /* text on light green badges */
 
   /* Status & plant health */
   --color-warning: #ff9f0a; /* attention (health 40–69), PREVIEW badges */
@@ -35,15 +44,36 @@
   --radius-input: 12px; /* inputs */
   --radius-squarcle: 20px; /* 60×60 quick-action tiles */
 
-  /* Shadows — softer, deeper, green-gray for the glass look */
-  --shadow-card: 0 8px 20px rgb(20 50 35 / 0.08);
-  --shadow-fab: 0 0 0 4px rgb(255 255 255 / 0.35), 0 6px 16px rgb(52 199 89 / 0.5);
+  /* Shadows — warm wood-brown so panels sit naturally on parchment */
+  --shadow-card: 0 8px 20px rgb(92 58 33 / 0.1);
+  --shadow-fab: 0 0 0 4px rgb(255 255 255 / 0.35), 0 6px 16px rgb(79 119 45 / 0.45);
+
+  /*
+    Rustic "adventure map" palette — LOGIN / REGISTER ONLY.
+    Additive on purpose: these are brand-new tokens, they never override a
+    glass token above, and they are only *used* inside .auth-rustic (see
+    app/auth/layout.tsx), so no other screen is affected.
+  */
+  --color-wood-dark: #5c3a21;
+  --color-wood-medium: #8b5a2b;
+  --color-wood-light: #c29b68;
+  --color-paper-light: #f6ecd5;
+  --color-paper-dark: #e8d7b3;
+  --color-parchment: #faf3e3;
+  --color-meadow-green: #4f772d;
+  --color-meadow-dark: #31572c;
+  --color-meadow-light: #90a955;
+
+  /* Rustic display face. Falls back to Fredoka/cursive where --font-fredoka
+     (set by app/auth/layout.tsx) is absent — but font-rustic is only used on
+     the auth pages anyway. */
+  --font-rustic: var(--font-fredoka), "Fredoka", "Patrick Hand", ui-rounded, cursive;
 }
 
 @layer base {
   :root {
-    /* Brand gradient for primary buttons + the scan FAB */
-    --gradient-brand: linear-gradient(145deg, #3ddb6c, #28b04e);
+    /* Brand gradient for primary buttons + the scan FAB — meadow greens */
+    --gradient-brand: linear-gradient(145deg, #5c8a3a, #446b26);
   }
 
   html {
@@ -56,8 +86,9 @@
   }
 
   /*
-    Ambient Garden wash — fixed so glass panels always have colour to blur.
-    Lives on ::before (z -1) so it never scrolls and never catches events.
+    Ambient parchment wash — warm golden-hour radials over the paper base so
+    translucent panels always have colour to blur. Lives on ::before (z -1)
+    so it never scrolls and never catches events.
   */
   body::before {
     content: "";
@@ -66,11 +97,11 @@
     z-index: -1;
     pointer-events: none;
     background:
-      radial-gradient(42rem 42rem at 12% 8%, rgb(52 199 89 / 0.18), transparent 70%),
-      radial-gradient(48rem 48rem at 95% 22%, rgb(48 209 150 / 0.14), transparent 70%),
-      radial-gradient(50rem 50rem at 35% 95%, rgb(64 200 224 / 0.13), transparent 70%),
-      radial-gradient(36rem 36rem at 78% 65%, rgb(172 224 110 / 0.12), transparent 70%),
-      #eef3ef;
+      radial-gradient(42rem 42rem at 12% 8%, rgb(246 197 68 / 0.14), transparent 70%),
+      radial-gradient(48rem 48rem at 95% 22%, rgb(144 169 85 / 0.13), transparent 70%),
+      radial-gradient(50rem 50rem at 35% 95%, rgb(194 155 104 / 0.12), transparent 70%),
+      radial-gradient(36rem 36rem at 78% 65%, rgb(79 119 45 / 0.09), transparent 70%),
+      #faf3e3;
   }
 
   /* iOS pattern: respect users who prefer reduced motion (06 §13) */
@@ -85,65 +116,65 @@
   }
 }
 
-/* 0.5px iOS hairline separators (Tailwind v4 custom utilities) */
+/* 0.5px hairline separators — warm wood tint (Tailwind v4 custom utilities) */
 @utility hairline-t {
-  border-top: 0.5px solid rgb(0 0 0 / 0.1);
+  border-top: 0.5px solid rgb(92 58 33 / 0.16);
 }
 @utility hairline-b {
-  border-bottom: 0.5px solid rgb(0 0 0 / 0.1);
+  border-bottom: 0.5px solid rgb(92 58 33 / 0.16);
 }
 
 /*
-  Liquid Glass surfaces. `glass` = cards / top-level panels;
-  `glass-strong` = chrome (tab bar, headers, sticky CTAs);
-  `glass-sheet` = bottom sheets hosting forms (whiter for readability).
-  Each carries its own no-blur / reduced-transparency fallback.
+  Parchment surfaces (rustic re-theme 2026-07-05). The utility NAMES are kept
+  (`glass`, `glass-strong`, `glass-sheet`) so no page markup changes:
+  `glass` = cards / top-level panels; `glass-strong` = chrome (tab bar,
+  headers, sticky CTAs); `glass-sheet` = bottom sheets hosting forms (most
+  opaque for readability). Each keeps its no-blur / reduced-transparency
+  fallback.
 */
 @utility glass {
-  background: rgb(255 255 255 / 0.55);
-  backdrop-filter: blur(16px) saturate(170%);
-  border: 1px solid rgb(255 255 255 / 0.65);
+  background: rgb(246 236 213 / 0.78);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1.5px solid rgb(139 90 43 / 0.35);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.9),
-    0 8px 20px rgb(20 50 35 / 0.1);
+    inset 0 1px 0 rgb(255 250 235 / 0.9),
+    0 8px 20px rgb(92 58 33 / 0.12);
   @supports not (backdrop-filter: blur(1px)) {
-    background: rgb(255 255 255 / 0.92);
+    background: rgb(246 236 213 / 0.96);
   }
   @media (prefers-reduced-transparency: reduce) {
-    background: rgb(255 255 255 / 0.92);
+    background: rgb(246 236 213 / 0.96);
     backdrop-filter: none;
   }
 }
 @utility glass-strong {
-  background: rgb(255 255 255 / 0.62);
-  backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgb(255 255 255 / 0.65);
+  background: rgb(246 236 213 / 0.88);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1.5px solid rgb(139 90 43 / 0.4);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.9),
-    0 10px 26px rgb(20 50 35 / 0.14);
+    inset 0 1px 0 rgb(255 250 235 / 0.9),
+    0 10px 26px rgb(92 58 33 / 0.16);
   @supports not (backdrop-filter: blur(1px)) {
-    background: rgb(255 255 255 / 0.92);
+    background: rgb(246 236 213 / 0.97);
   }
   @media (prefers-reduced-transparency: reduce) {
-    background: rgb(255 255 255 / 0.92);
+    background: rgb(246 236 213 / 0.97);
     backdrop-filter: none;
   }
 }
 @utility glass-sheet {
-  /* Whiter than glass-strong: sheets host forms/prices — text clarity wins.
-     The page behind is dimmed+blurred by the sheet backdrop, so the sheet
-     itself reads crisp while the edges still feel like glass. */
-  background: rgb(255 255 255 / 0.9);
-  backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgb(255 255 255 / 0.65);
+  /* Most opaque: sheets host forms/prices — text clarity wins. */
+  background: rgb(250 245 231 / 0.96);
+  backdrop-filter: blur(20px) saturate(150%);
+  border: 1.5px solid rgb(139 90 43 / 0.4);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.9),
-    0 10px 26px rgb(20 50 35 / 0.14);
+    inset 0 1px 0 rgb(255 250 235 / 0.9),
+    0 10px 26px rgb(92 58 33 / 0.16);
   @supports not (backdrop-filter: blur(1px)) {
-    background: rgb(255 255 255 / 0.98);
+    background: rgb(250 245 231 / 0.99);
   }
   @media (prefers-reduced-transparency: reduce) {
-    background: rgb(255 255 255 / 0.98);
+    background: rgb(250 245 231 / 0.99);
     backdrop-filter: none;
   }
 }
@@ -185,5 +216,129 @@
       opacity: 1;
       transform: none;
     }
+  }
+}
+
+/*
+  ── Rustic auth surfaces (login / register only) ──────────────────────────
+  Plain classes, used only under .auth-rustic. Ported from the prototype's
+  parchment / wood texture helpers.
+*/
+.parchment-shadow {
+  box-shadow:
+    0 10px 25px -5px rgb(92 58 33 / 0.15),
+    0 8px 10px -6px rgb(92 58 33 / 0.12),
+    inset 0 0 40px rgb(139 90 43 / 0.08);
+}
+
+.wood-btn-shadow {
+  box-shadow:
+    0 4px 6px -1px rgb(92 58 33 / 0.25),
+    0 2px 4px -2px rgb(92 58 33 / 0.2),
+    inset 0 1px 1px rgb(255 255 255 / 0.3),
+    inset 0 -2px 4px rgb(0 0 0 / 0.2);
+}
+
+.wood-border {
+  border: 3px solid #5c3a21;
+}
+.wood-border-sm {
+  border: 1.5px solid #5c3a21;
+}
+
+/* Faint surveyor's grid for the map backdrop */
+.topo-grid {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgb(139 90 43 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(139 90 43 / 0.05) 1px, transparent 1px);
+}
+
+/* Ambient scene motion — CSS only (the app has no framer-motion). */
+@keyframes auth-sway {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+@keyframes auth-flit {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-8deg);
+  }
+  25% {
+    transform: translate(20px, -24px) rotate(9deg);
+  }
+  50% {
+    transform: translate(-16px, -12px) rotate(-6deg);
+  }
+  75% {
+    transform: translate(12px, -28px) rotate(10deg);
+  }
+}
+@keyframes auth-buzz {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-6deg);
+  }
+  30% {
+    transform: translate(28px, -14px) rotate(8deg);
+  }
+  60% {
+    transform: translate(48px, -4px) rotate(-8deg);
+  }
+}
+@keyframes auth-smoke {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-22px) scale(2.2);
+    opacity: 0;
+  }
+}
+@keyframes auth-flap {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.2);
+  }
+}
+
+@keyframes auth-drift {
+  0%,
+  100% {
+    transform: translateX(-18px);
+  }
+  50% {
+    transform: translateX(24px);
+  }
+}
+
+.auth-sway {
+  animation: auth-sway 6s ease-in-out infinite;
+}
+.auth-flit {
+  animation: auth-flit 12s ease-in-out infinite;
+}
+.auth-buzz {
+  animation: auth-buzz 9s ease-in-out infinite;
+}
+.auth-drift {
+  animation: auth-drift var(--d, 60s) ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-sway,
+  .auth-flit,
+  .auth-buzz,
+  .auth-drift {
+    animation: none !important;
   }
 }
