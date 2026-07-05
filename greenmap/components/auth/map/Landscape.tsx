@@ -99,7 +99,9 @@ export function Landscape({ className = "" }: { className?: string }) {
         style={{
           backgroundImage: "url('/landscape.png')",
           backgroundSize: "cover",
-          backgroundPosition: "center bottom",
+          // Panel is portrait, image is 4:3 → cover crops the sides. Anchor
+          // left so the cottage + nearest terraces stay in frame.
+          backgroundPosition: "left bottom",
         }}
       />
 

@@ -398,10 +398,10 @@ export default function AuthPage() {
                             ✓
                           </span>
                         )}
-                        <span className="mt-1.5 block font-rustic text-[15px] font-semibold text-wood-dark">
+                        <span className="mt-1.5 block font-rustic text-[15px] font-bold text-wood-dark">
                           {card.title}
                         </span>
-                        <span className="mt-0.5 block text-[12px] leading-snug text-wood-medium/80">
+                        <span className="mt-0.5 block text-[12px] font-medium leading-snug text-wood-dark">
                           {card.body}
                         </span>
                       </button>
@@ -544,10 +544,11 @@ export default function AuthPage() {
       {/* z-0 · Parchment map — the backdrop AND the paper the form sits on */}
       <TopoBackground interactive />
 
-      {/* z-10 · Golden-ratio structural split (62 / 38). Not a floating card:
-             the landscape owns the left, the form lives directly on the
-             parchment margin at the right. */}
-      <div className="relative z-10 grid min-h-dvh grid-cols-1 lg:grid-cols-[1.618fr_1fr]">
+      {/* z-10 · Structural split (form-weighted 7 : 3). The form is the
+             priority surface at the right (70%); the landscape sits at the
+             left (30%). Not a floating card — the form lives directly on the
+             parchment margin. */}
+      <div className="relative z-10 grid min-h-dvh grid-cols-1 lg:grid-cols-[3fr_7fr]">
         {/* Left 62% — the landscape window (desktop). cursor-none here so the
             native cursor is replaced by the tracking sun. */}
         <div
@@ -556,8 +557,8 @@ export default function AuthPage() {
           onMouseLeave={() => setOverLandscape(false)}
         >
           <Landscape className="min-h-[540px]" />
-          {/* frosted brand card, floating mid-left */}
-          <div className="pointer-events-none absolute left-[11%] top-1/2 -translate-y-1/2">
+          {/* frosted brand card, centered in the left panel */}
+          <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <div className="glass rounded-[20px] px-6 py-5 text-center">
               <p className="text-[19px] font-bold text-brand-dark">🌿 GreenMap</p>
               <p className="mt-1.5 text-[14px] font-semibold leading-snug text-[#2c3a30]">
@@ -575,7 +576,7 @@ export default function AuthPage() {
             aria-hidden
             className="pointer-events-none absolute inset-y-0 left-0 hidden w-16 bg-gradient-to-r from-wood-dark/8 to-transparent lg:block"
           />
-          <div className="pointer-events-auto relative mx-auto w-full max-w-[460px] pb-[240px] pt-28 lg:py-8">
+          <div className="pointer-events-auto relative mx-auto w-full max-w-[600px] pb-[240px] pt-28 lg:py-8">
             {formPanel}
           </div>
         </div>
@@ -583,7 +584,7 @@ export default function AuthPage() {
 
       {/* z-20 · Interactive sunflowers, planted as a click-through band that
              crosses the divide (petals overlap the form's lower-left). */}
-      <div className="pointer-events-none absolute bottom-0 left-0 z-20 h-[260px] w-full lg:w-[70%]">
+      <div className="pointer-events-none absolute bottom-0 left-0 z-20 h-[260px] w-full lg:w-[34%]">
         <SunflowerScene
           band
           sunActive={overLandscape}
@@ -599,7 +600,7 @@ export default function AuthPage() {
              pointer-events-none so nothing blocks the form. */}
       <div className="pointer-events-none absolute inset-0 z-30">
         {/* wooden sign straddling the top over the divide */}
-        <div className="absolute left-1/2 top-3 -translate-x-1/2 lg:left-[46%]">
+        <div className="absolute left-1/2 top-3 -translate-x-1/2 lg:left-[30%]">
           <WoodenSign
             title="GreenMap"
             subtitle="Empowering Farms & Connecting Tables."
@@ -608,15 +609,15 @@ export default function AuthPage() {
 
         {/* insects + props crossing the landscape / form edges (desktop) */}
         <div className="hidden lg:block">
-          <Bumblebee style={{ left: "22%", top: "34%" }} />
-          <Butterfly style={{ left: "42%", top: "44%" }} delay={1.5} />
-          <Butterfly style={{ left: "60%", top: "30%" }} delay={4} />
+          <Bumblebee style={{ left: "10%", top: "30%" }} />
+          <Butterfly style={{ left: "22%", top: "44%" }} delay={1.5} />
+          <Butterfly style={{ left: "33%", top: "26%" }} delay={4} />
           <GardeningTools
             type="pitchfork"
             rotation={16}
-            className="absolute left-[58%] top-[54%] w-6"
+            className="absolute left-[30%] top-[54%] w-6"
           />
-          <div className="absolute right-[6%] top-[48%] flex gap-2">
+          <div className="absolute right-[5%] top-[46%] flex gap-2">
             <SeedPacket name="SEEDS" icon="🌾" rotation={-8} />
             <SeedPacket name="SOIL" icon="🪵" rotation={12} />
           </div>
