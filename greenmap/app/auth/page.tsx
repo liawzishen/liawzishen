@@ -2,11 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/Button";
 import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { isPasswordValid } from "@/lib/auth/password";
 import { cn } from "@/lib/utils";
 import { SunflowerScene } from "@/components/auth/SunflowerScene";
+import { TopoBackground } from "@/components/auth/map/TopoBackground";
+import { Landscape } from "@/components/auth/map/Landscape";
+import {
+  WoodenSign,
+  SeedPacket,
+  GardeningTools,
+  Butterfly,
+  Bumblebee,
+} from "@/components/auth/map/SceneProps";
 import type { Role } from "@/types";
 
 type Mode = "register" | "login";
@@ -63,34 +71,28 @@ function GoogleLogo() {
  * Disabled SSO previews (user decision B, 2026-07-05): the reference layout's
  * Apple/Google buttons, shown honestly — no OAuth is configured (and Apple
  * sign-in needs a paid developer account), so they are real <button disabled>
- * elements with a "coming soon" caption instead of dead clickable controls.
+ * elements with a "coming soon" caption. Wood-textured to match the map theme.
  */
 function SsoBlock({ isRegister }: { isRegister: boolean }) {
   const verb = isRegister ? "Sign up" : "Sign in";
+  const woodBtn =
+    "flex h-11 items-center justify-center gap-2 rounded-lg border-2 border-wood-medium/50 bg-[#d2b48c]/40 font-rustic text-[13px] font-medium text-wood-dark opacity-70 cursor-not-allowed";
   return (
-    <div className="mt-3">
-      <div className="flex items-center gap-3 text-[12px] font-medium text-tertiary">
-        <span aria-hidden className="h-px flex-1 bg-black/10" />
+    <div className="mt-4">
+      <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-wood-medium/60">
+        <span aria-hidden className="h-px flex-1 bg-wood-medium/25" />
         OR
-        <span aria-hidden className="h-px flex-1 bg-black/10" />
+        <span aria-hidden className="h-px flex-1 bg-wood-medium/25" />
       </div>
-      <div className="mt-3 flex gap-3">
-        <button
-          type="button"
-          disabled
-          className="flex h-10 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-[12px] bg-black text-[14px] font-semibold text-white opacity-55"
-        >
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        <button type="button" disabled className={woodBtn}>
           <AppleLogo /> Apple
         </button>
-        <button
-          type="button"
-          disabled
-          className="flex h-10 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-[12px] border border-black/10 bg-white text-[14px] font-semibold text-label opacity-70"
-        >
+        <button type="button" disabled className={woodBtn}>
           <GoogleLogo /> Google
         </button>
       </div>
-      <p className="mt-1.5 text-center text-[11px] text-tertiary">
+      <p className="mt-2 text-center font-rustic text-[11px] italic text-wood-medium/60">
         {verb} with Apple or Google — coming soon
       </p>
     </div>
@@ -147,7 +149,7 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
-/* ── Local labelled field (shared Input doesn't take a trailing button) ─── */
+/* ── Local labelled field — parchment styling ───────────────────────────── */
 
 function Field({
   label,
@@ -167,7 +169,7 @@ function Field({
     <div>
       <label
         htmlFor={inputId}
-        className="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-secondary"
+        className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-wood-dark/90"
       >
         {label}
       </label>
@@ -176,10 +178,10 @@ function Field({
           id={inputId}
           suppressHydrationWarning
           className={cn(
-            "h-[52px] w-full rounded-[12px] bg-[#F5F5F7] px-4 text-[16px] text-label placeholder:text-[#a0a3a7]",
-            "focus:outline-none focus:ring-2 focus:ring-brand/50",
+            "h-[48px] w-full rounded-lg border-2 border-wood-light/40 bg-paper-dark/25 px-3.5 text-[15px] text-wood-dark placeholder:text-wood-medium/50",
+            "outline-none transition focus:border-wood-medium focus:bg-paper-light",
             !!trailing && "pr-12",
-            error && "ring-2 ring-critical/60"
+            error && "border-critical/70"
           )}
           {...inputProps}
         />
@@ -190,7 +192,7 @@ function Field({
         )}
       </div>
       {hint && !error && (
-        <p className="mt-1 text-[13px] text-secondary">{hint}</p>
+        <p className="mt-1 text-[13px] text-wood-medium">{hint}</p>
       )}
       {error && <p className="mt-1 text-[13px] text-critical">{error}</p>}
     </div>
@@ -205,6 +207,9 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // Drives the sun cursor: on while the pointer is over the landscape (which
+  // hides its native cursor), off over the form (which keeps a normal cursor).
+  const [overLandscape, setOverLandscape] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -308,246 +313,210 @@ export default function AuthPage() {
       type="button"
       onClick={() => setShowPassword((v) => !v)}
       aria-label={showPassword ? "Hide password" : "Show password"}
-      className="flex h-8 w-8 items-center justify-center rounded-full text-secondary transition active:opacity-70"
+      className="flex h-8 w-8 items-center justify-center rounded-full text-wood-medium transition active:opacity-70"
     >
       <EyeIcon open={showPassword} />
     </button>
   );
 
-  return (
-    <main className="auth-breakout flex min-h-dvh items-center justify-center px-4 py-8 sm:px-6">
-      {/* Split card — LAYOUT from the user's reference (45/55 split, tagline
-          top-left, sunflowers planted at the base, switch link at the panel
-          bottom); COLORS from the app's own design system so the page matches
-          the rest of GreenMap (user feedback 2026-07-04: no dark backdrop —
-          keep the ambient page background). */}
-      <div className="w-full min-w-0 max-w-[880px] overflow-hidden rounded-[26px] glass sm:flex sm:h-[870px]">
-        {/* Left panel — the visual panel. The scene FILLS it (fill prop):
-            the sun cursor works across the whole pale-yellow area, the sky is
-            seamless, clouds drift up top and a bee wanders the flowers, which
-            stay planted at the base. */}
-        <div className="relative min-h-[300px] overflow-hidden bg-gradient-to-b from-[#FFEFC2] via-[#F8F4DC] to-[#DFF2E4] sm:w-[50%]">
-          <SunflowerScene
-            fill
-            mode={isRegister ? "register" : "login"}
-            penalty={failedAttempts}
-            strength={strength}
-            typing={password.length > 0}
-            locked={locked}
-          />
-          {/* Centered frosted-glass brand card (top-centered on phones so it
-              clears the flowers; true center on sm+). pointer-events-none so
-              the sun cursor keeps working through it. */}
-          <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-10 sm:items-center sm:pt-0">
-            <div className="glass rounded-[20px] px-7 py-6 text-center">
-              <p className="text-[20px] font-bold text-brand-dark">🌿 GreenMap</p>
-              <p className="mt-2 text-[15px] font-semibold leading-snug text-[#2c3a30]">
-                Empowering Farms &<br />
-                Connecting Tables.
-              </p>
-            </div>
+  /* Rustic primary button — used for submit and the notice CTA. */
+  const primaryBtn =
+    "flex h-[50px] w-full items-center justify-center gap-2 rounded-lg wood-btn-shadow bg-meadow-green font-rustic text-[16px] font-semibold text-paper-light transition hover:bg-meadow-dark active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
+
+  /* The form contents — shared by both columns / breakpoints. */
+  const formPanel = (
+    <div className="relative">
+      <div>
+        <h1 className="font-rustic text-[26px] font-bold tracking-wide text-wood-dark sm:text-[30px]">
+          {isRegister ? "Join GreenMap" : "Welcome back!"}
+        </h1>
+        <p className="mt-1 font-rustic text-[14px] font-medium text-wood-medium/80">
+          {isRegister
+            ? "Map your farm, track crops, build trust."
+            : "Please enter your details."}
+        </p>
+      </div>
+
+      {/* Success notice (email confirmation path) replaces the form. */}
+      {notice ? (
+        <div className="mt-6 text-center">
+          <div
+            aria-hidden
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-meadow-green/15 text-[28px]"
+          >
+            📧
           </div>
+          <p className="mt-3 font-rustic text-[16px] font-semibold text-wood-dark">
+            Almost there!
+          </p>
+          <p
+            className="mt-1 text-[14px] leading-relaxed text-wood-medium"
+            role="status"
+          >
+            {notice}
+          </p>
+          <button
+            type="button"
+            className={cn(primaryBtn, "mt-5")}
+            onClick={() => switchMode("login")}
+          >
+            Back to Sign In
+          </button>
         </div>
-
-        {/* Right panel — the form panel */}
-        <div className="flex flex-col bg-white/85 p-6 backdrop-blur-xl sm:w-[50%] sm:overflow-y-auto sm:p-7 lg:px-11 lg:py-6">
-        {/* Login's shorter content centers vertically; register fills the panel */}
-        <div className={cn(!isRegister && "sm:my-auto")}>
-          <div className="text-center">
-            <h1 className="text-[24px] font-bold leading-tight sm:text-[27px]">
-              {isRegister ? "Join GreenMap" : "Welcome back!"}
-            </h1>
-            <p className="mt-1.5 text-[14px] leading-snug text-secondary">
-              {isRegister
-                ? "Map your farm, track crops, build trust."
-                : "Please enter your details."}
-            </p>
-          </div>
-
-        {/* Success notice (email confirmation path) replaces the form. */}
-        {notice ? (
-          <div className="mt-6 text-center">
-            <div
-              aria-hidden
-              className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand/15 text-[28px]"
-            >
-              📧
-            </div>
-            <p className="mt-3 text-[16px] font-semibold">Almost there!</p>
-            <p
-              className="mt-1 text-[15px] leading-relaxed text-secondary"
-              role="status"
-            >
-              {notice}
-            </p>
-            <Button
-              variant="fill"
-              full
-              className="mt-5"
-              type="button"
-              onClick={() => switchMode("login")}
-            >
-              Back to Sign In
-            </Button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="mt-4 space-y-2.5" noValidate>
-            {isRegister && (
-              <>
-                <div>
-                  <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-secondary">
-                    I am a…
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {roleCards.map((card) => {
-                      const selected = role === card.value;
-                      return (
-                        <button
-                          key={card.value}
-                          type="button"
-                          onClick={() => setRole(card.value)}
-                          aria-pressed={selected}
-                          className={cn(
-                            "relative rounded-[14px] border p-2.5 text-left shadow-[0_2px_10px_rgb(20_50_35/0.06)] transition",
-                            selected
-                              ? "border-[#7ed49a] bg-brand/8"
-                              : "border-black/5 bg-white"
-                          )}
-                        >
+      ) : (
+        <form onSubmit={handleSubmit} className="mt-5 space-y-3.5" noValidate>
+          {isRegister && (
+            <>
+              <div>
+                <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-wood-dark/90">
+                  I am a…
+                </p>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {roleCards.map((card) => {
+                    const selected = role === card.value;
+                    return (
+                      <button
+                        key={card.value}
+                        type="button"
+                        onClick={() => setRole(card.value)}
+                        aria-pressed={selected}
+                        className={cn(
+                          "relative rounded-lg border-2 p-2.5 text-left transition",
+                          selected
+                            ? "border-wood-dark bg-[#e3d0a6]"
+                            : "border-wood-light/40 bg-paper-light"
+                        )}
+                      >
+                        <span aria-hidden className="text-[24px] leading-none">
+                          {card.icon}
+                        </span>
+                        {selected && (
                           <span
                             aria-hidden
-                            className="text-[24px] leading-none"
+                            className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-meadow-green text-[11px] font-bold text-white"
                           >
-                            {card.icon}
+                            ✓
                           </span>
-                          {selected && (
-                            <span
-                              aria-hidden
-                              className="absolute right-2 top-2 grid h-[18px] w-[18px] place-items-center rounded-full bg-brand text-[11px] font-bold text-white"
-                            >
-                              ✓
-                            </span>
-                          )}
-                          <span className="mt-1.5 block text-[15px] font-semibold">
-                            {card.title}
-                          </span>
-                          <span className="mt-0.5 block text-[12px] leading-snug text-secondary">
-                            {card.body}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        )}
+                        <span className="mt-1.5 block font-rustic text-[15px] font-semibold text-wood-dark">
+                          {card.title}
+                        </span>
+                        <span className="mt-0.5 block text-[12px] leading-snug text-wood-medium/80">
+                          {card.body}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-
-                <Field
-                  label="Full Name"
-                  placeholder="Ahmad bin Abdullah"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoComplete="name"
-                />
-              </>
-            )}
-
-            <Field
-              label="Email"
-              type="email"
-              inputMode="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-            />
-
-            <div>
-              <Field
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                placeholder={
-                  isRegister ? "Create a strong password" : "Your password"
-                }
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={isRegister ? "new-password" : "current-password"}
-                trailing={passwordToggle}
-              />
-              {isRegister && <PasswordChecklist compact password={password} />}
-            </div>
-
-            {isRegister && (
-              <Field
-                label="Confirm Password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Re-enter your password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                autoComplete="new-password"
-                error={
-                  confirm.length > 0 && !confirmOk
-                    ? "Passwords do not match."
-                    : undefined
-                }
-              />
-            )}
-
-            {error && (
-              <p
-                className="rounded-input bg-critical/10 p-3 text-[14px] text-critical"
-                role="alert"
-              >
-                {error}
-              </p>
-            )}
-
-            {locked && (
-              <div className="rounded-input bg-critical/10 p-3 text-center text-[13px] text-critical">
-                Too many attempts — the sunflowers wilted.{" "}
-                <button
-                  type="button"
-                  className="font-semibold underline"
-                  onClick={() => {
-                    setFailedAttempts(0);
-                    setError(null);
-                  }}
-                >
-                  Reset & try again
-                </button>
               </div>
-            )}
 
-            <Button
-              type="submit"
-              full
-              disabled={!canSubmit}
-              aria-busy={loading}
+              <Field
+                label="Full Name"
+                placeholder="Ahmad bin Abdullah"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+              />
+            </>
+          )}
+
+          <Field
+            label="Email"
+            type="email"
+            inputMode="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
+
+          <div>
+            <Field
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder={
+                isRegister ? "Create a strong password" : "Your password"
+              }
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete={isRegister ? "new-password" : "current-password"}
+              trailing={passwordToggle}
+            />
+            {isRegister && <PasswordChecklist compact password={password} />}
+          </div>
+
+          {isRegister && (
+            <Field
+              label="Confirm Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Re-enter your password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              error={
+                confirm.length > 0 && !confirmOk
+                  ? "Passwords do not match."
+                  : undefined
+              }
+            />
+          )}
+
+          {error && (
+            <p
+              className="rounded-lg border border-critical/40 bg-critical/10 p-3 text-[14px] text-critical"
+              role="alert"
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Spinner />
-                  Please wait…
-                </span>
-              ) : isRegister ? (
-                "Create Account"
-              ) : (
-                "Sign In"
-              )}
-            </Button>
+              {error}
+            </p>
+          )}
 
-            <SsoBlock isRegister={isRegister} />
-          </form>
-        )}
-        </div>
+          {locked && (
+            <div className="rounded-lg border border-critical/40 bg-critical/10 p-3 text-center text-[13px] text-critical">
+              Too many attempts — the sunflowers wilted.{" "}
+              <button
+                type="button"
+                className="font-semibold underline"
+                onClick={() => {
+                  setFailedAttempts(0);
+                  setError(null);
+                }}
+              >
+                Reset & try again
+              </button>
+            </div>
+          )}
 
-        {/* Mode switch — pinned to the panel bottom like the reference */}
-        {!notice && (
-          <p className="mt-6 text-center text-[14px] text-secondary sm:mt-auto sm:pt-4">
+          <button
+            type="submit"
+            className={primaryBtn}
+            disabled={!canSubmit}
+            aria-busy={loading}
+          >
+            {loading ? (
+              <>
+                <Spinner />
+                Please wait…
+              </>
+            ) : isRegister ? (
+              "Create Account"
+            ) : (
+              "Sign In"
+            )}
+          </button>
+
+          <SsoBlock isRegister={isRegister} />
+        </form>
+      )}
+
+      {/* Mode switch */}
+      {!notice && (
+        <p className="mt-5 text-center font-rustic text-[13px] text-wood-medium">
           {isRegister ? (
             <>
               Already have an account?{" "}
               <button
                 type="button"
-                className="font-semibold text-brand"
+                className="font-semibold text-meadow-green hover:underline"
                 onClick={() => switchMode("login")}
               >
                 Sign In
@@ -558,7 +527,7 @@ export default function AuthPage() {
               New here?{" "}
               <button
                 type="button"
-                className="font-semibold text-brand"
+                className="font-semibold text-meadow-green hover:underline"
                 onClick={() => switchMode("register")}
               >
                 Create one
@@ -566,8 +535,95 @@ export default function AuthPage() {
             </>
           )}
         </p>
-        )}
+      )}
+    </div>
+  );
+
+  return (
+    <main className="auth-breakout relative min-h-dvh w-full overflow-x-hidden">
+      {/* z-0 · Parchment map — the backdrop AND the paper the form sits on */}
+      <TopoBackground interactive />
+
+      {/* z-10 · Golden-ratio structural split (62 / 38). Not a floating card:
+             the landscape owns the left, the form lives directly on the
+             parchment margin at the right. */}
+      <div className="relative z-10 grid min-h-dvh grid-cols-1 lg:grid-cols-[1.618fr_1fr]">
+        {/* Left 62% — the landscape window (desktop). cursor-none here so the
+            native cursor is replaced by the tracking sun. */}
+        <div
+          className="relative hidden p-5 lg:block lg:cursor-none"
+          onMouseEnter={() => setOverLandscape(true)}
+          onMouseLeave={() => setOverLandscape(false)}
+        >
+          <Landscape className="min-h-[540px]" />
+          {/* frosted brand card, floating mid-left */}
+          <div className="pointer-events-none absolute left-[11%] top-1/2 -translate-y-1/2">
+            <div className="glass rounded-[20px] px-6 py-5 text-center">
+              <p className="text-[19px] font-bold text-brand-dark">🌿 GreenMap</p>
+              <p className="mt-1.5 text-[14px] font-semibold leading-snug text-[#2c3a30]">
+                Empowering Farms &<br />
+                Connecting Tables.
+              </p>
+            </div>
+          </div>
         </div>
+
+        {/* Right 38% — the form, contiguous with the parchment (no card). */}
+        <div className="relative flex min-h-dvh flex-col justify-center px-6 sm:px-10 lg:pl-8 lg:pr-12 xl:pr-16">
+          {/* soft textured divide on the parchment side (desktop) */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 hidden w-16 bg-gradient-to-r from-wood-dark/8 to-transparent lg:block"
+          />
+          <div className="pointer-events-auto relative mx-auto w-full max-w-[460px] pb-[240px] pt-28 lg:py-8">
+            {formPanel}
+          </div>
+        </div>
+      </div>
+
+      {/* z-20 · Interactive sunflowers, planted as a click-through band that
+             crosses the divide (petals overlap the form's lower-left). */}
+      <div className="pointer-events-none absolute bottom-0 left-0 z-20 h-[260px] w-full lg:w-[70%]">
+        <SunflowerScene
+          band
+          sunActive={overLandscape}
+          mode={isRegister ? "register" : "login"}
+          penalty={failedAttempts}
+          strength={strength}
+          typing={password.length > 0}
+          locked={locked}
+        />
+      </div>
+
+      {/* z-30 · Organic overlaps — cross the edges to break the rectangle.
+             pointer-events-none so nothing blocks the form. */}
+      <div className="pointer-events-none absolute inset-0 z-30">
+        {/* wooden sign straddling the top over the divide */}
+        <div className="absolute left-1/2 top-3 -translate-x-1/2 lg:left-[46%]">
+          <WoodenSign
+            title="GreenMap"
+            subtitle="Empowering Farms & Connecting Tables."
+          />
+        </div>
+
+        {/* insects + props crossing the landscape / form edges (desktop) */}
+        <div className="hidden lg:block">
+          <Bumblebee style={{ left: "22%", top: "34%" }} />
+          <Butterfly style={{ left: "42%", top: "44%" }} delay={1.5} />
+          <Butterfly style={{ left: "60%", top: "30%" }} delay={4} />
+          <GardeningTools
+            type="pitchfork"
+            rotation={16}
+            className="absolute left-[58%] top-[54%] w-6"
+          />
+          <div className="absolute right-[6%] top-[48%] flex gap-2">
+            <SeedPacket name="SEEDS" icon="🌾" rotation={-8} />
+            <SeedPacket name="SOIL" icon="🪵" rotation={12} />
+          </div>
+        </div>
+
+        {/* a touch of life on phones */}
+        <Butterfly className="lg:hidden" style={{ right: "12%", top: "9%" }} delay={1} />
       </div>
     </main>
   );

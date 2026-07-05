@@ -50,6 +50,28 @@ type Props = {
    * Flowers stay planted at the bottom either way.
    */
   fill?: boolean;
+  /**
+   * Blend into a backdrop that already exists (the parchment map). Suppresses
+   * the scene's own opaque sky, drifting clouds and emoji insects so the map
+   * shows through — the interactive flowers, grass, sun cursor and particles
+   * all stay. A soft warm glow is kept only at the very base.
+   */
+  blend?: boolean;
+  /**
+   * Position as a click-through bottom strip (fills a positioned wrapper) with
+   * overflow visible, so petals can cross out of the strip and overlap the form
+   * across the golden-ratio divide. Implies `blend` (no own sky/clouds/insects)
+   * and never captures pointer events. The cursor + sun visibility are then
+   * owned by the page via `sunActive`.
+   */
+  band?: boolean;
+  /**
+   * When set, overrides the scene's internal hover detection for showing the
+   * sun cursor (needed in `band` mode, where the strip is click-through). The
+   * page passes `true` while the pointer is over the landscape, `false` over
+   * the form.
+   */
+  sunActive?: boolean;
 };
 
 // SVG coordinate system, one per flower. Root pinned at the bottom centre.
@@ -101,8 +123,13 @@ export function SunflowerScene({
   typing = false,
   locked = false,
   fill = false,
+  blend = false,
+  band = false,
+  sunActive,
 }: Props) {
   void locked; // visual lock is driven by `penalty`
+  // A band always blends (no opaque sky, clouds or emoji insects of its own).
+  const asBlend = blend || band;
 
   const sunRef = useRef<HTMLDivElement>(null);
   const containerRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -488,9 +515,11 @@ export function SunflowerScene({
   return (
     <div
       className={
-        fill
-          ? "sf-scene absolute inset-0 cursor-none select-none overflow-hidden"
-          : "sf-scene relative h-56 w-full cursor-none select-none overflow-visible sm:h-60"
+        band
+          ? "sf-scene pointer-events-none absolute inset-0 select-none overflow-visible"
+          : fill
+            ? "sf-scene absolute inset-0 cursor-none select-none overflow-hidden"
+            : "sf-scene relative h-56 w-full cursor-none select-none overflow-visible sm:h-60"
       }
       aria-hidden
       onMouseEnter={() => setHovering(true)}
@@ -533,14 +562,20 @@ export function SunflowerScene({
           the root) — the form half keeps a normal cursor. The glowing sun
           appears while hovering here and replaces it. */}
 
-      {/* soft sky glow — golden hour in fill mode (option C, 2026-07-04) */}
-      <div
-        className={
-          fill
-            ? "pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FFEFC2] via-[#FBF4DC] to-transparent"
-            : "pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-transparent"
-        }
-      />
+      {/* soft sky glow — golden hour in fill mode (option C, 2026-07-04).
+          In blend mode the parchment map is the sky, so only a low warm glow
+          is kept at the base. */}
+      {asBlend ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#FBEFC6]/70 via-[#FBF4DC]/25 to-transparent" />
+      ) : (
+        <div
+          className={
+            fill
+              ? "pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FFEFC2] via-[#FBF4DC] to-transparent"
+              : "pointer-events-none absolute inset-0 bg-gradient-to-b from-[#FFF7DF] via-[#F2FAEE] to-transparent"
+          }
+        />
+      )}
 
       {/* ambient sky life — only when the scene fills a whole panel */}
       {fill && (
@@ -549,7 +584,7 @@ export function SunflowerScene({
           {/* rolling hills fill the middle band, behind grass + flowers */}
           <div className="pointer-events-none absolute bottom-[-44px] left-[-18%] h-[130px] w-[75%] rounded-full bg-[#d9e3ae] opacity-75" />
           <div className="pointer-events-none absolute bottom-[-40px] right-[-22%] h-[116px] w-[78%] rounded-full bg-[#cbdb9c] opacity-70" />
-          {[
+          {!asBlend && [
             { top: "12%", left: "14%", w: 120, h: 26, op: 0.55, d: "46s", delay: "0s" },
             { top: "24%", left: "56%", w: 90, h: 20, op: 0.45, d: "58s", delay: "-18s" },
             { top: "40%", left: "28%", w: 140, h: 30, op: 0.35, d: "70s", delay: "-33s" },
@@ -807,8 +842,9 @@ export function SunflowerScene({
         ))}
       </div>
 
-      {/* a little life among the flowers */}
-      {fill && (
+      {/* a little life among the flowers (blend mode uses the SVG insects
+          from the map scene instead, so these emoji ones are suppressed) */}
+      {fill && !asBlend && (
         <>
           <div
             className="sf-bee pointer-events-none absolute bottom-[150px] left-[18%] text-[13px]"
@@ -838,7 +874,7 @@ export function SunflowerScene({
       {mounted &&
         createPortal(
           <>
-            {isDesktop && hovering && (
+            {isDesktop && (sunActive ?? hovering) && (
               <div
                 ref={sunRef}
                 className="pointer-events-none fixed left-0 top-0 z-[60] h-10 w-10 rounded-full"

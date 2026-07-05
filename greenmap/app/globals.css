@@ -38,6 +38,27 @@
   /* Shadows — softer, deeper, green-gray for the glass look */
   --shadow-card: 0 8px 20px rgb(20 50 35 / 0.08);
   --shadow-fab: 0 0 0 4px rgb(255 255 255 / 0.35), 0 6px 16px rgb(52 199 89 / 0.5);
+
+  /*
+    Rustic "adventure map" palette — LOGIN / REGISTER ONLY.
+    Additive on purpose: these are brand-new tokens, they never override a
+    glass token above, and they are only *used* inside .auth-rustic (see
+    app/auth/layout.tsx), so no other screen is affected.
+  */
+  --color-wood-dark: #5c3a21;
+  --color-wood-medium: #8b5a2b;
+  --color-wood-light: #c29b68;
+  --color-paper-light: #f6ecd5;
+  --color-paper-dark: #e8d7b3;
+  --color-parchment: #faf3e3;
+  --color-meadow-green: #4f772d;
+  --color-meadow-dark: #31572c;
+  --color-meadow-light: #90a955;
+
+  /* Rustic display face. Falls back to Fredoka/cursive where --font-fredoka
+     (set by app/auth/layout.tsx) is absent — but font-rustic is only used on
+     the auth pages anyway. */
+  --font-rustic: var(--font-fredoka), "Fredoka", "Patrick Hand", ui-rounded, cursive;
 }
 
 @layer base {
@@ -185,5 +206,129 @@
       opacity: 1;
       transform: none;
     }
+  }
+}
+
+/*
+  ── Rustic auth surfaces (login / register only) ──────────────────────────
+  Plain classes, used only under .auth-rustic. Ported from the prototype's
+  parchment / wood texture helpers.
+*/
+.parchment-shadow {
+  box-shadow:
+    0 10px 25px -5px rgb(92 58 33 / 0.15),
+    0 8px 10px -6px rgb(92 58 33 / 0.12),
+    inset 0 0 40px rgb(139 90 43 / 0.08);
+}
+
+.wood-btn-shadow {
+  box-shadow:
+    0 4px 6px -1px rgb(92 58 33 / 0.25),
+    0 2px 4px -2px rgb(92 58 33 / 0.2),
+    inset 0 1px 1px rgb(255 255 255 / 0.3),
+    inset 0 -2px 4px rgb(0 0 0 / 0.2);
+}
+
+.wood-border {
+  border: 3px solid #5c3a21;
+}
+.wood-border-sm {
+  border: 1.5px solid #5c3a21;
+}
+
+/* Faint surveyor's grid for the map backdrop */
+.topo-grid {
+  background-size: 40px 40px;
+  background-image:
+    linear-gradient(to right, rgb(139 90 43 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(139 90 43 / 0.05) 1px, transparent 1px);
+}
+
+/* Ambient scene motion — CSS only (the app has no framer-motion). */
+@keyframes auth-sway {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+@keyframes auth-flit {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-8deg);
+  }
+  25% {
+    transform: translate(20px, -24px) rotate(9deg);
+  }
+  50% {
+    transform: translate(-16px, -12px) rotate(-6deg);
+  }
+  75% {
+    transform: translate(12px, -28px) rotate(10deg);
+  }
+}
+@keyframes auth-buzz {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(-6deg);
+  }
+  30% {
+    transform: translate(28px, -14px) rotate(8deg);
+  }
+  60% {
+    transform: translate(48px, -4px) rotate(-8deg);
+  }
+}
+@keyframes auth-smoke {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-22px) scale(2.2);
+    opacity: 0;
+  }
+}
+@keyframes auth-flap {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.2);
+  }
+}
+
+@keyframes auth-drift {
+  0%,
+  100% {
+    transform: translateX(-18px);
+  }
+  50% {
+    transform: translateX(24px);
+  }
+}
+
+.auth-sway {
+  animation: auth-sway 6s ease-in-out infinite;
+}
+.auth-flit {
+  animation: auth-flit 12s ease-in-out infinite;
+}
+.auth-buzz {
+  animation: auth-buzz 9s ease-in-out infinite;
+}
+.auth-drift {
+  animation: auth-drift var(--d, 60s) ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-sway,
+  .auth-flit,
+  .auth-buzz,
+  .auth-drift {
+    animation: none !important;
   }
 }
