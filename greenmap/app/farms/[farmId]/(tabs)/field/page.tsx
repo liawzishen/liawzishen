@@ -2,23 +2,32 @@ import { notFound } from "next/navigation";
 import { FarmMap } from "@/components/farm/FarmMap";
 import { KpiStrip } from "@/components/farm/KpiStrip";
 import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
+import { FarmHealthTrend } from "@/components/farm/FarmHealthTrend";
 import { NeedsCareList } from "@/components/farm/NeedsCareList";
+import { RecentActivityCard } from "@/components/farm/RecentActivityCard";
+import { UpcomingHarvests } from "@/components/farm/UpcomingHarvests";
 import {
   MoistureRainChart,
   TemperatureChart,
 } from "@/components/farm/WeatherCharts";
 import { WeatherStrip } from "@/components/farm/WeatherStrip";
 import { WeatherToday } from "@/components/farm/WeatherToday";
-import { getFarmBundle, getUserAndFarms } from "@/lib/farm/fetch";
+import {
+  getFarmAnalytics,
+  getFarmBundle,
+  getUserAndFarms,
+} from "@/lib/farm/fetch";
 import { getFarmWeather } from "@/lib/weather/fetch";
 
 /**
  * Map tab — the farm's interactive map. Responsive (2026-07-06 map-page
  * spec): below lg it is the familiar phone screen (header → KPI strip →
  * weather strip → map); at lg+ the page escapes the 430px frame
- * (`.map-breakout`, see globals.css) into a two-column dashboard — map on
- * the left, a weather / charts / needs-care panel on the right. Weather is
- * fetched server-side from Open-Meteo (keyless, cached, offline fallback).
+ * (`.map-breakout`, see globals.css) into a dashboard — map plus an
+ * analysis grid (farm health trend, needs-care, recent activity, upcoming
+ * harvests) on the left, a sticky weather panel on the right. Weather is
+ * fetched server-side from Open-Meteo — exact farm GPS pin when set,
+ * geocoded state otherwise, offline sample as last resort.
  */
 export default async function FarmFieldPage({
   params,
@@ -32,7 +41,10 @@ export default async function FarmFieldPage({
   ]);
   if (!bundle) notFound();
   const { farm, zones, plants } = bundle;
-  const weather = await getFarmWeather(farm.location);
+  const [weather, analytics] = await Promise.all([
+    getFarmWeather(farm),
+    getFarmAnalytics(plants.map((p) => p.id)),
+  ]);
 
   const active = plants.filter((p) => p.lifecycle_status === "active");
   const today = new Date().toISOString().slice(0, 10);
@@ -48,7 +60,7 @@ export default async function FarmFieldPage({
   return (
     <main className="map-breakout mx-auto w-full max-w-[1400px] px-5 pt-12 lg:px-8 lg:pt-8">
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
-        {/* ── Left column: header + KPIs + the map ─────────────────────── */}
+        {/* ── Left column: header + KPIs + map + analysis grid ─────────── */}
         <div className="min-w-0">
           <FarmSwitcher
             farms={farms}
@@ -82,17 +94,24 @@ export default async function FarmFieldPage({
               className="h-[calc(100dvh-360px)] min-h-[300px] lg:h-[calc(100dvh-320px)] lg:min-h-[420px]"
             />
           </div>
+
+          {/* Desktop only — farm analysis grid under the map */}
+          <div className="mt-4 hidden gap-4 lg:grid lg:grid-cols-2">
+            <FarmHealthTrend points={analytics.healthTrend} />
+            <NeedsCareList plants={plants} farmId={farmId} />
+            <RecentActivityCard logs={analytics.logs} plants={plants} />
+            <UpcomingHarvests plants={plants} farmId={farmId} />
+          </div>
         </div>
 
-        {/* ── Right column (desktop only): weather + charts + care list ── */}
+        {/* ── Right column (desktop only): sticky weather panel ────────── */}
         <aside
-          className="hidden lg:flex lg:max-h-[calc(100dvh-160px)] lg:flex-col lg:gap-4 lg:overflow-y-auto lg:pr-1 lg:[scrollbar-width:thin]"
-          aria-label="Farm conditions panel"
+          className="hidden lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100dvh-48px)] lg:flex-col lg:gap-4 lg:overflow-y-auto lg:pr-1 lg:[scrollbar-width:thin]"
+          aria-label="Farm weather panel"
         >
           <WeatherToday weather={weather} />
           <TemperatureChart days={weather.days} />
           <MoistureRainChart days={weather.days} />
-          <NeedsCareList plants={plants} farmId={farmId} />
         </aside>
       </div>
     </main>

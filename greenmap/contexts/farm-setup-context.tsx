@@ -19,6 +19,9 @@ export interface FarmSetupState {
   // Step 1
   name: string;
   location: string; // Malaysian state
+  /** Optional GPS pin — makes the weather forecast exact for the farm. */
+  latitude: number | null;
+  longitude: number | null;
   size: FarmSize;
   cropType: string;
   // Step 2
@@ -38,6 +41,8 @@ interface FarmSetupContextValue extends FarmSetupState {
 const initialState: FarmSetupState = {
   name: "",
   location: "",
+  latitude: null,
+  longitude: null,
   size: "small",
   cropType: "",
   backgroundType: "smart",

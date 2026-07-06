@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFarmSetup } from "@/contexts/farm-setup-context";
 import { TopNav } from "@/components/layout/TopNav";
@@ -38,10 +39,37 @@ const SIZE_OPTIONS: { value: FarmSize; label: string; hint: string }[] = [
 
 export default function SetupProfilePage() {
   const router = useRouter();
-  const { name, location, size, cropType, update } = useFarmSetup();
+  const { name, location, latitude, longitude, size, cropType, update } =
+    useFarmSetup();
+  const [pinning, setPinning] = useState(false);
+  const [pinError, setPinError] = useState<string | null>(null);
 
   const valid =
     name.trim().length >= 2 && location !== "" && cropType.trim().length >= 2;
+
+  /** Optional GPS pin — the weather panel then forecasts the exact field. */
+  function pinLocation() {
+    setPinError(null);
+    if (!("geolocation" in navigator)) {
+      setPinError("This device doesn't support location.");
+      return;
+    }
+    setPinning(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        update({
+          latitude: Number(pos.coords.latitude.toFixed(5)),
+          longitude: Number(pos.coords.longitude.toFixed(5)),
+        });
+        setPinning(false);
+      },
+      () => {
+        setPinError("Couldn't get your location — check the permission and try again.");
+        setPinning(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   function next() {
     if (!valid) return;
@@ -82,6 +110,43 @@ export default function SetupProfilePage() {
               </option>
             ))}
           </Select>
+
+          {/* Optional GPS pin → exact weather for the farm's own spot */}
+          <div className="rounded-input bg-fill p-3">
+            {latitude !== null && longitude !== null ? (
+              <div className="flex items-center justify-between gap-3">
+                <p className="min-w-0 text-[13px] font-medium">
+                  📍 Farm pinned{" "}
+                  <span className="text-secondary">
+                    ({latitude}, {longitude})
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => update({ latitude: null, longitude: null })}
+                  className="shrink-0 text-[13px] font-semibold text-critical"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={pinLocation}
+                disabled={pinning}
+                className="w-full text-left text-[13px] font-semibold text-brand disabled:opacity-60"
+              >
+                {pinning ? "Locating…" : "📍 Pin my farm's GPS location"}
+                <span className="mt-0.5 block text-[12px] font-normal text-secondary">
+                  Optional — gives you an exact weather &amp; soil forecast for
+                  your farm, not just the state.
+                </span>
+              </button>
+            )}
+            {pinError && (
+              <p className="mt-1.5 text-[12px] text-critical">{pinError}</p>
+            )}
+          </div>
 
           <div>
             <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-secondary">

@@ -14,7 +14,6 @@ export function NeedsCareList({
   plants: Plant[];
   farmId: string;
 }) {
-  const MAX_ROWS = 8;
   const needsCare = plants
     .filter(
       (p) =>
@@ -40,8 +39,9 @@ export function NeedsCareList({
           All plants are doing well 🌱
         </p>
       ) : (
-        <ul className="mt-2">
-          {needsCare.slice(0, MAX_ROWS).map((p) => {
+        // ~5 rows visible; longer lists scroll inside the card
+        <ul className="mt-2 max-h-[264px] overflow-y-auto pr-1 [scrollbar-width:thin]">
+          {needsCare.map((p) => {
             const d = healthDisplay(p.health_score);
             return (
               <li key={p.id} className="hairline-t first:border-t-0">
@@ -73,12 +73,6 @@ export function NeedsCareList({
             );
           })}
         </ul>
-      )}
-      {needsCare.length > MAX_ROWS && (
-        <p className="mt-1 text-[11px] text-secondary">
-          +{needsCare.length - MAX_ROWS} more — use the map&apos;s Need Care
-          filter to see them all.
-        </p>
       )}
     </section>
   );

@@ -109,9 +109,22 @@ function dailySoilMoisture(
   return out;
 }
 
-export async function getFarmWeather(location: string): Promise<WeatherBundle> {
+export async function getFarmWeather(farm: {
+  location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}): Promise<WeatherBundle> {
   try {
-    const coords = await geocode(location);
+    // A GPS pin from farm setup beats geocoding the free-text state name —
+    // the forecast then matches the exact field, not the state capital.
+    const coords =
+      farm.latitude != null && farm.longitude != null
+        ? {
+            latitude: farm.latitude,
+            longitude: farm.longitude,
+            label: `${farm.location} · farm GPS pin`,
+          }
+        : await geocode(farm.location);
 
     const params = new URLSearchParams({
       latitude: String(coords.latitude),
