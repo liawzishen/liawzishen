@@ -133,12 +133,14 @@ export default async function FarmHomePage({
         className="text-[14px] font-medium text-secondary"
       />
 
-      {/* Quick stats */}
+      {/* Quick stats — a summary of the farm's state; taps through to the
+          Map tab, which owns the full KPI breakdown and analysis. */}
       <div className="mt-4 grid grid-cols-4 gap-3">
         {stats.map((s) => (
-          <div
+          <Link
             key={s.label}
-            className="rounded-card p-3 text-center glass"
+            href={`/farms/${farmId}/field`}
+            className="rounded-card p-3 text-center glass active:opacity-80"
           >
             <p
               className="text-[22px] font-bold leading-none"
@@ -149,7 +151,7 @@ export default async function FarmHomePage({
             <p className="mt-1 text-[11px] leading-tight text-secondary">
               {s.label}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
 

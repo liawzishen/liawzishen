@@ -1,7 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { liveHealthForPlants, type LiveHealth } from "@/lib/health/live";
-import type { Farm, GrowthLog, Plant, Zone } from "@/types/database";
+import type { Farm, Plant, Zone } from "@/types/database";
 
 /**
  * Load a farm with its zones and plants. Returns null if not found/owned.
@@ -58,35 +58,26 @@ export interface FarmHealthPoint {
 }
 
 /**
- * Analysis data for the desktop map dashboard: the farm's latest activity
- * (all plants, newest first) and a 14-day farm-wide average health trend
- * built from health_score_history snapshots. Two parallel queries; both
- * degrade to empty arrays on error so the dashboard never blocks the map.
+ * Analysis data for the desktop map dashboard: a 14-day farm-wide average
+ * health trend built from health_score_history snapshots. (The activity
+ * feed lives on Home — the Map tab deliberately doesn't repeat it.)
+ * Degrades to an empty array on error so the dashboard never blocks the map.
  */
 export async function getFarmAnalytics(plantIds: string[]): Promise<{
-  logs: GrowthLog[];
   healthTrend: FarmHealthPoint[];
 }> {
-  if (plantIds.length === 0) return { logs: [], healthTrend: [] };
+  if (plantIds.length === 0) return { healthTrend: [] };
   const supabase = await createClient();
 
   const since = new Date();
   since.setDate(since.getDate() - 14);
 
-  const [{ data: logs }, { data: history }] = await Promise.all([
-    supabase
-      .from("growth_logs")
-      .select("*")
-      .in("plant_id", plantIds)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    supabase
-      .from("health_score_history")
-      .select("score, created_at")
-      .in("plant_id", plantIds)
-      .gte("created_at", since.toISOString())
-      .order("created_at", { ascending: true }),
-  ]);
+  const { data: history } = await supabase
+    .from("health_score_history")
+    .select("score, created_at")
+    .in("plant_id", plantIds)
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true });
 
   // Collapse snapshots into one average per calendar day.
   const byDay = new Map<string, { total: number; n: number }>();
@@ -101,7 +92,7 @@ export async function getFarmAnalytics(plantIds: string[]): Promise<{
     .map(([date, { total, n }]) => ({ date, avg: Math.round(total / n) }))
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 
-  return { logs: (logs ?? []) as GrowthLog[], healthTrend };
+  return { healthTrend };
 }
 
 /**

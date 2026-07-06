@@ -4,7 +4,6 @@ import { KpiStrip } from "@/components/farm/KpiStrip";
 import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
 import { FarmHealthTrend } from "@/components/farm/FarmHealthTrend";
 import { NeedsCareList } from "@/components/farm/NeedsCareList";
-import { RecentActivityCard } from "@/components/farm/RecentActivityCard";
 import { UpcomingHarvests } from "@/components/farm/UpcomingHarvests";
 import {
   MoistureRainChart,
@@ -95,11 +94,14 @@ export default async function FarmFieldPage({
             />
           </div>
 
-          {/* Desktop only — farm analysis grid under the map */}
+          {/* Desktop only — farm analysis grid under the map. (The activity
+              feed is deliberately NOT here — Home owns "what happened";
+              this tab owns "how is the farm doing".) */}
           <div className="mt-4 hidden gap-4 lg:grid lg:grid-cols-2">
-            <FarmHealthTrend points={analytics.healthTrend} />
+            <div className="lg:col-span-2">
+              <FarmHealthTrend points={analytics.healthTrend} />
+            </div>
             <NeedsCareList plants={plants} farmId={farmId} />
-            <RecentActivityCard logs={analytics.logs} plants={plants} />
             <UpcomingHarvests plants={plants} farmId={farmId} />
           </div>
         </div>
