@@ -94,12 +94,14 @@ export function KpiStrip({
   ];
 
   return (
-    <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex gap-3 pb-1">
+    // Mobile: horizontal scroller. Desktop (lg, map dashboard): all five
+    // cards visible at once in an even grid — no hidden data.
+    <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:mx-0 lg:overflow-visible lg:px-0">
+      <div className="flex gap-3 pb-1 lg:grid lg:grid-cols-5 lg:pb-0">
         {kpis.map((k) => (
           <div
             key={k.label}
-            className="w-[124px] shrink-0 rounded-card p-3 glass"
+            className="w-[124px] shrink-0 rounded-card p-3 glass lg:w-auto"
           >
             <span
               className="grid h-7 w-7 place-items-center rounded-full"

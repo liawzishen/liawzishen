@@ -2,13 +2,23 @@ import { notFound } from "next/navigation";
 import { FarmMap } from "@/components/farm/FarmMap";
 import { KpiStrip } from "@/components/farm/KpiStrip";
 import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
+import { NeedsCareList } from "@/components/farm/NeedsCareList";
+import {
+  MoistureRainChart,
+  TemperatureChart,
+} from "@/components/farm/WeatherCharts";
+import { WeatherStrip } from "@/components/farm/WeatherStrip";
+import { WeatherToday } from "@/components/farm/WeatherToday";
 import { getFarmBundle, getUserAndFarms } from "@/lib/farm/fetch";
+import { getFarmWeather } from "@/lib/weather/fetch";
 
 /**
- * Map tab — the farm's interactive map (KPI strip + plant markers). This is a
- * tab-root screen (the (tabs) layout renders the tab bar, no back arrow).
- * Switching farms happens via the FarmSwitcher in the header, not a separate
- * list.
+ * Map tab — the farm's interactive map. Responsive (2026-07-06 map-page
+ * spec): below lg it is the familiar phone screen (header → KPI strip →
+ * weather strip → map); at lg+ the page escapes the 430px frame
+ * (`.map-breakout`, see globals.css) into a two-column dashboard — map on
+ * the left, a weather / charts / needs-care panel on the right. Weather is
+ * fetched server-side from Open-Meteo (keyless, cached, offline fallback).
  */
 export default async function FarmFieldPage({
   params,
@@ -22,6 +32,7 @@ export default async function FarmFieldPage({
   ]);
   if (!bundle) notFound();
   const { farm, zones, plants } = bundle;
+  const weather = await getFarmWeather(farm.location);
 
   const active = plants.filter((p) => p.lifecycle_status === "active");
   const today = new Date().toISOString().slice(0, 10);
@@ -35,27 +46,54 @@ export default async function FarmFieldPage({
   ).length;
 
   return (
-    <main className="px-5 pt-12">
-      <FarmSwitcher
-        farms={farms}
-        currentId={farmId}
-        currentName={farm.name}
-        className="text-[26px] font-bold leading-tight"
-      />
-      <p className="mt-0.5 text-[14px] capitalize text-secondary">
-        {farm.crop_type} · {farm.location} · tap a marker for details
-      </p>
-      <div className="mt-4">
-        <KpiStrip
-          total={active.length}
-          healthy={inBand(70, 100)}
-          attention={inBand(40, 69)}
-          critical={inBand(0, 39)}
-          ready={ready}
-        />
-      </div>
-      <div className="mt-4">
-        <FarmMap farm={farm} zones={zones} initialPlants={plants} />
+    <main className="map-breakout mx-auto w-full max-w-[1400px] px-5 pt-12 lg:px-8 lg:pt-8">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
+        {/* ── Left column: header + KPIs + the map ─────────────────────── */}
+        <div className="min-w-0">
+          <FarmSwitcher
+            farms={farms}
+            currentId={farmId}
+            currentName={farm.name}
+            className="text-[26px] font-bold leading-tight"
+          />
+          <p className="mt-0.5 text-[14px] capitalize text-secondary">
+            {farm.crop_type} · {farm.location} · tap a marker for details
+          </p>
+          <div className="mt-4">
+            <KpiStrip
+              total={active.length}
+              healthy={inBand(70, 100)}
+              attention={inBand(40, 69)}
+              critical={inBand(0, 39)}
+              ready={ready}
+            />
+          </div>
+
+          {/* Mobile only — compact daily weather + watering advisory */}
+          <div className="mt-4 lg:hidden">
+            <WeatherStrip weather={weather} />
+          </div>
+
+          <div className="mt-4">
+            <FarmMap
+              farm={farm}
+              zones={zones}
+              initialPlants={plants}
+              className="h-[calc(100dvh-360px)] min-h-[300px] lg:h-[calc(100dvh-320px)] lg:min-h-[420px]"
+            />
+          </div>
+        </div>
+
+        {/* ── Right column (desktop only): weather + charts + care list ── */}
+        <aside
+          className="hidden lg:flex lg:max-h-[calc(100dvh-160px)] lg:flex-col lg:gap-4 lg:overflow-y-auto lg:pr-1 lg:[scrollbar-width:thin]"
+          aria-label="Farm conditions panel"
+        >
+          <WeatherToday weather={weather} />
+          <TemperatureChart days={weather.days} />
+          <MoistureRainChart days={weather.days} />
+          <NeedsCareList plants={plants} farmId={farmId} />
+        </aside>
       </div>
     </main>
   );
