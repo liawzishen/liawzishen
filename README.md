@@ -1,7 +1,6 @@
 # 🌿 GreenMap
 
 AI-powered farm management and harvest transparency for Malaysian smallholder farmers.
-Built for the **Codex Community Hackathon KL 2026** ("AI for Malaysia").
 
 Growers map their farm from a bird's-eye view, track every plant's health with AI scans,
 and generate a **Harvest Passport** — a QR code consumers scan to see the full growing journey.

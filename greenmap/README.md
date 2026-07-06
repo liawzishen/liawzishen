@@ -1,7 +1,6 @@
 # 🌿 GreenMap
 
 AI-powered farm management and harvest transparency for Malaysian smallholder farmers.
-Built for **Codex Community Hackathon KL 2026** ("AI for Malaysia").
 
 Growers map their farm from a bird's-eye view, track every plant's health with AI scans,
 and generate a **Harvest Passport** — a QR code consumers scan to see the full growing journey.
@@ -13,7 +12,7 @@ and generate a **Harvest Passport** — a QR code consumers scan to see the full
 
 ## Build status
 
-All eight hackathon build phases are **complete and type-clean** (`npx tsc --noEmit` → 0 errors).
+All eight build phases are **complete and type-clean** (`npx tsc --noEmit` → 0 errors).
 
 | Phase | Scope | Status |
 |---|---|---|
@@ -26,7 +25,7 @@ All eight hackathon build phases are **complete and type-clean** (`npx tsc --noE
 | 7 | Harvest Passport · QR · public passport page | ✅ Done |
 | 8 | Polish · Today's Tasks · loading/error states · demo prep | ✅ Done |
 
-### Recent additions (post-hackathon)
+### Recent additions
 
 - **Responsive Farm Map dashboard + live weather.** At ≥1024px the Map tab breaks out of the
   430px phone frame into a two-column dashboard: the Konva map and a full KPI grid on the left,
@@ -34,8 +33,11 @@ All eight hackathon build phases are **complete and type-clean** (`npx tsc --noE
   chart) on the right, plus a farm health-trend chart, a needs-care list, and upcoming harvests
   underneath. Weather comes from **Open-Meteo** (free, keyless) — geocoded from the farm's state
   by default, or from an exact **GPS pin** captured during farm setup. Mobile keeps the original
-  layout plus a compact day-pill weather strip. See `../docs/superpowers/specs/2026-07-06-map-page-optimization-design.md`
-  (design specs for post-hackathon work live one level up, outside the `greenmap/` app).
+  layout plus a compact day-pill weather strip. Weather requests are bounded by
+  a timeout, so a slow or unreachable Open-Meteo falls back to sample data
+  within a few seconds instead of stalling the page. See
+  `../docs/superpowers/specs/2026-07-06-map-page-optimization-design.md`
+  (design specs live one level up, outside the `greenmap/` app).
 - **Home page daily briefing.** A one-line watering advisory (rain/heat/soil-moisture based)
   sits above Today's Tasks; task groups, the Completed Today tray, and Recent Activity now
   scroll inside their card instead of paginating with "Show more" buttons.
@@ -69,7 +71,7 @@ cp .env.example .env.local
 **3. Fill `.env.local`** — see [Environment variables](#environment-variables) below. The two
 `NEXT_PUBLIC_*` Supabase values are enough to boot; the rest unlock seeding, AI, satellite search and passports. Weather needs no key at all.
 
-**4. ⚠️ Hackathon setting — turn OFF email confirmation** so registering logs people straight in:
+**4. ⚠️ Demo setting — turn OFF email confirmation** so registering logs people straight in:
 Supabase Dashboard → **Authentication → Sign In / Providers → Email → disable "Confirm email"**.
 If you skip this, registration shows a "check your email" notice instead of logging in.
 
@@ -152,7 +154,7 @@ types/  database.ts · index.ts
 docs/   00_BUILD_PLAN · 01_CODE_CONCEPT · 02_PROTOTYPE_MAPPING · 03_BACKEND_TRUTH · 08_DEMO
 supabase/migrations/  0001_init … 0006_farm_coordinates
 # ../docs/superpowers/specs/ (repo root, one level up) — design specs for
-# post-hackathon features, e.g. the 2026-07-06 map-dashboard/weather spec
+# later features, e.g. the 2026-07-06 map-dashboard/weather spec
 scripts/  seed-demo.ts · seed-billing.ts · smoke-test.mjs · test-tasks-data.sql · README.md
 ```
 
