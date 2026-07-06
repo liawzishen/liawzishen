@@ -65,6 +65,28 @@ export function weatherEmoji(code: number | null): string {
   return "⛈️";
 }
 
+/** Milliseconds before a weather request is abandoned in favour of the
+ *  sample-data fallback. A slow-but-alive Open-Meteo must not hang the page. */
+const WEATHER_TIMEOUT_MS = 3500;
+
+/**
+ * `fetch` bounded by a timeout via Promise.race. We deliberately do NOT pass
+ * an AbortSignal to `fetch`: a signal opts the request out of Next's Data
+ * Cache, so the forecast would re-fetch on every render. Racing a timeout
+ * promise instead keeps caching intact and still bounds the wait — on
+ * timeout this rejects and the caller's try/catch falls back to sample data,
+ * so a sluggish network degrades gracefully instead of blocking render.
+ */
+async function fetchWithTimeout(
+  url: string,
+  init: { next?: { revalidate: number } }
+): Promise<Response> {
+  const timeout = new Promise<Response>((_, reject) =>
+    setTimeout(() => reject(new Error("weather request timed out")), WEATHER_TIMEOUT_MS)
+  );
+  return Promise.race([fetch(url, init), timeout]);
+}
+
 async function geocode(
   location: string
 ): Promise<{ latitude: number; longitude: number; label: string }> {
@@ -75,7 +97,7 @@ async function geocode(
     .filter((q, i, all) => q.length > 1 && all.indexOf(q) === i);
 
   for (const q of queries) {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`,
       { next: { revalidate: 86400 } }
     );
@@ -136,9 +158,10 @@ export async function getFarmWeather(farm: {
       forecast_days: String(FORECAST_DAYS),
       timezone: "auto",
     });
-    const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`, {
-      next: { revalidate: 1800 },
-    });
+    const res = await fetchWithTimeout(
+      `https://api.open-meteo.com/v1/forecast?${params}`,
+      { next: { revalidate: 1800 } }
+    );
     if (!res.ok) throw new Error(`forecast ${res.status}`);
 
     const json = (await res.json()) as {
