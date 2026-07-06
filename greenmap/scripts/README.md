@@ -11,7 +11,7 @@
 > and recreates the demo grower's farms — never run it against a backend
 > holding data you care about.
 
-Run the five migrations **in order** in the Supabase SQL editor, then seed demo data.
+Run the six migrations **in order** in the Supabase SQL editor, then seed demo data.
 
 ## 1. Run the migrations
 
@@ -22,8 +22,9 @@ Supabase Dashboard → **SQL Editor** → **New query**. Paste each file's conte
 3. `supabase/migrations/0003_rls.sql` — Row Level Security policies
 4. `supabase/migrations/0004_storage.sql` — 3 public storage buckets
 5. `supabase/migrations/0005_billing.sql` — plan tiers, scan credits, payments, listing boosts
+6. `supabase/migrations/0006_farm_coordinates.sql` — optional `latitude`/`longitude` on `farms`, for exact-location weather on the Map tab
 
-Each file is **re-runnable** — running it twice is safe.
+Each file is **re-runnable** — running it twice is safe. `0006` is additive and nullable — the app works without it (weather falls back to geocoding the farm's state), but the "Pin my farm's GPS location" button in farm setup needs it to persist the pin.
 
 > Prefer the CLI? With the Supabase CLI linked to your project, `supabase db push` applies everything in `supabase/migrations/` automatically.
 
