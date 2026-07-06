@@ -15,17 +15,15 @@ const CATEGORIES: {
   key: GroupKey;
   icon: string;
   label: string;
-  moreWord: string;
   action: CareAction | null;
   batchLabel: string | null;
 }[] = [
-  { key: "harvest", icon: "🧺", label: "Ready to Harvest", moreWord: "Harvesting", action: null, batchLabel: null },
-  { key: "water", icon: "💧", label: "Needs Watering", moreWord: "Watering", action: "water", batchLabel: "Water All" },
-  { key: "fertilize", icon: "🌿", label: "Needs Fertilizing", moreWord: "Fertilizing", action: "fertilize", batchLabel: "Fertilize All" },
+  { key: "harvest", icon: "🧺", label: "Ready to Harvest", action: null, batchLabel: null },
+  { key: "water", icon: "💧", label: "Needs Watering", action: "water", batchLabel: "Water All" },
+  { key: "fertilize", icon: "🌿", label: "Needs Fertilizing", action: "fertilize", batchLabel: "Fertilize All" },
 ];
 
 const DONE_LABEL: Record<CareAction, string> = { water: "Watered", fertilize: "Fertilized" };
-const MAX_VISIBLE = 4;
 
 function Chevron({ open }: { open: boolean }) {
   return (
@@ -67,14 +65,10 @@ export function TodaysTasks({
     water: firstNonEmpty === "water",
     fertilize: firstNonEmpty === "fertilize",
   });
-  const [showAll, setShowAll] = useState<Record<GroupKey, boolean>>({
-    harvest: false, water: false, fertilize: false,
-  });
   const [busy, setBusy] = useState<Record<GroupKey, boolean>>({
     harvest: false, water: false, fertilize: false,
   });
   const [doneOpen, setDoneOpen] = useState(false);
-  const [showAllDone, setShowAllDone] = useState(false);
 
   const activeTotal =
     groups.harvest.length + groups.water.length + groups.fertilize.length;
@@ -149,8 +143,6 @@ export function TodaysTasks({
     );
   }
 
-  const doneVisible = showAllDone ? completed : completed.slice(0, MAX_VISIBLE);
-
   return (
     <div className="space-y-3">
       {activeTotal === 0 && completed.length > 0 && (
@@ -164,8 +156,6 @@ export function TodaysTasks({
         const items = groups[cat.key];
         if (items.length === 0) return null;
         const isOpen = open[cat.key];
-        const visible = showAll[cat.key] ? items : items.slice(0, MAX_VISIBLE);
-        const hidden = items.length - visible.length;
 
         return (
           <div key={cat.key} className="overflow-hidden rounded-card glass">
@@ -196,8 +186,9 @@ export function TodaysTasks({
 
             {isOpen && (
               <div className="px-3.5 pb-3.5">
-                <div className="space-y-2">
-                  {visible.map((item) =>
+                {/* ~4–5 rows visible; longer lists scroll inside the box */}
+                <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                  {items.map((item) =>
                     cat.action ? (
                       <button
                         key={item.plantId}
@@ -233,18 +224,6 @@ export function TodaysTasks({
                     )
                   )}
                 </div>
-
-                {items.length > MAX_VISIBLE && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAll((s) => ({ ...s, [cat.key]: !s[cat.key] }))}
-                    className="mt-2.5 w-full rounded-input py-2 text-[13px] font-semibold text-brand"
-                  >
-                    {showAll[cat.key]
-                      ? "Show less ▴"
-                      : `Show ${hidden} more ${cat.moreWord} tasks ▾`}
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -269,8 +248,8 @@ export function TodaysTasks({
 
           {doneOpen && (
             <div className="px-3.5 pb-3.5">
-              <div className="space-y-2">
-                {doneVisible.map((entry) => (
+              <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                {completed.map((entry) => (
                   <div
                     key={`${entry.action}:${entry.item.plantId}`}
                     className="flex items-center gap-3 rounded-input bg-fill/40 p-3"
@@ -294,18 +273,6 @@ export function TodaysTasks({
                   </div>
                 ))}
               </div>
-
-              {completed.length > MAX_VISIBLE && (
-                <button
-                  type="button"
-                  onClick={() => setShowAllDone((v) => !v)}
-                  className="mt-2.5 w-full rounded-input py-2 text-[13px] font-semibold text-brand"
-                >
-                  {showAllDone
-                    ? "Show less ▴"
-                    : `Show ${completed.length - MAX_VISIBLE} more ▾`}
-                </button>
-              )}
             </div>
           )}
         </div>

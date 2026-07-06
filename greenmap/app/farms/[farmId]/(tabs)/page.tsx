@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/Badge";
 import { getFarmBundle, getUserAndFarms } from "@/lib/farm/fetch";
 import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
 import { TodaysTasks, type TaskItem } from "@/components/home/TodaysTasks";
+import { getFarmWeather, weatherEmoji } from "@/lib/weather/fetch";
+import { wateringAdvice } from "@/lib/weather/advice";
 import type { EventType } from "@/types/database";
 
 function daysSince(dateStr: string): number {
@@ -56,12 +58,16 @@ export default async function FarmHomePage({
   // Last water/fertilize per plant comes with the bundle (same data its live
   // health scores were computed from) — only the activity feed needs a query.
   const supabase = await createClient();
-  const { data: feed } = await supabase
-    .from("growth_logs")
-    .select("plant_id, event_type, note, created_at")
-    .in("plant_id", activeIds)
-    .order("created_at", { ascending: false })
-    .limit(6);
+  const [{ data: feed }, weather] = await Promise.all([
+    supabase
+      .from("growth_logs")
+      .select("plant_id, event_type, note, created_at")
+      .in("plant_id", activeIds)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    getFarmWeather(farm),
+  ]);
+  const advice = wateringAdvice(weather.today);
 
   // Quick stats
   const healthy = active.filter(
@@ -147,6 +153,34 @@ export default async function FarmHomePage({
         ))}
       </div>
 
+      {/* Today's weather advisory — one glance before the task list */}
+      <Link
+        href={`/farms/${farmId}/field`}
+        className="mt-4 flex items-center gap-2.5 rounded-card px-3.5 py-3 glass"
+        style={{ boxShadow: `inset 3px 0 0 ${advice.color}` }}
+      >
+        <span className="text-[18px] leading-none" aria-hidden>
+          {advice.icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[13px] font-bold" style={{ color: advice.color }}>
+            {advice.title}
+            {weather.source === "fallback" ? " · sample data" : ""}
+          </span>
+          <span className="block truncate text-[12px] text-secondary">
+            {weather.today.tempMax !== null ? `${Math.round(weather.today.tempMax)}°C` : "—"} ·{" "}
+            {weather.today.rainProb !== null ? `${Math.round(weather.today.rainProb)}% rain` : "—"} ·{" "}
+            {weather.today.soilMoisture !== null
+              ? `soil ${Math.round(weather.today.soilMoisture * 100)}%`
+              : "soil —"}{" "}
+            {weatherEmoji(weather.today.weatherCode)}
+          </span>
+        </span>
+        <span className="shrink-0 text-[12px] font-semibold text-brand">
+          Forecast ›
+        </span>
+      </Link>
+
       {/* Today's tasks */}
       <div className="mb-2 mt-7 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
@@ -198,6 +232,8 @@ export default async function FarmHomePage({
         </Card>
       ) : (
         <Card className="p-0">
+          {/* ~5 rows visible; the rest scroll inside the card */}
+          <div className="max-h-[340px] overflow-y-auto [scrollbar-width:thin]">
           {feedItems.map((f, i) => {
             const m = EVENT_META[f.event_type] ?? { icon: "•", label: f.event_type };
             return (
@@ -223,6 +259,7 @@ export default async function FarmHomePage({
               </Link>
             );
           })}
+          </div>
         </Card>
       )}
     </main>
