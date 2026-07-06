@@ -56,19 +56,37 @@ export default function SetupZonesPage() {
     }
 
     // 1. Insert the farm.
-    const { data: farm, error: farmError } = await supabase
+    const base = {
+      user_id: user.id,
+      name: setup.name,
+      location: setup.location,
+      size: setup.size,
+      crop_type: setup.cropType,
+      background_type: setup.backgroundType,
+      background_url: setup.backgroundUrl,
+    };
+    const hasPin = setup.latitude !== null && setup.longitude !== null;
+    let { data: farm, error: farmError } = await supabase
       .from("farms")
       .insert({
-        user_id: user.id,
-        name: setup.name,
-        location: setup.location,
-        size: setup.size,
-        crop_type: setup.cropType,
-        background_type: setup.backgroundType,
-        background_url: setup.backgroundUrl,
+        ...base,
+        ...(hasPin
+          ? { latitude: setup.latitude, longitude: setup.longitude }
+          : {}),
       })
       .select()
       .single();
+
+    // If the 0006 coordinates migration hasn't been applied yet, saving the
+    // GPS pin fails on the unknown column — retry without it so farm
+    // creation never breaks (weather falls back to geocoding the state).
+    if (farmError && hasPin && /latitude|longitude/i.test(farmError.message)) {
+      ({ data: farm, error: farmError } = await supabase
+        .from("farms")
+        .insert(base)
+        .select()
+        .single());
+    }
 
     if (farmError || !farm) {
       setError(farmError?.message ?? "Could not create the farm.");

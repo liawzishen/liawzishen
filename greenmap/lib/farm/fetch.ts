@@ -51,6 +51,50 @@ export async function getFarmBundle(farmId: string): Promise<{
   };
 }
 
+/** One point of the farm-wide average health trend (one row per day). */
+export interface FarmHealthPoint {
+  date: string; // YYYY-MM-DD
+  avg: number; // 0–100, averaged across all snapshots that day
+}
+
+/**
+ * Analysis data for the desktop map dashboard: a 14-day farm-wide average
+ * health trend built from health_score_history snapshots. (The activity
+ * feed lives on Home — the Map tab deliberately doesn't repeat it.)
+ * Degrades to an empty array on error so the dashboard never blocks the map.
+ */
+export async function getFarmAnalytics(plantIds: string[]): Promise<{
+  healthTrend: FarmHealthPoint[];
+}> {
+  if (plantIds.length === 0) return { healthTrend: [] };
+  const supabase = await createClient();
+
+  const since = new Date();
+  since.setDate(since.getDate() - 14);
+
+  const { data: history } = await supabase
+    .from("health_score_history")
+    .select("score, created_at")
+    .in("plant_id", plantIds)
+    .gte("created_at", since.toISOString())
+    .order("created_at", { ascending: true });
+
+  // Collapse snapshots into one average per calendar day.
+  const byDay = new Map<string, { total: number; n: number }>();
+  for (const row of (history ?? []) as { score: number; created_at: string }[]) {
+    const date = row.created_at.slice(0, 10);
+    const acc = byDay.get(date) ?? { total: 0, n: 0 };
+    acc.total += row.score;
+    acc.n += 1;
+    byDay.set(date, acc);
+  }
+  const healthTrend = [...byDay.entries()]
+    .map(([date, { total, n }]) => ({ date, avg: Math.round(total / n) }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  return { healthTrend };
+}
+
 /**
  * Current user plus their farms (newest first) for the header FarmSwitcher.
  * One helper so tab pages can run it in parallel with getFarmBundle.

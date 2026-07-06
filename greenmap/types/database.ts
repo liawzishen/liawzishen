@@ -79,6 +79,9 @@ export interface Farm {
   user_id: string;
   name: string;
   location: string;
+  /** Optional GPS pin (0006) — exact weather; null falls back to geocoding. */
+  latitude: number | null;
+  longitude: number | null;
   size: FarmSize;
   crop_type: string;
   background_type: BackgroundType;
@@ -159,7 +162,10 @@ export interface HarvestPassport {
 
 /* ── Insert types (what you pass to .insert(); DB fills the rest) ────────── */
 
-export type FarmInsert = Omit<Farm, "id" | "created_at">;
+export type FarmInsert = Omit<Farm, "id" | "created_at" | "latitude" | "longitude"> & {
+  latitude?: number | null;
+  longitude?: number | null;
+};
 export type ZoneInsert = Omit<Zone, "id" | "created_at">;
 export type PlantInsert = Omit<Plant, "id" | "created_at">;
 export type GrowthLogInsert = Omit<GrowthLog, "id" | "created_at">;

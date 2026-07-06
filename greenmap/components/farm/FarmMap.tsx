@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { AddPlantModal } from "./AddPlantModal";
 import { PlantBottomSheet } from "./PlantBottomSheet";
+import { cn } from "@/lib/utils";
 import type { Farm, Plant, Zone } from "@/types/database";
 
 const FarmMapCanvas = dynamic(
@@ -22,10 +23,13 @@ export function FarmMap({
   farm,
   zones,
   initialPlants,
+  className,
 }: {
   farm: Farm;
   zones: Zone[];
   initialPlants: Plant[];
+  /** Height override — the responsive field page sizes the card per layout. */
+  className?: string;
 }) {
   const [plants, setPlants] = useState<Plant[]>(initialPlants);
   const [placing, setPlacing] = useState(false);
@@ -65,7 +69,12 @@ export function FarmMap({
   }
 
   return (
-    <div className="relative h-[calc(100dvh-210px)] w-full overflow-hidden rounded-card bg-card shadow-card">
+    <div
+      className={cn(
+        "relative w-full overflow-hidden rounded-card bg-card shadow-card",
+        className ?? "h-[calc(100dvh-210px)]"
+      )}
+    >
       <FarmMapCanvas
         farm={farm}
         plants={plants}

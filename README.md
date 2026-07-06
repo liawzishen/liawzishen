@@ -5,6 +5,8 @@ Built for the **Codex Community Hackathon KL 2026** ("AI for Malaysia").
 
 Growers map their farm from a bird's-eye view, track every plant's health with AI scans,
 and generate a **Harvest Passport** — a QR code consumers scan to see the full growing journey.
+The Map tab also becomes a full desktop dashboard on wider screens, with live weather
+(temperature, rain, soil moisture) for daily watering decisions.
 
 ## Repository layout
 
