@@ -13,6 +13,7 @@ import type { Listing } from "./demo-listings";
 export function ListingDetail({
   listing,
   promoted,
+  inStock = true,
   marketHref,
   secondaryHref,
   secondaryLabel,
@@ -20,6 +21,8 @@ export function ListingDetail({
   listing: Listing;
   /** True while the listing has an active paid boost (listing_boosts). */
   promoted?: boolean;
+  /** False when the seller has marked it out of stock (listing_stock). */
+  inStock?: boolean;
   /** "Back to Marketplace" target (grower or consumer route). */
   marketHref: string;
   /** Optional second CTA after ordering (e.g. My Sales / Keep browsing). */
@@ -233,8 +236,8 @@ export function ListingDetail({
       </div>
 
       <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
-        <Button full onClick={() => setStage("pay")}>
-          Buy now · RM {total.toFixed(2)}
+        <Button full disabled={!inStock} onClick={() => setStage("pay")}>
+          {inStock ? `Buy now · RM ${total.toFixed(2)}` : "Out of stock"}
         </Button>
       </div>
     </div>

@@ -9,6 +9,7 @@
     "db:seed": "tsx scripts/seed-demo.ts",
     "seed:billing": "tsx scripts/seed-billing.ts",
     "seed:consumer": "tsx scripts/seed-consumer.ts",
+    "seed:support": "tsx scripts/seed-support.ts",
     "test:smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {

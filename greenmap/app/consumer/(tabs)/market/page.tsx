@@ -8,18 +8,28 @@ import { Marketplace } from "@/components/sales/Marketplace";
  */
 export default async function ConsumerMarketPage() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("listing_boosts")
-    .select("listing_id")
-    .gt("expires_at", new Date().toISOString());
+  const [{ data }, { data: stock }] = await Promise.all([
+    supabase
+      .from("listing_boosts")
+      .select("listing_id")
+      .gt("expires_at", new Date().toISOString()),
+    supabase.from("listing_stock").select("listing_id, in_stock"),
+  ]);
   const boostedIds = [...new Set((data ?? []).map((b) => b.listing_id as string))];
+  const outOfStockIds = (stock ?? [])
+    .filter((s) => s.in_stock === false)
+    .map((s) => s.listing_id as string);
 
   return (
     <main>
       <div className="px-5 pt-12">
         <h1 className="text-[28px] font-bold leading-tight">Market</h1>
       </div>
-      <Marketplace basePath="/consumer/listing" boostedIds={boostedIds} />
+      <Marketplace
+        basePath="/consumer/listing"
+        boostedIds={boostedIds}
+        outOfStockIds={outOfStockIds}
+      />
     </main>
   );
 }

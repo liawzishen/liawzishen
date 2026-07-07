@@ -159,6 +159,7 @@ export function OrderSupport({
               user_id: userId,
               order_ref: order.id,
               listing_id: null,
+              farm: order.farm,
               rating,
               comment,
             })

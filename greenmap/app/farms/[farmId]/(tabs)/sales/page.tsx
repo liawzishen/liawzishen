@@ -31,5 +31,26 @@ export default async function SalesPage({
     }
   }
 
-  return <SalesDashboard farmId={farmId} boosts={boosts} />;
+  // Farm name + stock levels (listing_stock may not exist yet → ignore errors).
+  const { data: farm } = await supabase
+    .from("farms")
+    .select("name")
+    .eq("id", farmId)
+    .maybeSingle();
+  const stock: Record<string, boolean> = {};
+  const { data: stockRows } = await supabase
+    .from("listing_stock")
+    .select("listing_id, in_stock");
+  for (const s of stockRows ?? []) {
+    stock[s.listing_id as string] = s.in_stock as boolean;
+  }
+
+  return (
+    <SalesDashboard
+      farmId={farmId}
+      boosts={boosts}
+      farmName={(farm as { name: string } | null)?.name ?? null}
+      stock={stock}
+    />
+  );
 }

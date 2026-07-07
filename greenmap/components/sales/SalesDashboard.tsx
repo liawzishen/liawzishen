@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { BoostButton } from "@/components/billing/BoostButton";
+import { StockToggle } from "@/components/seller/StockToggle";
 
 /**
  * Simulated "My Sales" hub (Phase-3 preview). Realistic demo data + a working
@@ -26,18 +27,24 @@ const ORDERS = [
 // ids match the shared marketplace mock data (demo-listings.ts) so a boost
 // bought here shows as "Promoted" on the same card in the Marketplace.
 const LISTINGS = [
-  { id: "l1", emoji: "🍅", name: "Organic Cherry Tomatoes", meta: "18 kg left · RM 8/kg", expires: "Expires in 2 days", verified: true },
-  { id: "l2", emoji: "🌶️", name: "Fresh Red Chili", meta: "5 kg left · RM 12/kg", expires: "Expires tomorrow", verified: true },
-  { id: "l3", emoji: "🥬", name: "Pak Choi", meta: "30 bundles · RM 3/bundle", expires: "Listed today", verified: false },
+  { id: "l1", emoji: "🍅", name: "Organic Cherry Tomatoes", farm: "Ladang Hijau", meta: "18 kg left · RM 8/kg", expires: "Expires in 2 days", verified: true },
+  { id: "l2", emoji: "🌶️", name: "Fresh Red Chili", farm: "Kebun Siti", meta: "5 kg left · RM 12/kg", expires: "Expires tomorrow", verified: true },
+  { id: "l3", emoji: "🥬", name: "Pak Choi", farm: "Green Valley", meta: "30 bundles · RM 3/bundle", expires: "Listed today", verified: false },
 ];
 
 export function SalesDashboard({
   farmId,
   boosts = {},
+  farmName = null,
+  stock = {},
 }: {
   farmId: string;
   /** listingId → active boost expires_at (ISO), from listing_boosts. */
   boosts?: Record<string, string>;
+  /** This grower's farm name — only their own listings show a stock toggle. */
+  farmName?: string | null;
+  /** listingId → in_stock, from listing_stock. */
+  stock?: Record<string, boolean>;
 }) {
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
 
@@ -134,7 +141,15 @@ export function SalesDashboard({
                 {l.meta} · {l.expires}
               </p>
             </div>
-            {l.verified && <Badge tone="brand">✓ Passport</Badge>}
+            {l.farm === farmName ? (
+              <StockToggle
+                listingId={l.id}
+                sellerFarm={l.farm}
+                initialInStock={stock[l.id] ?? true}
+              />
+            ) : (
+              l.verified && <Badge tone="brand">✓ Passport</Badge>
+            )}
             <BoostButton
               listingId={l.id}
               listingName={l.name}
@@ -156,6 +171,12 @@ export function SalesDashboard({
         className="mt-3 flex h-[50px] w-full items-center justify-center rounded-btn bg-fill text-[16px] font-semibold text-brand transition active:scale-[0.99]"
       >
         🛒 Browse Marketplace
+      </Link>
+      <Link
+        href={`/farms/${farmId}/support`}
+        className="mt-3 flex h-[50px] w-full items-center justify-center rounded-btn bg-fill text-[16px] font-semibold text-brand transition active:scale-[0.99]"
+      >
+        🎧 Customer Service
       </Link>
     </main>
   );

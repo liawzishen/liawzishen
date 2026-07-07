@@ -19,12 +19,19 @@ export default async function ListingDetailPage({
   if (!listing) notFound();
 
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("listing_boosts")
-    .select("id")
-    .eq("listing_id", listingId)
-    .gt("expires_at", new Date().toISOString())
-    .limit(1);
+  const [{ data }, { data: stock }] = await Promise.all([
+    supabase
+      .from("listing_boosts")
+      .select("id")
+      .eq("listing_id", listingId)
+      .gt("expires_at", new Date().toISOString())
+      .limit(1),
+    supabase
+      .from("listing_stock")
+      .select("in_stock")
+      .eq("listing_id", listingId)
+      .maybeSingle(),
+  ]);
 
   return (
     <main className="pb-12">
@@ -32,6 +39,7 @@ export default async function ListingDetailPage({
       <ListingDetail
         listing={listing}
         promoted={(data ?? []).length > 0}
+        inStock={(stock as { in_stock: boolean } | null)?.in_stock !== false}
         marketHref={`/farms/${farmId}/sales/market`}
         secondaryHref={`/farms/${farmId}/sales`}
         secondaryLabel="My Sales"
