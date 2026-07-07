@@ -91,3 +91,7 @@ export const STATUS_META: Record<OrderStatus, { label: string; tone: string }> =
   confirmed: { label: "Confirmed", tone: "#007aff" },
   pending: { label: "Awaiting farmer", tone: "#F59E0B" },
 };
+
+export function getOrder(id: string): ConsumerOrder | undefined {
+  return ORDERS.find((o) => o.id === id);
+}

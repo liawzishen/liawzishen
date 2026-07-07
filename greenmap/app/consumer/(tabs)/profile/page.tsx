@@ -32,11 +32,11 @@ export default async function ConsumerProfilePage() {
     { label: "Favourites", value: String(FAVOURITES.length) },
   ];
 
-  const settings = [
+  const settings: { icon: string; label: string; href?: string }[] = [
     { icon: "📍", label: "Delivery addresses" },
     { icon: "💳", label: "Payment methods" },
     { icon: "🔔", label: "Notifications" },
-    { icon: "❓", label: "Help & support" },
+    { icon: "🤖", label: "Help & support (AI admin)", href: "/consumer/support/admin" },
   ];
 
   return (
@@ -101,19 +101,27 @@ export default async function ConsumerProfilePage() {
         Settings
       </h2>
       <div className="overflow-hidden rounded-card glass">
-        {settings.map((s, i) => (
-          <button
-            key={s.label}
-            type="button"
-            className={`flex w-full items-center gap-3 p-4 text-left active:bg-fill/40 ${
-              i > 0 ? "hairline-t" : ""
-            }`}
-          >
-            <span className="text-[18px]">{s.icon}</span>
-            <span className="flex-1 text-[14px] font-medium">{s.label}</span>
-            <span className="text-tertiary">›</span>
-          </button>
-        ))}
+        {settings.map((s, i) => {
+          const cls = `flex w-full items-center gap-3 p-4 text-left active:bg-fill/40 ${
+            i > 0 ? "hairline-t" : ""
+          }`;
+          const inner = (
+            <>
+              <span className="text-[18px]">{s.icon}</span>
+              <span className="flex-1 text-[14px] font-medium">{s.label}</span>
+              <span className="text-tertiary">›</span>
+            </>
+          );
+          return s.href ? (
+            <Link key={s.label} href={s.href} className={cls}>
+              {inner}
+            </Link>
+          ) : (
+            <button key={s.label} type="button" className={cls}>
+              {inner}
+            </button>
+          );
+        })}
       </div>
 
       <div className="mt-6">

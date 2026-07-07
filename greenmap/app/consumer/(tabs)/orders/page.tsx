@@ -63,7 +63,10 @@ export default function ConsumerOrdersPage() {
 function OrderCard({ order }: { order: (typeof ORDERS)[number] }) {
   const s = STATUS_META[order.status];
   return (
-    <div className="rounded-card p-4 glass">
+    <Link
+      href={`/consumer/orders/${order.id}`}
+      className="block rounded-card p-4 glass active:opacity-90"
+    >
       <div className="flex items-center gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-input bg-fill text-[20px]">
           {order.emoji}
@@ -85,6 +88,6 @@ function OrderCard({ order }: { order: (typeof ORDERS)[number] }) {
         <span className="text-[12px] text-secondary">Order #{order.id}</span>
         <span className="text-[15px] font-bold text-brand">RM {order.total}</span>
       </div>
-    </div>
+    </Link>
   );
 }
