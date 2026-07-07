@@ -160,6 +160,47 @@ export interface HarvestPassport {
   created_at: string;
 }
 
+/* ── Customer service (0007) ─────────────────────────────────────────────── */
+
+export type RefundKind = "refund" | "return";
+export type RefundStatus = "pending" | "approved" | "rejected";
+export type SupportThread = "seller" | "admin";
+export type SupportSender = "customer" | "seller" | "ai";
+
+export interface RefundRequest {
+  id: string;
+  user_id: string;
+  order_ref: string;
+  item: string;
+  farm: string;
+  kind: RefundKind;
+  reason: string;
+  status: RefundStatus; // always starts 'pending' — RLS forbids self-approval
+  created_at: string;
+}
+
+export interface OrderFeedback {
+  id: string;
+  user_id: string;
+  order_ref: string;
+  listing_id: string | null;
+  rating: number; // 1–5
+  comment: string;
+  created_at: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  user_id: string;
+  thread: SupportThread;
+  order_ref: string | null;
+  seller_name: string | null;
+  sender: SupportSender;
+  body: string;
+  intent: string | null; // AI's classification (admin thread)
+  created_at: string;
+}
+
 /* ── Insert types (what you pass to .insert(); DB fills the rest) ────────── */
 
 export type FarmInsert = Omit<Farm, "id" | "created_at" | "latitude" | "longitude"> & {
@@ -178,3 +219,9 @@ export type HarvestPassportInsert = Omit<
   HarvestPassport,
   "id" | "created_at" | "qr_token"
 > & { qr_token?: string };
+export type RefundRequestInsert = Omit<
+  RefundRequest,
+  "id" | "created_at" | "status"
+> & { status?: RefundStatus };
+export type OrderFeedbackInsert = Omit<OrderFeedback, "id" | "created_at">;
+export type SupportMessageInsert = Omit<SupportMessage, "id" | "created_at">;

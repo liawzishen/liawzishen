@@ -1,39 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { LISTINGS } from "./demo-listings";
+import { rankListings, type RankReason } from "@/lib/marketplace/rank";
 
 /**
  * Simulated buyer marketplace (Phase-3 preview). Location-first, freshness-aware,
- * passport-powered listing cards with working mock filters. Buy/Journey link to
+ * passport-powered listing cards with working mock filters. Ordering is decided
+ * by the shared ranking engine (lib/marketplace/rank.ts): paid boosts get the
+ * top (capped) slots, then a weighted organic score — popularity, engagement
+ * (clicks + dwell), freshness, trust, proximity and health. Buy/Journey link to
  * the listing detail. No real checkout or persistence.
  */
 
 const FILTERS = ["All", "✓ Passport", "Within 10km", "Harvested today"];
 
+/** Ranking reason → a small explanatory chip on the card. The "promoted"
+ *  entry is never rendered (promoted cards show the ⚡ badge instead) but is
+ *  included so the lookup is total over RankReason. */
+const REASON_CHIP: Record<RankReason, string> = {
+  promoted: "⚡ Promoted",
+  popular: "🔥 Popular",
+  trending: "📈 Trending",
+  fresh: "🌱 Just harvested",
+  nearby: "📍 Nearby",
+  verified: "✓ Trusted grower",
+  new: "✨ New listing",
+};
+
 export function Marketplace({
-  farmId,
+  basePath,
   boostedIds = [],
 }: {
-  farmId: string;
+  /** URL prefix for a listing detail — grower or consumer market route.
+   *  A card links to `${basePath}/${listingId}`. */
+  basePath: string;
   /** Listings with an active paid boost — shown first with a Promoted tag. */
   boostedIds?: string[];
 }) {
   const [filter, setFilter] = useState("All");
 
-  const listings = LISTINGS.filter((l) => {
-    if (filter === "✓ Passport") return l.verified;
-    if (filter === "Within 10km") return l.distanceKm <= 10;
-    if (filter === "Harvested today") return l.freshness === "Harvested today";
-    return true;
-  });
+  const ranked = useMemo(() => {
+    const filtered = LISTINGS.filter((l) => {
+      if (filter === "✓ Passport") return l.verified;
+      if (filter === "Within 10km") return l.distanceKm <= 10;
+      if (filter === "Harvested today") return l.freshness === "Harvested today";
+      return true;
+    });
 
-  const boosted = new Set(boostedIds);
-  const sorted = [...listings].sort(
-    (a, b) => Number(boosted.has(b.id)) - Number(boosted.has(a.id))
-  );
+    // The ranker works in absolute time; convert each listing's "hours ago"
+    // into a harvest timestamp so freshness decays relative to now.
+    const now = Date.now();
+    const rankable = filtered.map((l) => ({
+      ...l,
+      harvestedAt: new Date(now - l.harvestedHoursAgo * 3_600_000).toISOString(),
+    }));
+
+    return rankListings(rankable, { boostedIds, now: new Date(now) });
+  }, [filter, boostedIds]);
 
   return (
     <div className="pb-8">
@@ -65,9 +91,9 @@ export function Marketplace({
         ))}
       </div>
 
-      {/* Product cards */}
+      {/* Product cards — ordered by the ranking engine */}
       <div className="mt-4 space-y-4 px-5">
-        {sorted.map((l) => (
+        {ranked.map(({ listing: l, promoted, reason }) => (
           <div key={l.id} className="overflow-hidden rounded-card glass">
             <div className="relative h-32" style={{ background: l.gradient }}>
               <span className="absolute left-3 top-3 text-[40px]">{l.emoji}</span>
@@ -76,14 +102,21 @@ export function Marketplace({
                   ✓ Passport Verified
                 </span>
               )}
-              {boosted.has(l.id) && (
+              {promoted && (
                 <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-warning">
                   ⚡ Promoted
                 </span>
               )}
             </div>
             <div className="p-4">
-              <p className="text-[16px] font-semibold">{l.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[16px] font-semibold">{l.name}</p>
+                {!promoted && (
+                  <span className="shrink-0 rounded-full bg-fill px-2 py-0.5 text-[11px] font-semibold text-secondary">
+                    {REASON_CHIP[reason]}
+                  </span>
+                )}
+              </div>
               <p className="mt-0.5 text-[13px] text-secondary">
                 {l.farm} · {l.freshness} · {l.distanceKm} km
               </p>
@@ -107,14 +140,14 @@ export function Marketplace({
                 <div className="flex items-center gap-3">
                   {l.verified && (
                     <Link
-                      href={`/farms/${farmId}/sales/market/${l.id}`}
+                      href={`${basePath}/${l.id}`}
                       className="text-[13px] font-semibold text-info"
                     >
                       🔍 Journey
                     </Link>
                   )}
                   <Link
-                    href={`/farms/${farmId}/sales/market/${l.id}`}
+                    href={`${basePath}/${l.id}`}
                     className="rounded-btn bg-brand px-5 py-2.5 text-[15px] font-semibold text-white transition active:scale-95"
                   >
                     Buy
@@ -124,7 +157,7 @@ export function Marketplace({
             </div>
           </div>
         ))}
-        {listings.length === 0 && (
+        {ranked.length === 0 && (
           <p className="py-10 text-center text-[14px] text-secondary">
             No listings match that filter.
           </p>

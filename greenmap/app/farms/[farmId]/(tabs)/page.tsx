@@ -57,6 +57,7 @@ export default async function FarmHomePage({
 
   // Last water/fertilize per plant comes with the bundle (same data its live
   // health scores were computed from) — only the activity feed needs a query.
+  // Weather is bounded by a timeout in getFarmWeather, so it can't hang Home.
   const supabase = await createClient();
   const [{ data: feed }, weather] = await Promise.all([
     supabase
@@ -165,13 +166,22 @@ export default async function FarmHomePage({
           {advice.icon}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] font-bold" style={{ color: advice.color }}>
+          <span
+            className="block truncate text-[13px] font-bold"
+            style={{ color: advice.color }}
+          >
             {advice.title}
             {weather.source === "fallback" ? " · sample data" : ""}
           </span>
           <span className="block truncate text-[12px] text-secondary">
-            {weather.today.tempMax !== null ? `${Math.round(weather.today.tempMax)}°C` : "—"} ·{" "}
-            {weather.today.rainProb !== null ? `${Math.round(weather.today.rainProb)}% rain` : "—"} ·{" "}
+            {weather.today.tempMax !== null
+              ? `${Math.round(weather.today.tempMax)}°C`
+              : "—"}{" "}
+            ·{" "}
+            {weather.today.rainProb !== null
+              ? `${Math.round(weather.today.rainProb)}% rain`
+              : "—"}{" "}
+            ·{" "}
             {weather.today.soilMoisture !== null
               ? `soil ${Math.round(weather.today.soilMoisture * 100)}%`
               : "soil —"}{" "}

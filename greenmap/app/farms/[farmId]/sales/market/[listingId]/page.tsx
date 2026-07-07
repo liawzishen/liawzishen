@@ -30,9 +30,11 @@ export default async function ListingDetailPage({
     <main className="pb-12">
       <TopNav title={listing.name} backHref={`/farms/${farmId}/sales/market`} />
       <ListingDetail
-        farmId={farmId}
         listing={listing}
         promoted={(data ?? []).length > 0}
+        marketHref={`/farms/${farmId}/sales/market`}
+        secondaryHref={`/farms/${farmId}/sales`}
+        secondaryLabel="My Sales"
       />
     </main>
   );

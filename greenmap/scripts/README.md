@@ -54,9 +54,21 @@ This creates:
 - A 7-day health history for **Tomato A** (the trend-chart showcase)
 - A few saved AI analyses
 - One **harvested** plant with a passport at a fixed QR token:
-  `/passport/00000000-0000-4000-8000-00000000d3m0`
+  `/passport/00000000-0000-4000-8000-0000deadbeef`
 
 Re-running `npm run db:seed` wipes the demo grower's farms and reseeds — safe to run anytime.
+
+## Optional: a demo consumer account
+
+```bash
+npm run seed:consumer
+```
+
+Creates a **consumer** login `siti@greenmap.demo` / `Demo1234!` for experiencing
+the buyer/consumer side (the QR "growing story" home at `/consumer`). Idempotent
+and farm-preserving — it touches only that one account. Note: the product
+marketplace with ranking lives in the **grower** app (Sales → Browse Marketplace);
+the consumer role in the MVP is just the passport-scan home.
 
 ## Verify it worked
 

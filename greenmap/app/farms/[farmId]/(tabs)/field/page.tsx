@@ -23,10 +23,12 @@ import { getFarmWeather } from "@/lib/weather/fetch";
  * spec): below lg it is the familiar phone screen (header → KPI strip →
  * weather strip → map); at lg+ the page escapes the 430px frame
  * (`.map-breakout`, see globals.css) into a dashboard — map plus an
- * analysis grid (farm health trend, needs-care, recent activity, upcoming
- * harvests) on the left, a sticky weather panel on the right. Weather is
- * fetched server-side from Open-Meteo — exact farm GPS pin when set,
- * geocoded state otherwise, offline sample as last resort.
+ * analysis grid (farm health trend, needs-care, upcoming harvests) on the
+ * left, a sticky weather panel on the right.
+ *
+ * Weather (Open-Meteo) is fetched server-side. Every request is bounded by a
+ * timeout in `getFarmWeather`, so a slow or unreachable forecast falls back
+ * to sample data within a few seconds instead of hanging the page.
  */
 export default async function FarmFieldPage({
   params,
@@ -80,7 +82,7 @@ export default async function FarmFieldPage({
             />
           </div>
 
-          {/* Mobile only — compact daily weather + watering advisory */}
+          {/* Mobile only — compact daily weather */}
           <div className="mt-4 lg:hidden">
             <WeatherStrip weather={weather} />
           </div>
