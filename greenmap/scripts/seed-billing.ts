@@ -89,9 +89,28 @@ async function main() {
   const { error: iErr } = await admin.from("ai_scan_usage").insert(rows);
   if (iErr) throw iErr;
 
+  // One active promoted listing (l1) so the marketplace ranking always shows
+  // the boosted tier at the top in the demo. Idempotent: clear this user's
+  // existing l1 boost first.
+  await admin
+    .from("listing_boosts")
+    .delete()
+    .eq("user_id", user.id)
+    .eq("listing_id", "l1");
+  const boostExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { error: bErr } = await admin.from("listing_boosts").insert({
+    user_id: user.id,
+    listing_id: "l1",
+    package: "7d",
+    price_rm: 10,
+    expires_at: boostExpires,
+  });
+  if (bErr) throw bErr;
+
   console.log(
     `✅ ${DEMO_EMAIL}: plan=percuma, ${USED_THIS_MONTH} of 5 scans used → 2 left.`
   );
+  console.log("   Promoted listing l1 active for 7 days (marketplace demo).");
   console.log("   Farms, plants and history were NOT touched.");
 }
 
