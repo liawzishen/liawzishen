@@ -54,7 +54,7 @@ This creates:
 - A 7-day health history for **Tomato A** (the trend-chart showcase)
 - A few saved AI analyses
 - One **harvested** plant with a passport at a fixed QR token:
-  `/passport/00000000-0000-4000-8000-00000000d3m0`
+  `/passport/00000000-0000-4000-8000-0000deadbeef`
 
 Re-running `npm run db:seed` wipes the demo grower's farms and reseeds — safe to run anytime.
 

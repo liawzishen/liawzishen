@@ -31,10 +31,12 @@ const REASON_CHIP: Record<RankReason, string> = {
 };
 
 export function Marketplace({
-  farmId,
+  basePath,
   boostedIds = [],
 }: {
-  farmId: string;
+  /** URL prefix for a listing detail — grower or consumer market route.
+   *  A card links to `${basePath}/${listingId}`. */
+  basePath: string;
   /** Listings with an active paid boost — shown first with a Promoted tag. */
   boostedIds?: string[];
 }) {
@@ -138,14 +140,14 @@ export function Marketplace({
                 <div className="flex items-center gap-3">
                   {l.verified && (
                     <Link
-                      href={`/farms/${farmId}/sales/market/${l.id}`}
+                      href={`${basePath}/${l.id}`}
                       className="text-[13px] font-semibold text-info"
                     >
                       🔍 Journey
                     </Link>
                   )}
                   <Link
-                    href={`/farms/${farmId}/sales/market/${l.id}`}
+                    href={`${basePath}/${l.id}`}
                     className="rounded-btn bg-brand px-5 py-2.5 text-[15px] font-semibold text-white transition active:scale-95"
                   >
                     Buy

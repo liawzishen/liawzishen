@@ -11,14 +11,20 @@ import type { Listing } from "./demo-listings";
  * payment that ends in "Order placed!". No real charge, no persistence.
  */
 export function ListingDetail({
-  farmId,
   listing,
   promoted,
+  marketHref,
+  secondaryHref,
+  secondaryLabel,
 }: {
-  farmId: string;
   listing: Listing;
   /** True while the listing has an active paid boost (listing_boosts). */
   promoted?: boolean;
+  /** "Back to Marketplace" target (grower or consumer route). */
+  marketHref: string;
+  /** Optional second CTA after ordering (e.g. My Sales / Keep browsing). */
+  secondaryHref?: string;
+  secondaryLabel?: string;
 }) {
   const [qty, setQty] = useState(2);
   const [mode, setMode] = useState<"pickup" | "delivery">("pickup");
@@ -48,12 +54,14 @@ export function ListingDetail({
           Order #GM-{listing.id.toUpperCase()}-{String(qty).padStart(2, "0")}
         </p>
         <div className="mt-7 space-y-3">
-          <Button href={`/farms/${farmId}/sales/market`} full>
+          <Button href={marketHref} full>
             Back to Marketplace
           </Button>
-          <Button href={`/farms/${farmId}/sales`} variant="fill" full>
-            My Sales
-          </Button>
+          {secondaryHref && secondaryLabel && (
+            <Button href={secondaryHref} variant="fill" full>
+              {secondaryLabel}
+            </Button>
+          )}
         </div>
       </div>
     );

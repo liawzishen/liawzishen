@@ -192,6 +192,6 @@ Full instructions: **[`scripts/README.md`](./scripts/README.md)**. In short:
 
 1. Run the 6 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor).
 2. Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Settings → API → service_role).
-3. `npm run db:seed` → demo grower `ahmad@greenmap.demo` / `Demo1234!`, farm *Ladang Hijau*, ~30 plants, backdated logs, a 7-day trend, saved AI analyses, and one harvested plant with a fixed passport at `/passport/00000000-0000-4000-8000-00000000d3m0`.
+3. `npm run db:seed` → demo grower `ahmad@greenmap.demo` / `Demo1234!`, farm *Ladang Hijau*, ~30 plants, backdated logs, a 7-day trend, saved AI analyses, and one harvested plant with a fixed passport at `/passport/00000000-0000-4000-8000-0000deadbeef`.
 
 Need test rows for the Home **Today's Tasks** board? `scripts/test-tasks-data.sql` backdates a spread of overdue water / fertilizer / harvest-ready plants. Need billing state without touching farms? `npm run seed:billing`.

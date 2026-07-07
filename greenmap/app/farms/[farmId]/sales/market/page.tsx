@@ -23,7 +23,10 @@ export default async function MarketplacePage({
   return (
     <main className="pb-12">
       <TopNav title="Marketplace" backHref={`/farms/${farmId}/sales`} />
-      <Marketplace farmId={farmId} boostedIds={boostedIds} />
+      <Marketplace
+        basePath={`/farms/${farmId}/sales/market`}
+        boostedIds={boostedIds}
+      />
     </main>
   );
 }
