@@ -58,6 +58,18 @@ This creates:
 
 Re-running `npm run db:seed` wipes the demo grower's farms and reseeds — safe to run anytime.
 
+## Optional: a demo consumer account
+
+```bash
+npm run seed:consumer
+```
+
+Creates a **consumer** login `siti@greenmap.demo` / `Demo1234!` for experiencing
+the buyer/consumer side (the QR "growing story" home at `/consumer`). Idempotent
+and farm-preserving — it touches only that one account. Note: the product
+marketplace with ranking lives in the **grower** app (Sales → Browse Marketplace);
+the consumer role in the MVP is just the passport-scan home.
+
 ## Verify it worked
 
 - Supabase → **Table Editor** → `farms`, `plants`, `growth_logs` show demo rows.

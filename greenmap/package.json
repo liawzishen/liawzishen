@@ -8,6 +8,7 @@
     "start": "next start",
     "db:seed": "tsx scripts/seed-demo.ts",
     "seed:billing": "tsx scripts/seed-billing.ts",
+    "seed:consumer": "tsx scripts/seed-consumer.ts",
     "test:smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
