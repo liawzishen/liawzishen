@@ -26,12 +26,15 @@ export default async function FarmSelectorPage() {
   if (farmList.length === 0) redirect("/farms/new/profile");
   if (farmList.length === 1) redirect(`/farms/${farmList[0].id}`);
 
-  // Plant counts per farm, in one query.
+  // ACTIVE plant counts per farm, in one query. Harvested plants are excluded
+  // so this number matches the Home/Map "Plants" stat (they'd disagree
+  // otherwise — e.g. "30" here vs "25" inside the farm).
   const counts: Record<string, number> = {};
   if (farmList.length > 0) {
     const { data: plants } = await supabase
       .from("plants")
       .select("farm_id")
+      .eq("lifecycle_status", "active")
       .in(
         "farm_id",
         farmList.map((f) => f.id)

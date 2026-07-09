@@ -45,9 +45,15 @@ export function OrderSupport({
 
       {!supportReady && (
         <p className="mb-3 rounded-input bg-warning/12 px-3 py-2.5 text-[12px] text-secondary">
-          ⚠️ Support isn&apos;t set up on this database yet — run migration
-          <code className="mx-1 rounded bg-black/5 px-1">0007_support.sql</code>
-          in Supabase to enable refunds &amp; feedback.
+          ⚠️ Refunds &amp; feedback aren&apos;t available right now — you can
+          still chat with the seller or our assistant below.
+          {process.env.NODE_ENV === "development" && (
+            <span className="mt-1 block opacity-80">
+              Dev: run migration{" "}
+              <code className="rounded bg-black/5 px-1">0007_support.sql</code>{" "}
+              in Supabase.
+            </span>
+          )}
         </p>
       )}
 

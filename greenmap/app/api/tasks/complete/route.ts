@@ -47,11 +47,12 @@ export async function POST(req: Request) {
   }
 
   const admin = createAdminClient();
-  const note = action === "water" ? "Watered" : "Fertilized";
+  // No note: the event_type already says "watered"/"fertilized", and feeds
+  // render the label — a note repeating it read as "Watered Watered".
   const rows = ownedIds.map((id) => ({
     plant_id: id,
     event_type: action,
-    note,
+    note: null,
     metadata: {},
   }));
   const { error: insErr } = await admin.from("growth_logs").insert(rows);

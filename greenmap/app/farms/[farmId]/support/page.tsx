@@ -76,10 +76,19 @@ export default async function SellerSupportPage({
       <div className="px-5 pt-2">
         {!ready && (
           <p className="mb-4 rounded-input bg-warning/12 px-3 py-2.5 text-[13px] text-secondary">
-            ⚠️ Customer-service tables aren&apos;t set up yet — run{" "}
-            <code className="rounded bg-black/5 px-1">0007_support.sql</code> and{" "}
-            <code className="rounded bg-black/5 px-1">0008_seller_support.sql</code>{" "}
-            in Supabase.
+            ⚠️ Customer service isn&apos;t available right now — check back
+            soon.
+            {process.env.NODE_ENV === "development" && (
+              <span className="mt-1 block text-[12px] opacity-80">
+                Dev: run{" "}
+                <code className="rounded bg-black/5 px-1">0007_support.sql</code>{" "}
+                and{" "}
+                <code className="rounded bg-black/5 px-1">
+                  0008_seller_support.sql
+                </code>{" "}
+                in Supabase.
+              </span>
+            )}
           </p>
         )}
 

@@ -248,6 +248,12 @@ export default async function FarmHomePage({
           <div className="max-h-[340px] overflow-y-auto [scrollbar-width:thin]">
           {feedItems.map((f, i) => {
             const m = EVENT_META[f.event_type] ?? { icon: "•", label: f.event_type };
+            // Older task completions stored a note that just repeats the
+            // label ("Watered" under "Watered") — hide those, keep real notes.
+            const note =
+              f.note && f.note.trim().toLowerCase() !== m.label.toLowerCase()
+                ? f.note
+                : null;
             return (
               <Link
                 key={i}
@@ -261,8 +267,8 @@ export default async function FarmHomePage({
                   <p className="truncate text-[14px] font-medium">
                     {nameById.get(f.plant_id) ?? "Plant"} · {m.label}
                   </p>
-                  {f.note && (
-                    <p className="truncate text-[12px] text-secondary">{f.note}</p>
+                  {note && (
+                    <p className="truncate text-[12px] text-secondary">{note}</p>
                   )}
                 </div>
                 <span className="shrink-0 text-[12px] text-secondary">

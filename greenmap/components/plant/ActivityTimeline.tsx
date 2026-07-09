@@ -42,6 +42,14 @@ function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** A note that merely repeats the event label ("Watered" under "Watered")
+ *  adds nothing — old task completions stored those. Show real notes only. */
+function meaningfulNote(log: GrowthLog): string | null {
+  const label = META[log.event_type]?.label ?? log.event_type;
+  if (!log.note) return null;
+  return log.note.trim().toLowerCase() === label.toLowerCase() ? null : log.note;
+}
+
 /** Link an ai_scan log to its ai_analyses row by nearest timestamp. */
 function matchAnalysis(log: GrowthLog, analyses: AiAnalysis[]): AiAnalysis | null {
   if (log.event_type !== "ai_scan") return null;
@@ -117,7 +125,9 @@ function ActivityDetail({
         </div>
       </div>
 
-      {log.note && <p className="mt-4 text-[15px] leading-snug">{log.note}</p>}
+      {meaningfulNote(log) && (
+        <p className="mt-4 text-[15px] leading-snug">{meaningfulNote(log)}</p>
+      )}
 
       {analysis ? (
         <div className="mt-4 space-y-3">
@@ -209,9 +219,9 @@ export function ActivityTimeline({
                     ›
                   </span>
                 </div>
-                {log.note && (
+                {meaningfulNote(log) && (
                   <p className="mt-0.5 line-clamp-2 text-[13px] text-secondary">
-                    {log.note}
+                    {meaningfulNote(log)}
                   </p>
                 )}
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
