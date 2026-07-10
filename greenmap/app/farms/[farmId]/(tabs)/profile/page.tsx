@@ -60,7 +60,7 @@ export default async function ProfilePage({
         planSlot={
           <Link
             href={`/farms/${farmId}/plan`}
-            className="mt-4 flex items-center justify-between gap-3 rounded-card p-4 glass transition active:bg-white/60"
+            className="pressable mt-4 flex items-center justify-between gap-3 rounded-card p-4 glass"
           >
             <div className="min-w-0">
               <p className="text-[12px] font-semibold uppercase tracking-wide text-secondary">

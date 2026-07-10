@@ -46,7 +46,7 @@ export function StockToggle({
       disabled={busy}
       role="switch"
       aria-checked={inStock}
-      className="flex shrink-0 items-center gap-1.5 disabled:opacity-60"
+      className="pressable flex shrink-0 items-center gap-1.5 disabled:opacity-60"
     >
       <span className="text-[11px] font-semibold" style={{ color: inStock ? "#0DB074" : "#EF4444" }}>
         {inStock ? "In stock" : "Out of stock"}

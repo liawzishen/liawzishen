@@ -38,7 +38,7 @@ export function PlantQuickActions({
             key={tile.type}
             type="button"
             onClick={() => setLogType(tile.type)}
-            className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-squarcle py-3 glass active:opacity-80"
+            className="pressable flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-squarcle py-3 glass"
           >
             <span className="text-[26px]">{tile.icon}</span>
             <span className="text-[12px] font-semibold">
@@ -48,7 +48,7 @@ export function PlantQuickActions({
         ))}
         <Link
           href={scanHref}
-          className="flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-squarcle py-3 glass active:opacity-80"
+          className="pressable flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-squarcle py-3 glass"
         >
           <span className="text-[26px]">🔬</span>
           <span className="text-[12px] font-semibold">{t.quick.scan}</span>

@@ -146,7 +146,7 @@ export default async function FarmHomePage({
           <Link
             key={s.label}
             href={`/farms/${farmId}/field`}
-            className="rounded-card p-3 text-center glass active:opacity-80"
+            className="pressable rounded-card p-3 text-center glass"
           >
             <p
               className="text-[22px] font-bold leading-none"
@@ -164,7 +164,7 @@ export default async function FarmHomePage({
       {/* Today's weather advisory — one glance before the task list */}
       <Link
         href={`/farms/${farmId}/field`}
-        className="mt-4 flex items-center gap-2.5 rounded-card px-3.5 py-3 glass"
+        className="pressable mt-4 flex items-center gap-2.5 rounded-card px-3.5 py-3 glass"
         style={{ boxShadow: `inset 3px 0 0 ${advice.color}` }}
       >
         <span className="text-[18px] leading-none" aria-hidden>
@@ -215,7 +215,7 @@ export default async function FarmHomePage({
           the sales preview was decoration; the Sales tab owns the detail. */}
       <Link
         href={`/farms/${farmId}/sales`}
-        className="mt-7 flex items-center gap-3 rounded-card p-4 glass active:opacity-80"
+        className="pressable mt-7 flex items-center gap-3 rounded-card p-4 glass"
       >
         <span className="text-[18px]" aria-hidden>
           🛒
@@ -253,7 +253,7 @@ export default async function FarmHomePage({
               <Link
                 key={i}
                 href={`/farms/${farmId}/plants/${f.plant_id}`}
-                className={`flex items-center gap-3 p-4 ${i > 0 ? "hairline-t" : ""}`}
+                className={`pressable flex items-center gap-3 p-4 ${i > 0 ? "hairline-t" : ""}`}
               >
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-fill text-[16px]">
                   {icon}

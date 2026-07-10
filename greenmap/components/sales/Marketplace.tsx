@@ -158,7 +158,7 @@ export function Marketplace({
                   {l.verified && (
                     <Link
                       href={`${basePath}/${l.id}`}
-                      className="text-[13px] font-semibold text-info"
+                      className="text-[13px] font-semibold text-info transition-opacity active:opacity-60"
                     >
                       🔍 Journey
                     </Link>
