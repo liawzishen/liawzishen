@@ -77,7 +77,7 @@ export default function SetupProfilePage() {
   }
 
   return (
-    <main className="pb-28">
+    <main className="desktop-breakout pb-28 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="Set Up Farm" backHref="/farms" />
       <StepDots step={1} />
 

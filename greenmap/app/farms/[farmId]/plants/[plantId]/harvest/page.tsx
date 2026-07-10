@@ -30,7 +30,7 @@ export default async function HarvestPassportPage({
   }
 
   return (
-    <main className="pb-12">
+    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="Harvest" backHref={`/farms/${farmId}/plants/${plantId}`} />
       <HarvestConfirm plantId={plantId} plantName={p.name} />
     </main>

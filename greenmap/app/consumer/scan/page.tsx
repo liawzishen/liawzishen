@@ -10,7 +10,7 @@ const SAMPLE_QR = "/passport/00000000-0000-4000-8000-0000deadbeef";
 
 export default function ConsumerScanPage() {
   return (
-    <main className="px-6 pb-12 pt-2">
+    <main className="desktop-breakout px-6 pb-12 pt-2 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="Scan Passport" backHref="/consumer" />
 
       {/* Camera viewfinder mock */}

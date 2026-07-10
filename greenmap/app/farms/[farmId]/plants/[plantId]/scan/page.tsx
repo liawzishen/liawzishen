@@ -33,7 +33,7 @@ export default async function PlantScanPage({
     : "";
 
   return (
-    <main className="pb-12">
+    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="AI Scan" backHref={`/farms/${farmId}/plants/${plantId}`} />
       <div className="px-6 pt-2">
         <h1 className="text-[24px] font-bold leading-tight">{p.name}</h1>

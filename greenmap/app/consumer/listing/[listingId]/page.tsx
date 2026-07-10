@@ -35,7 +35,7 @@ export default async function ConsumerListingDetailPage({
   ]);
 
   return (
-    <main className="pb-12">
+    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title={listing.name} backHref="/consumer/market" />
       <ListingDetail
         listing={listing}

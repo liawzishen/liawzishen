@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 /** Plant-detail skeleton — mirrors the page: header, score card, trend, rows. */
 export default function PlantDetailLoading() {
   return (
-    <main className="pb-12">
+    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <div className="h-12" />
       <div className="px-6 pt-2">
         <Skeleton className="h-7 w-40" />
