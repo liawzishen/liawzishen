@@ -139,6 +139,9 @@ export default async function FarmHomePage({
         className="text-[14px] font-medium text-secondary"
       />
 
+      <div className="lg:mt-2 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
+        <div className="min-w-0">
+
       {/* Quick stats — a summary of the farm's state; taps through to the
           Map tab, which owns the full KPI breakdown and analysis. */}
       <div className="mt-4 grid grid-cols-4 gap-3">
@@ -211,11 +214,15 @@ export default async function FarmHomePage({
       </div>
       <TodaysTasks groups={{ harvest, water, fertilize }} farmId={farmId} />
 
+        </div>
+
+        <div className="min-w-0">
+
       {/* Sales — one slim row, not a dashboard card. On a phone in the field
           the sales preview was decoration; the Sales tab owns the detail. */}
       <Link
         href={`/farms/${farmId}/sales`}
-        className="pressable mt-7 flex items-center gap-3 rounded-card p-4 glass"
+        className="pressable mt-7 lg:mt-0 flex items-center gap-3 rounded-card p-4 glass"
       >
         <span className="text-[18px]" aria-hidden>
           🛒
@@ -238,7 +245,7 @@ export default async function FarmHomePage({
       ) : (
         <Card className="p-0">
           {/* ~5 rows visible; the rest scroll inside the card */}
-          <div className="max-h-[340px] overflow-y-auto [scrollbar-width:thin]">
+          <div className="max-h-[340px] overflow-y-auto [scrollbar-width:thin] lg:max-h-[480px]">
           {feedItems.map((f, i) => {
             const icon = EVENT_ICON[f.event_type] ?? "•";
             const label = t.home.events[f.event_type] ?? f.event_type;
@@ -275,6 +282,8 @@ export default async function FarmHomePage({
           </div>
         </Card>
       )}
+        </div>
+      </div>
     </main>
   );
 }
