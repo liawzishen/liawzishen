@@ -46,7 +46,7 @@ export default async function FarmSelectorPage() {
   }
 
   return (
-    <main className="px-6 pb-12 pt-14">
+    <main className="desktop-breakout px-6 pb-12 pt-14 lg:mx-auto lg:w-full lg:max-w-[1100px] lg:px-8 lg:pt-16">
       <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
         Welcome, {name}
       </p>
@@ -64,7 +64,7 @@ export default async function FarmSelectorPage() {
         </EmptyState>
       ) : (
         <>
-          <div className="mt-6 grid grid-cols-1 gap-4">
+          <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
             {farmList.map((farm) => (
               <FarmCard
                 key={farm.id}
@@ -73,9 +73,11 @@ export default async function FarmSelectorPage() {
               />
             ))}
           </div>
-          <Button href="/farms/new/profile" variant="fill" full className="mt-6">
-            + Create New Farm
-          </Button>
+          <div className="mt-6 lg:max-w-[360px]">
+            <Button href="/farms/new/profile" variant="fill" full>
+              + Create New Farm
+            </Button>
+          </div>
         </>
       )}
 
