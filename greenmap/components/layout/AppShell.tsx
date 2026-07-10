@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
+import { SideRail, type RailTab } from "@/components/layout/SideRail";
 
 /*
  * 5-tab grower shell (06 §9): Home · Map · Scan(FAB) · Sales · Profile.
@@ -79,7 +80,7 @@ export function AppShell({
   const { t } = useI18n();
   const base = `/farms/${farmId}`;
 
-  const tabs = [
+  const tabs: RailTab[] = [
     { href: base, label: t.tabs.home, icon: <HomeIcon />, exact: true },
     { href: `${base}/field`, label: t.tabs.map, icon: <MapIcon />, exact: false },
     { href: `${base}/sales`, label: t.tabs.sales, icon: <SalesIcon />, exact: false },
@@ -105,12 +106,19 @@ export function AppShell({
 
   return (
     <>
-      {/* Room for the floating bar + raised FAB */}
-      <div className="pb-[128px]">{children}</div>
+      {/* Room for the floating bar + raised FAB; at lg the rail owns nav */}
+      <div className="shell-breakout pb-[128px] lg:pb-8 lg:pl-[248px]">
+        {children}
+      </div>
+
+      <SideRail
+        tabs={tabs}
+        fab={{ href: `${base}/scan`, label: "AI Scan", icon: <SparkleIcon /> }}
+      />
 
       <nav
         aria-label="Main"
-        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong"
+        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong lg:hidden"
       >
         {tabLink(tabs[0])}
         {tabLink(tabs[1])}

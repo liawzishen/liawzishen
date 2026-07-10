@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
+import { SideRail, type RailTab } from "@/components/layout/SideRail";
 
 /*
  * Consumer tab shell — the buyer-side mirror of the grower AppShell.
@@ -66,7 +67,7 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useI18n();
 
-  const tabs = [
+  const tabs: RailTab[] = [
     { href: "/consumer", label: t.tabs.home, icon: <HomeIcon />, exact: true },
     { href: "/consumer/market", label: t.tabs.market, icon: <MarketIcon />, exact: false },
     { href: "/consumer/orders", label: t.tabs.orders, icon: <OrdersIcon />, exact: false },
@@ -92,11 +93,18 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="pb-[128px]">{children}</div>
+      <div className="shell-breakout pb-[128px] lg:pb-8 lg:pl-[248px]">
+        {children}
+      </div>
+
+      <SideRail
+        tabs={tabs}
+        fab={{ href: "/consumer/scan", label: "Scan QR", icon: <ScanIcon /> }}
+      />
 
       <nav
         aria-label="Main"
-        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong"
+        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong lg:hidden"
       >
         {tabLink(tabs[0])}
         {tabLink(tabs[1])}
