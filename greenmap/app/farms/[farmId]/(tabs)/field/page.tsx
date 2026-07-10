@@ -23,7 +23,7 @@ import { getDict } from "@/lib/i18n/server";
  * Map tab — the farm's interactive map. Responsive (2026-07-06 map-page
  * spec): below lg it is the familiar phone screen (header → KPI strip →
  * weather strip → map); at lg+ the page escapes the 430px frame
- * (`.map-breakout`, see globals.css) into a dashboard — map plus an
+ * (`.desktop-breakout`, see globals.css) into a dashboard — map plus an
  * analysis grid (farm health trend, needs-care, upcoming harvests) on the
  * left, a sticky weather panel on the right.
  *
@@ -61,7 +61,7 @@ export default async function FarmFieldPage({
   ).length;
 
   return (
-    <main className="map-breakout mx-auto w-full max-w-[1400px] px-5 pt-12 lg:px-8 lg:pt-8">
+    <main className="desktop-breakout mx-auto w-full max-w-[1400px] px-5 pt-12 lg:px-8 lg:pt-8">
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
         {/* ── Left column: header + KPIs + map + analysis grid ─────────── */}
         <div className="min-w-0">

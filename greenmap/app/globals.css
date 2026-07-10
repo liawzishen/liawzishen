@@ -208,13 +208,15 @@
 }
 
 /*
-  Desktop breakout for the Map tab (2026-07-06 map-page spec): at ≥1024px the
-  field page escapes the 430px frame into a two-column dashboard (map +
-  weather/charts panel). Gated behind the media query so phones keep the
-  normal app frame — unlike the auth breakout, which is unconditional.
+  Desktop breakout (2026-07-10 spec, generalizing the 2026-07-06 map rule):
+  at ≥1024px a page marked .desktop-breakout — or any screen inside a tab
+  shell, which sets .shell-breakout on its content wrapper — escapes the
+  430px frame. Gated behind the media query so phones keep the normal app
+  frame — unlike the auth breakout, which is unconditional.
 */
 @media (min-width: 1024px) {
-  .app-frame:has(.map-breakout) {
+  .app-frame:has(.desktop-breakout),
+  .app-frame:has(.shell-breakout) {
     max-width: none;
     border: none;
   }

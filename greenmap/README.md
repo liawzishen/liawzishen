@@ -214,7 +214,7 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - The health score is the deterministic **40/25/20/15** formula in `lib/health/calculate.ts` (one pure function shared by server writes and client display). Decay: watering −10/day, fertilizer −8/day; AI default 50; manual healthy/attention/critical = 100/50/0.
 - `growth_logs.event_type` uses exactly six strings — `planted`, `water`, `fertilize`, `ai_scan`, `note`, `harvested` (see `docs/03_BACKEND_TRUTH.md` §3).
 - Weather (`lib/weather/fetch.ts`) always degrades to a deterministic sample dataset on any network/parse failure — the Map tab and Home advisory must never break on stage. A farm's GPS pin (if set) beats geocoding its state name for forecast accuracy.
-- The desktop Map dashboard escapes the mobile 430px app frame via `.map-breakout` in `globals.css` (`@media (min-width: 1024px)`) — the same escape-hatch pattern the auth breakout uses, just media-query-gated instead of unconditional.
+- Desktop layouts escape the mobile 430px app frame via `.desktop-breakout` (per-page marker) or `.shell-breakout` (set by the tab shells) in `globals.css` (`@media (min-width: 1024px)`) — the same escape-hatch pattern the auth breakout uses, just media-query-gated instead of unconditional.
 
 ## Troubleshooting
 
