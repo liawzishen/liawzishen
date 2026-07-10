@@ -94,7 +94,7 @@ export function AppShell({
       key={tab.href}
       href={tab.href}
       className={cn(
-        "flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
+        "pressable flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
         isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
       )}
     >
@@ -120,7 +120,7 @@ export function AppShell({
           href={`${base}/scan`}
           aria-label="AI Scan"
           className={cn(
-            "-mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab transition active:scale-95",
+            "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",
             pathname.startsWith(`${base}/scan`) && "ring-2 ring-brand/40"
           )}
         >
