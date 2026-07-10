@@ -99,6 +99,28 @@ npm run dev
 # → http://localhost:3000
 ```
 
+## Google / Apple sign-in (optional)
+
+The Apple and Google buttons on `/auth` run **real Supabase OAuth** (PKCE →
+`/auth/callback`). Out of the box they show a friendly "isn't switched on
+yet" message; to make Google live (free):
+
+1. **Google Cloud Console** → APIs & Services → Credentials → *Create
+   OAuth client ID* (type **Web application**). Add the authorized redirect
+   URI shown in Supabase: `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. **Supabase Dashboard** → Authentication → **Sign In / Providers → Google**
+   → enable, paste the Client ID + Secret.
+3. **Supabase Dashboard** → Authentication → **URL Configuration** → add your
+   app origin(s) (e.g. `http://localhost:3000/**` and the deployed URL) to
+   the redirect allow-list so `/auth/callback` is permitted.
+
+That's it — no code or env changes. First-time OAuth users get the role they
+selected on the auth page (Grower/Consumer) and their Google display name.
+
+**Apple** works identically via Supabase's Apple provider, but Apple only
+issues the required Service ID + key to members of the **paid** Apple
+Developer Program — without that account it stays a friendly disabled state.
+
 ## Environment variables
 
 | Variable | Scope | Needed for |
