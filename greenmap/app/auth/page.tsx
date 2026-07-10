@@ -110,7 +110,7 @@ function SsoBlock({
 }) {
   const verb = isRegister ? "Sign up" : "Sign in";
   const woodBtn =
-    "flex h-11 items-center justify-center gap-2 rounded-lg border-2 border-wood-medium/50 bg-[#d2b48c]/40 font-rustic text-[13px] font-medium text-wood-dark transition hover:bg-[#d2b48c]/60 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60";
+    "pressable flex h-11 items-center justify-center gap-2 rounded-lg border-2 border-wood-medium/50 bg-[#d2b48c]/40 font-rustic text-[13px] font-medium text-wood-dark hover:bg-[#d2b48c]/60 disabled:pointer-events-none disabled:opacity-60";
   return (
     <div className="mt-4">
       <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-wood-medium/60">
@@ -125,7 +125,8 @@ function SsoBlock({
           onClick={() => onSso("apple")}
           className={woodBtn}
         >
-          <AppleLogo /> {busy === "apple" ? "Opening…" : "Apple"}
+          {busy === "apple" ? <Spinner /> : <AppleLogo />}
+          {busy === "apple" ? "Opening…" : "Apple"}
         </button>
         <button
           type="button"
@@ -133,7 +134,8 @@ function SsoBlock({
           onClick={() => onSso("google")}
           className={woodBtn}
         >
-          <GoogleLogo /> {busy === "google" ? "Opening…" : "Google"}
+          {busy === "google" ? <Spinner /> : <GoogleLogo />}
+          {busy === "google" ? "Opening…" : "Google"}
         </button>
       </div>
       <p className="mt-2 text-center font-rustic text-[11px] italic text-wood-medium/60">
@@ -411,7 +413,7 @@ export default function AuthPage() {
 
   /* Rustic primary button — used for submit and the notice CTA. */
   const primaryBtn =
-    "flex h-[50px] w-full items-center justify-center gap-2 rounded-lg wood-btn-shadow bg-meadow-green font-rustic text-[16px] font-semibold text-paper-light transition hover:bg-meadow-dark active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
+    "pressable pressable-glow flex h-[50px] w-full items-center justify-center gap-2 rounded-lg wood-btn-shadow bg-meadow-green font-rustic text-[16px] font-semibold text-paper-light hover:bg-meadow-dark disabled:pointer-events-none disabled:opacity-50";
 
   /* The form contents — shared by both columns / breakpoints. */
   const formPanel = (
@@ -471,7 +473,7 @@ export default function AuthPage() {
                         onClick={() => setRole(card.value)}
                         aria-pressed={selected}
                         className={cn(
-                          "relative rounded-lg border-2 p-2.5 text-left transition",
+                          "pressable relative rounded-lg border-2 p-2.5 text-left",
                           selected
                             ? "border-wood-dark bg-[#e3d0a6]"
                             : "border-wood-light/40 bg-paper-light"
@@ -606,7 +608,7 @@ export default function AuthPage() {
               Already have an account?{" "}
               <button
                 type="button"
-                className="font-semibold text-meadow-green hover:underline"
+                className="font-semibold text-meadow-green transition-opacity hover:underline active:opacity-60"
                 onClick={() => switchMode("login")}
               >
                 Sign In
@@ -617,7 +619,7 @@ export default function AuthPage() {
               New here?{" "}
               <button
                 type="button"
-                className="font-semibold text-meadow-green hover:underline"
+                className="font-semibold text-meadow-green transition-opacity hover:underline active:opacity-60"
                 onClick={() => switchMode("register")}
               >
                 Create one
