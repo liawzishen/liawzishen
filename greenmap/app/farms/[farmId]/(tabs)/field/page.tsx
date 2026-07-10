@@ -17,6 +17,7 @@ import {
   getUserAndFarms,
 } from "@/lib/farm/fetch";
 import { getFarmWeather } from "@/lib/weather/fetch";
+import { getDict } from "@/lib/i18n/server";
 
 /**
  * Map tab — the farm's interactive map. Responsive (2026-07-06 map-page
@@ -42,9 +43,10 @@ export default async function FarmFieldPage({
   ]);
   if (!bundle) notFound();
   const { farm, zones, plants } = bundle;
-  const [weather, analytics] = await Promise.all([
+  const [weather, analytics, t] = await Promise.all([
     getFarmWeather(farm),
     getFarmAnalytics(plants.map((p) => p.id)),
+    getDict(),
   ]);
 
   const active = plants.filter((p) => p.lifecycle_status === "active");
@@ -70,7 +72,7 @@ export default async function FarmFieldPage({
             className="text-[26px] font-bold leading-tight"
           />
           <p className="mt-0.5 text-[14px] capitalize text-secondary">
-            {farm.crop_type} · {farm.location} · tap a marker for details
+            {farm.crop_type} · {farm.location} · {t.map.subtitle}
           </p>
           <div className="mt-4">
             <KpiStrip
@@ -79,6 +81,7 @@ export default async function FarmFieldPage({
               attention={inBand(40, 69)}
               critical={inBand(0, 39)}
               ready={ready}
+              labels={t.map.kpi}
             />
           </div>
 

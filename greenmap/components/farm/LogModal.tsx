@@ -6,6 +6,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type {
   Plant,
   EventType,
@@ -14,12 +15,6 @@ import type {
 } from "@/types/database";
 
 export type LogType = "water" | "fertilize" | "note";
-
-const TITLES: Record<LogType, string> = {
-  water: "Log Water",
-  fertilize: "Log Fertilizer",
-  note: "Add Note",
-};
 
 /**
  * Quick-log sheet for Water / Fertilize / Note (Phase 5, surfaced inside the
@@ -39,8 +34,15 @@ export function LogModal({
   onClose: () => void;
   onLogged: (newScore: number | null) => void;
 }) {
+  const { t } = useI18n();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const titles: Record<LogType, string> = {
+    water: t.log.waterTitle,
+    fertilize: t.log.fertilizeTitle,
+    note: t.log.noteTitle,
+  };
 
   // water
   const [method, setMethod] = useState("");
@@ -65,10 +67,12 @@ export function LogModal({
     let metadata: GrowthLogMetadata = {};
 
     if (type === "water") {
-      note = "Watered";
+      // No note — the event type already says "watered"; a repeating note
+      // rendered as "Watered Watered" in the feeds.
+      note = null;
       metadata = method.trim() ? { method: method.trim() } : {};
     } else if (type === "fertilize") {
-      note = fertType.trim() ? `Fertilized · ${fertType.trim()}` : "Fertilized";
+      note = fertType.trim() || null; // the fertilizer name IS the useful note
       metadata = {
         fertilizer_type: fertType.trim() || undefined,
         fertilizer_category: category,
@@ -121,15 +125,15 @@ export function LogModal({
   }
 
   return (
-    <BottomSheet open onClose={onClose} ariaLabel={TITLES[type]}>
-      <h2 className="text-[20px] font-bold">{TITLES[type]}</h2>
+    <BottomSheet open onClose={onClose} ariaLabel={titles[type]}>
+      <h2 className="text-[20px] font-bold">{titles[type]}</h2>
       <p className="mt-0.5 text-[13px] text-secondary">{plant.name}</p>
 
       <div className="mt-4 space-y-4">
         {type === "water" && (
           <Input
-            label="Method (optional)"
-            placeholder="e.g. Drip, Manual"
+            label={t.log.methodOptional}
+            placeholder={t.log.methodPlaceholder}
             value={method}
             onChange={(e) => setMethod(e.target.value)}
             autoFocus
@@ -139,28 +143,28 @@ export function LogModal({
         {type === "fertilize" && (
           <>
             <Input
-              label="Fertilizer Type"
-              placeholder="e.g. NPK 15-15-15"
+              label={t.log.fertType}
+              placeholder={t.log.fertTypePlaceholder}
               value={fertType}
               onChange={(e) => setFertType(e.target.value)}
               autoFocus
             />
             <Input
-              label="Amount (optional)"
-              placeholder="e.g. 50g"
+              label={t.log.amountOptional}
+              placeholder={t.log.amountPlaceholder}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
             <Select
-              label="Category"
+              label={t.log.category}
               value={category}
               onChange={(e) =>
                 setCategory(e.target.value as FertilizerCategory)
               }
             >
-              <option value="unknown">Unknown</option>
-              <option value="organic">Organic</option>
-              <option value="chemical">Chemical</option>
+              <option value="unknown">{t.log.catUnknown}</option>
+              <option value="organic">{t.log.catOrganic}</option>
+              <option value="chemical">{t.log.catChemical}</option>
             </Select>
           </>
         )}
@@ -171,7 +175,7 @@ export function LogModal({
               htmlFor="note-text"
               className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-secondary"
             >
-              Note
+              {t.log.note}
             </label>
             <textarea
               id="note-text"
@@ -179,7 +183,7 @@ export function LogModal({
               onChange={(e) => setText(e.target.value)}
               rows={3}
               autoFocus
-              placeholder="What did you notice?"
+              placeholder={t.log.notePlaceholder}
               className="w-full rounded-input bg-fill px-4 py-3 text-[16px] text-label placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-brand/50"
             />
           </div>
@@ -193,14 +197,14 @@ export function LogModal({
               onChange={(e) => setPesticideUsed(e.target.checked)}
               className="h-5 w-5 accent-brand"
             />
-            <span>Pesticide used</span>
+            <span>{t.log.pesticideUsed}</span>
           </label>
         )}
 
         {type === "note" && pesticideUsed && (
           <Input
-            label="Pesticide Type"
-            placeholder="e.g. Neem oil spray"
+            label={t.log.pesticideType}
+            placeholder={t.log.pesticideTypePlaceholder}
             value={pesticideType}
             onChange={(e) => setPesticideType(e.target.value)}
           />
@@ -215,10 +219,10 @@ export function LogModal({
 
       <div className="mt-5 flex gap-3">
         <Button variant="fill" full onClick={onClose}>
-          Cancel
+          {t.log.cancel}
         </Button>
         <Button full onClick={save} disabled={!valid || saving}>
-          {saving ? "Saving…" : "Save"}
+          {saving ? t.log.saving : t.log.save}
         </Button>
       </div>
     </BottomSheet>

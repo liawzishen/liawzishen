@@ -2,6 +2,7 @@ import {
   SOIL_DRY_THRESHOLD,
   type DailyWeather,
 } from "@/lib/weather/fetch";
+import { getDict } from "@/lib/i18n/server";
 
 /**
  * Desktop side-panel charts — dependency-free inline SVG (same approach as
@@ -33,7 +34,13 @@ function linePath(
   return d.trim();
 }
 
-function DayAxis({ days }: { days: DailyWeather[] }) {
+function DayAxis({
+  days,
+  todayLabel,
+}: {
+  days: DailyWeather[];
+  todayLabel: string;
+}) {
   return (
     <>
       {days.map((d, i) => (
@@ -47,7 +54,7 @@ function DayAxis({ days }: { days: DailyWeather[] }) {
           fill="currentColor"
           opacity={d.isToday ? 0.95 : d.isPast ? 0.4 : 0.65}
         >
-          {d.isToday ? "Today" : d.weekday}
+          {d.isToday ? todayLabel : d.weekday}
         </text>
       ))}
     </>
@@ -71,11 +78,12 @@ function TodayDivider({ days }: { days: DailyWeather[] }) {
   );
 }
 
-export function TemperatureChart({ days }: { days: DailyWeather[] }) {
+export async function TemperatureChart({ days }: { days: DailyWeather[] }) {
+  const t = await getDict();
   const maxes = days.map((d) => d.tempMax);
   const mins = days.map((d) => d.tempMin);
   const nums = [...maxes, ...mins].filter((v): v is number => v !== null);
-  if (nums.length < 2) return <ChartEmpty label="temperature" />;
+  if (nums.length < 2) return <ChartEmpty label={t.weather.temperature} />;
 
   const lo = Math.floor(Math.min(...nums)) - 2;
   const hi = Math.ceil(Math.max(...nums)) + 2;
@@ -85,10 +93,10 @@ export function TemperatureChart({ days }: { days: DailyWeather[] }) {
   return (
     <section className="rounded-card p-4 glass">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[14px] font-bold">Temperature</h3>
+        <h3 className="text-[14px] font-bold">{t.weather.temperature}</h3>
         <p className="text-[11px] text-secondary">
-          <span className="font-semibold text-warning">● max</span>
-          <span className="ml-2 font-semibold text-info">● min</span> °C
+          <span className="font-semibold text-warning">● {t.weather.max}</span>
+          <span className="ml-2 font-semibold text-info">● {t.weather.min}</span> °C
         </p>
       </div>
       <svg
@@ -117,16 +125,17 @@ export function TemperatureChart({ days }: { days: DailyWeather[] }) {
             )}
           </g>
         ))}
-        <DayAxis days={days} />
+        <DayAxis days={days} todayLabel={t.weather.today} />
       </svg>
     </section>
   );
 }
 
-export function MoistureRainChart({ days }: { days: DailyWeather[] }) {
+export async function MoistureRainChart({ days }: { days: DailyWeather[] }) {
+  const t = await getDict();
   const moist = days.map((d) => d.soilMoisture);
   const moistNums = moist.filter((v): v is number => v !== null);
-  if (moistNums.length < 2) return <ChartEmpty label="soil moisture" />;
+  if (moistNums.length < 2) return <ChartEmpty label={t.weather.soilMoisture} />;
 
   // Moisture on a fixed 0–0.45 m³/m³ scale (≈ saturation for most soils);
   // rain probability bars on 0–100 % share the same pixel range.
@@ -140,10 +149,10 @@ export function MoistureRainChart({ days }: { days: DailyWeather[] }) {
   return (
     <section className="rounded-card p-4 glass">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[14px] font-bold">Soil moisture &amp; rain</h3>
+        <h3 className="text-[14px] font-bold">{t.weather.soilAndRain}</h3>
         <p className="text-[11px] text-secondary">
-          <span className="font-semibold text-brand">● moisture</span>
-          <span className="ml-2 font-semibold text-info">▮ rain %</span>
+          <span className="font-semibold text-brand">● {t.weather.moisture}</span>
+          <span className="ml-2 font-semibold text-info">▮ {t.weather.rainPct}</span>
         </p>
       </div>
       <svg
@@ -187,7 +196,7 @@ export function MoistureRainChart({ days }: { days: DailyWeather[] }) {
           fill="#ff9f0a"
           opacity={0.9}
         >
-          dry
+          {t.weather.dry}
         </text>
         {/* moisture line */}
         <path
@@ -210,7 +219,7 @@ export function MoistureRainChart({ days }: { days: DailyWeather[] }) {
               />
             )
         )}
-        <DayAxis days={days} />
+        <DayAxis days={days} todayLabel={t.weather.today} />
       </svg>
     </section>
   );

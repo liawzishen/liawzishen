@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 /*
  * Consumer tab shell — the buyer-side mirror of the grower AppShell.
@@ -63,12 +64,13 @@ function ScanIcon() {
 
 export function ConsumerShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   const tabs = [
-    { href: "/consumer", label: "Home", icon: <HomeIcon />, exact: true },
-    { href: "/consumer/market", label: "Market", icon: <MarketIcon />, exact: false },
-    { href: "/consumer/orders", label: "Orders", icon: <OrdersIcon />, exact: false },
-    { href: "/consumer/profile", label: "Profile", icon: <ProfileIcon />, exact: false },
+    { href: "/consumer", label: t.tabs.home, icon: <HomeIcon />, exact: true },
+    { href: "/consumer/market", label: t.tabs.market, icon: <MarketIcon />, exact: false },
+    { href: "/consumer/orders", label: t.tabs.orders, icon: <OrdersIcon />, exact: false },
+    { href: "/consumer/profile", label: t.tabs.profile, icon: <ProfileIcon />, exact: false },
   ];
 
   const isActive = (tab: { href: string; exact: boolean }) =>

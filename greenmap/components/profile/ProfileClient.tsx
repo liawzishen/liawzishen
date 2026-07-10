@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { isPasswordValid } from "@/lib/auth/password";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { LanguageSetting } from "@/components/profile/LanguageSetting";
 
 /**
  * Profile screen — a "comcard" (name-card) header over a Messenger-style
@@ -329,6 +330,10 @@ export function ProfileClient(props: Props) {
                 </span>
               </div>
             ))}
+          </div>
+
+          <div className="mt-4">
+            <LanguageSetting />
           </div>
 
           <Button full className="mt-4" onClick={startEdit}>

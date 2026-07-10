@@ -1,11 +1,14 @@
 import { weatherEmoji, type WeatherBundle } from "@/lib/weather/fetch";
 import { wateringAdvice } from "@/lib/weather/advice";
+import { getDict } from "@/lib/i18n/server";
 
 /**
  * Desktop side-panel card: today's conditions at the farm plus the watering
- * advisory. Server-renderable — no client JS.
+ * advisory. Server-renderable — no client JS. Async so it can read the
+ * request's dictionary (cookie-based locale).
  */
-export function WeatherToday({ weather }: { weather: WeatherBundle }) {
+export async function WeatherToday({ weather }: { weather: WeatherBundle }) {
+  const dict = await getDict();
   const t = weather.today;
   const advice = wateringAdvice(t);
   const moisturePct =
@@ -13,15 +16,15 @@ export function WeatherToday({ weather }: { weather: WeatherBundle }) {
 
   const stats = [
     {
-      label: "Rain chance",
+      label: dict.weather.rainChance,
       value: t.rainProb !== null ? `${Math.round(t.rainProb)}%` : "—",
     },
     {
-      label: "Soil moisture",
+      label: dict.weather.soilMoisture,
       value: moisturePct !== null ? `${moisturePct}%` : "—",
     },
     {
-      label: "Rainfall",
+      label: dict.weather.rainfall,
       value: t.precipMm !== null ? `${t.precipMm.toFixed(1)} mm` : "—",
     },
   ];
@@ -30,10 +33,10 @@ export function WeatherToday({ weather }: { weather: WeatherBundle }) {
     <section className="rounded-card p-4 glass">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[15px] font-bold">Today at the farm</h2>
+          <h2 className="text-[15px] font-bold">{dict.weather.todayAtFarm}</h2>
           <p className="mt-0.5 truncate text-[12px] text-secondary">
             {weather.locationLabel}
-            {weather.source === "fallback" ? " · sample data" : ""}
+            {weather.source === "fallback" ? ` · ${dict.home.sampleData}` : ""}
           </p>
         </div>
         <span className="text-[32px] leading-none" aria-hidden>
@@ -67,10 +70,10 @@ export function WeatherToday({ weather }: { weather: WeatherBundle }) {
         </span>
         <div>
           <p className="text-[13px] font-bold leading-tight" style={{ color: advice.color }}>
-            {advice.title}
+            {dict.advice[advice.level].title}
           </p>
           <p className="mt-0.5 text-[12px] leading-snug text-secondary">
-            {advice.detail}
+            {dict.advice[advice.level].detail(advice.rainProb)}
           </p>
         </div>
       </div>

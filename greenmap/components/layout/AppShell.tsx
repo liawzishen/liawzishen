@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 /*
  * 5-tab grower shell (06 §9): Home · Map · Scan(FAB) · Sales · Profile.
@@ -75,13 +76,14 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const base = `/farms/${farmId}`;
 
   const tabs = [
-    { href: base, label: "Home", icon: <HomeIcon />, exact: true },
-    { href: `${base}/field`, label: "Map", icon: <MapIcon />, exact: false },
-    { href: `${base}/sales`, label: "Sales", icon: <SalesIcon />, exact: false },
-    { href: `${base}/profile`, label: "Profile", icon: <ProfileIcon />, exact: false },
+    { href: base, label: t.tabs.home, icon: <HomeIcon />, exact: true },
+    { href: `${base}/field`, label: t.tabs.map, icon: <MapIcon />, exact: false },
+    { href: `${base}/sales`, label: t.tabs.sales, icon: <SalesIcon />, exact: false },
+    { href: `${base}/profile`, label: t.tabs.profile, icon: <ProfileIcon />, exact: false },
   ];
 
   const isActive = (tab: { href: string; exact: boolean }) =>

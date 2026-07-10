@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { AddPlantModal } from "./AddPlantModal";
 import { PlantBottomSheet } from "./PlantBottomSheet";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Farm, Plant, Zone } from "@/types/database";
 
 const FarmMapCanvas = dynamic(
@@ -31,6 +32,7 @@ export function FarmMap({
   /** Height override — the responsive field page sizes the card per layout. */
   className?: string;
 }) {
+  const { t } = useI18n();
   const [plants, setPlants] = useState<Plant[]>(initialPlants);
   const [placing, setPlacing] = useState(false);
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(
@@ -96,7 +98,7 @@ export function FarmMap({
       {plants.length === 0 && !placing && !pendingPos && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="rounded-card bg-white/85 px-5 py-3 text-center text-[14px] font-medium text-secondary shadow-card backdrop-blur">
-            Tap ＋ to place your first plant
+            {t.map.firstPlant}
           </div>
         </div>
       )}
@@ -110,14 +112,14 @@ export function FarmMap({
             careOnly ? "bg-warning text-white" : "bg-white/95 text-warning"
           }`}
         >
-          {careOnly ? "Showing Need Care" : `Need Care (${careIds.length})`}
+          {careOnly ? t.map.showingNeedCare : t.map.needCare(careIds.length)}
         </button>
       )}
 
       {/* Placement hint */}
       {placing && (
         <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-label/85 px-4 py-2 text-[13px] font-medium text-white">
-          Tap where the plant is
+          {t.map.tapWhere}
         </div>
       )}
 
