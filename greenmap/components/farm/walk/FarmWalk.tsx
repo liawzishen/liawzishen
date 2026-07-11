@@ -3,6 +3,7 @@
 import { Canvas } from "@react-three/fiber";
 import type { Farm, Plant } from "@/types/database";
 import { worldSize, EYE_HEIGHT } from "./world";
+import { PlantSprites } from "./PlantSprites";
 
 /**
  * First-person 3D walk mode for the Map tab (2026-07-11 plan). Skeleton:
@@ -21,8 +22,6 @@ export function FarmWalk({
   onBackgroundClick?: () => void;
 }) {
   const { w, d } = worldSize(farm);
-  void plants;
-  void onMarkerClick;
 
   return (
     <div className="relative h-full w-full">
@@ -45,6 +44,7 @@ export function FarmWalk({
           <planeGeometry args={[w * 8, d * 8]} />
           <meshLambertMaterial color="#8fb573" />
         </mesh>
+        <PlantSprites farm={farm} plants={plants} onMarkerClick={onMarkerClick} />
       </Canvas>
     </div>
   );
