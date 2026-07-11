@@ -11,9 +11,10 @@ import { Joystick } from "./Joystick";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 /**
- * First-person 3D walk mode for the Map tab (2026-07-11 plan). Skeleton:
- * sky, fog, light and a procedural ground plane. The walk rig, markers and
- * joystick land in Tasks 2–4. Client-only — imported via next/dynamic.
+ * First-person 3D walk mode for the Map tab (2026-07-11 plan): sky/fog +
+ * textured ground (farm photo when present), plant marker sprites with
+ * tap-to-open, drag-look/WASD walk rig, and a touch joystick overlay.
+ * Client-only — imported via next/dynamic from FarmMap's 2D ⇄ 3D toggle.
  */
 export function FarmWalk({
   farm,
