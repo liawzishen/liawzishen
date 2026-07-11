@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { Farm } from "@/types/database";
 import { worldSize, EYE_HEIGHT } from "./world";
@@ -25,21 +25,24 @@ export function WalkRig({
   const yaw = useRef(0); // yaw 0 faces -z — into the field from the spawn edge
   const pitch = useRef(0);
   const keys = useRef({ f: 0, b: 0, l: 0, r: 0 });
+  const { w, d } = useMemo(() => worldSize(farm), [farm]);
 
   // Pointer-drag look — attached to the WebGL canvas only, so the DOM
-  // joystick (a sibling overlay) never fights it.
+  // joystick (a sibling overlay) never fights it. Tracks a single pointerId
+  // so two-thumb play (joystick + look drag) can't cross streams.
   useEffect(() => {
     const el = gl.domElement;
-    let dragging = false;
+    let activeId: number | null = null;
     let lastX = 0;
     let lastY = 0;
     const down = (e: PointerEvent) => {
-      dragging = true;
+      if (e.button !== 0 || activeId !== null) return;
+      activeId = e.pointerId;
       lastX = e.clientX;
       lastY = e.clientY;
     };
     const move = (e: PointerEvent) => {
-      if (!dragging) return;
+      if (e.pointerId !== activeId) return;
       yaw.current -= (e.clientX - lastX) * LOOK_SPEED;
       pitch.current = Math.max(
         -PITCH_LIMIT,
@@ -48,16 +51,18 @@ export function WalkRig({
       lastX = e.clientX;
       lastY = e.clientY;
     };
-    const up = () => {
-      dragging = false;
+    const up = (e: PointerEvent) => {
+      if (e.pointerId === activeId) activeId = null;
     };
     el.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
     return () => {
       el.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
     };
   }, [gl]);
 
@@ -94,7 +99,6 @@ export function WalkRig({
     camera.position.z +=
       (Math.cos(yaw.current) * -fwd - Math.sin(yaw.current) * strafe) * step;
 
-    const { w, d } = worldSize(farm);
     camera.position.x = Math.max(-w / 2 + 1, Math.min(w / 2 - 1, camera.position.x));
     camera.position.z = Math.max(-d / 2 + 1, Math.min(d / 2 - 1, camera.position.z));
     camera.position.y = EYE_HEIGHT;
