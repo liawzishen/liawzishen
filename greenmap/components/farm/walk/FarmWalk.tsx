@@ -7,6 +7,8 @@ import { worldSize, EYE_HEIGHT } from "./world";
 import { PlantSprites } from "./PlantSprites";
 import { WalkRig } from "./WalkRig";
 import { GroundTexture } from "./GroundTexture";
+import { Joystick } from "./Joystick";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 /**
  * First-person 3D walk mode for the Map tab (2026-07-11 plan). Skeleton:
@@ -24,6 +26,7 @@ export function FarmWalk({
   onMarkerClick: (plant: Plant) => void;
   onBackgroundClick?: () => void;
 }) {
+  const { t } = useI18n();
   const { w, d } = worldSize(farm);
   const moveRef = useRef({ x: 0, y: 0 });
 
@@ -47,6 +50,10 @@ export function FarmWalk({
         <PlantSprites farm={farm} plants={plants} onMarkerClick={onMarkerClick} />
         <WalkRig farm={farm} moveRef={moveRef} />
       </Canvas>
+      <Joystick moveRef={moveRef} />
+      <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-label/80 px-4 py-1.5 text-[12px] font-medium text-white">
+        {t.map.walkHint}
+      </div>
     </div>
   );
 }

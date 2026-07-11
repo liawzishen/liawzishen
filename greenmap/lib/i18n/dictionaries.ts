@@ -118,6 +118,7 @@ export const en = {
     loading3d: "Loading 3D…",
     switchTo3d: "Switch to 3D walk",
     switchTo2d: "Switch to 2D map",
+    walkHint: "Drag to look around · joystick to walk",
     kpi: {
       total: "Total Plants",
       healthy: "Healthy",
@@ -285,6 +286,7 @@ export const ms: Dict = {
     loading3d: "Memuatkan 3D…",
     switchTo3d: "Tukar ke mod jalan 3D",
     switchTo2d: "Tukar ke peta 2D",
+    walkHint: "Seret untuk melihat sekeliling · kayu bedik untuk berjalan",
     kpi: {
       total: "Jumlah Pokok",
       healthy: "Sihat",
