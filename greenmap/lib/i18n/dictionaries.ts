@@ -115,6 +115,9 @@ export const en = {
     showingNeedCare: "Showing Need Care",
     tapWhere: "Tap where the plant is",
     firstPlant: "Tap ＋ to place your first plant",
+    loading3d: "Loading 3D…",
+    switchTo3d: "Switch to 3D walk",
+    switchTo2d: "Switch to 2D map",
     kpi: {
       total: "Total Plants",
       healthy: "Healthy",
@@ -279,6 +282,9 @@ export const ms: Dict = {
     showingNeedCare: "Menunjukkan Perlu Jagaan",
     tapWhere: "Tekan di lokasi pokok",
     firstPlant: "Tekan ＋ untuk letak pokok pertama anda",
+    loading3d: "Memuatkan 3D…",
+    switchTo3d: "Tukar ke mod jalan 3D",
+    switchTo2d: "Tukar ke peta 2D",
     kpi: {
       total: "Jumlah Pokok",
       healthy: "Sihat",

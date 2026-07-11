@@ -20,15 +20,20 @@ const FarmMapCanvas = dynamic(
   }
 );
 
+function WalkLoading() {
+  const { t } = useI18n();
+  return (
+    <div className="flex h-full w-full items-center justify-center text-[15px] text-secondary">
+      {t.map.loading3d}
+    </div>
+  );
+}
+
 const FarmWalk = dynamic(
   () => import("./walk/FarmWalk").then((m) => m.FarmWalk),
   {
     ssr: false,
-    loading: () => (
-      <div className="flex h-full w-full items-center justify-center text-[15px] text-secondary">
-        Loading 3D…
-      </div>
-    ),
+    loading: () => <WalkLoading />,
   }
 );
 
@@ -125,7 +130,7 @@ export function FarmMap({
             setPlacing(false);
             setSelectedPlant(null);
           }}
-          aria-label={mode === "2d" ? "Switch to 3D walk" : "Switch to 2D map"}
+          aria-label={mode === "2d" ? t.map.switchTo3d : t.map.switchTo2d}
           className="pressable absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[13px] font-bold text-brand-dark shadow-card backdrop-blur"
         >
           {mode === "2d" ? "3D" : "2D"}
