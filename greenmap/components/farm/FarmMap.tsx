@@ -20,6 +20,18 @@ const FarmMapCanvas = dynamic(
   }
 );
 
+const FarmWalk = dynamic(
+  () => import("./walk/FarmWalk").then((m) => m.FarmWalk),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center text-[15px] text-secondary">
+        Loading 3D…
+      </div>
+    ),
+  }
+);
+
 export function FarmMap({
   farm,
   zones,
@@ -43,6 +55,7 @@ export function FarmMap({
   // per-pin multi-click state. A single tap sets it (opens the sheet); the
   // sheet's CTA handles navigation to the full detail page.
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [mode, setMode] = useState<"2d" | "3d">("2d");
 
   // Plants needing care (drives the optional highlight filter).
   const careIds = useMemo(
@@ -77,25 +90,50 @@ export function FarmMap({
         className ?? "h-[calc(100dvh-210px)]"
       )}
     >
-      <FarmMapCanvas
-        farm={farm}
-        plants={plants}
-        placing={placing}
-        highlightIds={careOnly ? careIds : null}
-        selectedId={selectedPlant?.id ?? null}
-        onPlace={(pos) => {
-          setPendingPos(pos);
-          setPlacing(false);
-        }}
-        onMarkerClick={(plant) => {
-          if (placing) return; // don't open the sheet while placing a plant
-          setSelectedPlant(plant); // single tap → open the bottom sheet
-        }}
-        onBackgroundClick={() => setSelectedPlant(null)}
-      />
+      {mode === "2d" ? (
+        <FarmMapCanvas
+          farm={farm}
+          plants={plants}
+          placing={placing}
+          highlightIds={careOnly ? careIds : null}
+          selectedId={selectedPlant?.id ?? null}
+          onPlace={(pos) => {
+            setPendingPos(pos);
+            setPlacing(false);
+          }}
+          onMarkerClick={(plant) => {
+            if (placing) return; // don't open the sheet while placing a plant
+            setSelectedPlant(plant); // single tap → open the bottom sheet
+          }}
+          onBackgroundClick={() => setSelectedPlant(null)}
+        />
+      ) : (
+        <FarmWalk
+          farm={farm}
+          plants={plants.filter((p) => p.lifecycle_status === "active")}
+          onMarkerClick={(plant) => setSelectedPlant(plant)}
+          onBackgroundClick={() => setSelectedPlant(null)}
+        />
+      )}
+
+      {/* 2D ⇄ 3D mode toggle */}
+      {!placing && (
+        <button
+          type="button"
+          onClick={() => {
+            setMode((m) => (m === "2d" ? "3d" : "2d"));
+            setPlacing(false);
+            setSelectedPlant(null);
+          }}
+          aria-label={mode === "2d" ? "Switch to 3D walk" : "Switch to 2D map"}
+          className="pressable absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[13px] font-bold text-brand-dark shadow-card backdrop-blur"
+        >
+          {mode === "2d" ? "3D" : "2D"}
+        </button>
+      )}
 
       {/* Empty-state overlay */}
-      {plants.length === 0 && !placing && !pendingPos && (
+      {mode === "2d" && plants.length === 0 && !placing && !pendingPos && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="rounded-card bg-white/85 px-5 py-3 text-center text-[14px] font-medium text-secondary shadow-card backdrop-blur">
             {t.map.firstPlant}
@@ -104,7 +142,7 @@ export function FarmMap({
       )}
 
       {/* Care filter toggle (only if some plants need care) */}
-      {careIds.length > 0 && !placing && (
+      {mode === "2d" && careIds.length > 0 && !placing && (
         <button
           type="button"
           onClick={() => setCareOnly((v) => !v)}
@@ -124,17 +162,19 @@ export function FarmMap({
       )}
 
       {/* Add-plant FAB */}
-      <button
-        type="button"
-        onClick={() => {
-          setPlacing((v) => !v);
-          setSelectedPlant(null);
-        }}
-        aria-label={placing ? "Cancel placement" : "Add plant"}
-        className="absolute bottom-4 left-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-[28px] text-white shadow-fab transition active:scale-95"
-      >
-        {placing ? "✕" : "＋"}
-      </button>
+      {mode === "2d" && (
+        <button
+          type="button"
+          onClick={() => {
+            setPlacing((v) => !v);
+            setSelectedPlant(null);
+          }}
+          aria-label={placing ? "Cancel placement" : "Add plant"}
+          className="absolute bottom-4 left-4 flex h-14 w-14 items-center justify-center rounded-full bg-brand text-[28px] text-white shadow-fab transition active:scale-95"
+        >
+          {placing ? "✕" : "＋"}
+        </button>
+      )}
 
       {pendingPos && (
         <AddPlantModal
