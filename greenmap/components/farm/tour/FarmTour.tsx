@@ -30,6 +30,8 @@ export function FarmTour({
   onBackgroundClick,
   onAddTag,
   onRemoveTag,
+  onAddPhoto,
+  onUpdateHeading,
 }: {
   farm: Farm;
   plants: Plant[];
@@ -46,6 +48,8 @@ export function FarmTour({
     pitch: number;
   }) => Promise<unknown>;
   onRemoveTag: (id: string) => Promise<void>;
+  onAddPhoto: () => void;
+  onUpdateHeading: (id: string, heading_deg: number) => Promise<void>;
 }) {
   const { t } = useI18n();
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -110,7 +114,7 @@ export function FarmTour({
   }
 
   if (!current) {
-    return <TourEmptyState notSetUp={loadError} />;
+    return <TourEmptyState notSetUp={loadError} onAddPhoto={onAddPhoto} />;
   }
 
   return (
@@ -198,6 +202,34 @@ export function FarmTour({
           {t.tour.tapSpot}
         </div>
       )}
+      <button
+        type="button"
+        onClick={onAddPhoto}
+        aria-label={t.tour.addPhoto}
+        className="pressable absolute left-3 top-3 z-30 rounded-full bg-white/95 px-3.5 py-1.5 text-[13px] font-bold text-brand-dark shadow-card"
+      >
+        ＋ 360°
+      </button>
+      <div className="absolute bottom-4 left-4 z-30 flex flex-col gap-1 rounded-card bg-white/90 px-3 py-2 shadow-card">
+        <label
+          htmlFor="pano-heading"
+          className="text-[11px] font-semibold uppercase tracking-wide text-secondary"
+        >
+          {t.tour.setDirection}
+        </label>
+        <input
+          id="pano-heading"
+          type="range"
+          min={-180}
+          max={180}
+          step={1}
+          value={current.heading_deg}
+          onChange={(e) =>
+            void onUpdateHeading(current.id, Number(e.target.value))
+          }
+          className="w-[140px]"
+        />
+      </div>
       {tagMode === "pick" && pendingSpot && (
         <TagEditor
           plants={plants}
