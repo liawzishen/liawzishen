@@ -188,8 +188,9 @@ components/
   dashboard/ (FarmDashboard — the standalone preview above)
   farm/ (FarmMap, FarmMapCanvas, PlantMarker, PlantBottomSheet, KpiStrip, AddPlantModal, FarmCard, FarmSwitcher, LogModal,
          WeatherToday, WeatherCharts, WeatherStrip, FarmHealthTrend, NeedsCareList, UpcomingHarvests)
-  farm/walk/ (3D first-person walk — FarmWalk, WalkRig, PlantSprites, GroundTexture, Joystick, world.ts, markerTexture.ts;
-              lazy-loaded three.js, mounted by FarmMap's 2D⇄3D toggle)
+  farm/tour/ (360° photo tour — FarmTour, PanoramaSphere, LookControls, HopCircles, PlantTagPins, TagEditor,
+              AddPanoramaSheet, TourEmptyState, usePanoramas, geometry.ts, markerTexture.ts;
+              lazy three.js, mounted by FarmMap's 2D⇄3D toggle)
   home/ (TodaysTasks) · layout/ (AppShell, ConsumerShell, TopNav, StepDots)
   passport/ (HarvestPassportCard, TrustBadges, QrBlock, HarvestConfirm)
   plant/ (HealthTrendChart, ActivityTimeline, SuggestionCard, ManualStatusControl, PlantQuickActions)
@@ -218,7 +219,7 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - Weather (`lib/weather/fetch.ts`) always degrades to a deterministic sample dataset on any network/parse failure — the Map tab and Home advisory must never break on stage. A farm's GPS pin (if set) beats geocoding its state name for forecast accuracy.
 - Desktop layouts escape the mobile 430px app frame via `.desktop-breakout` (per-page marker) or `.shell-breakout` (set by the tab shells) in `globals.css` (`@media (min-width: 1024px)`) — the same escape-hatch pattern the auth breakout uses, just media-query-gated instead of unconditional.
 - **Press feedback is universal** — `.pressable` / `.pressable-glow` in `globals.css` give every button and tappable card a darken-on-press + springy release (Tailwind v4 preflight zeroes `-webkit-tap-highlight-color`, so this is what restores the "it registered my tap" cue). Reuse these utilities; never add per-component `:active` styles.
-- **The Map tab has a 2D⇄3D toggle.** `FarmMap.tsx` holds a `mode` state and lazy-loads `components/farm/walk/` (client-only three.js, `next/dynamic` with `ssr: false`, ~352 KB async chunk so the field's first load stays unchanged). The 3D mode is a first-person **farm walk** — drag to look 360°, WASD/arrow keys or the on-screen joystick to move, and tapping a plant sprite opens the *same* `PlantBottomSheet` as 2D. `walk/world.ts` maps each plant's `position_x/y` onto a 60-unit ground plane; sprites reuse the 2D marker colours (`NODE_COLOR`), and the farm's uploaded/satellite photo becomes the ground texture when present. All labels go through the EN/BM dictionary keys `switchTo3d` / `switchTo2d` / `loading3d` / `walkHint`.
+- **The Map tab has a 2D⇄3D toggle.** `FarmMap.tsx` holds a `mode` state and lazy-loads `components/farm/tour/` (client-only three.js, `next/dynamic` with `ssr: false`, async chunk so the field's first load stays unchanged). The 3D mode is a Matterport-style **360° photo tour**: farmers shoot 360° photos with their phone's panorama mode, upload them onto spots on the 2D map, then drag to look around, tap white floor circles to hop between spots, and tap plant pins to open the *same* `PlantBottomSheet` as 2D. The 2D map doubles as the floor-plan view via tappable 360° badges. Data: `farm_panoramas` + `panorama_plant_tags` (migration `0009`) + the `farm-panoramas` bucket. All labels go through the EN/BM dictionary `tour` namespace.
 
 ## Troubleshooting
 
@@ -227,6 +228,7 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **AI scan returns a "sample"/mock result** → no `GEMINI_API_KEY` set (expected). Add a free key from https://aistudio.google.com/apikey for live scans.
 - **Weather shows "sample data"** → Open-Meteo needs no key, so this means the request failed or the network is unavailable — it's the designed fallback, not a bug. Reload once you're back online.
 - **Farm GPS pin doesn't save** → migration `0006_farm_coordinates.sql` hasn't been run yet (see Database setup below); the farm still saves fine without it, just without the exact-forecast pin.
+- **3D mode says "360° storage isn't set up yet"** → migration `0009_panoramas.sql` hasn't been run (Supabase → SQL Editor). Run it, then `npm run seed:panoramas` for the demo farm's sample tour.
 - **`npm install` version error on `@supabase/ssr`** → run `npm install @supabase/ssr@latest`.
 - **Stuck in a redirect loop** → clear site cookies for `localhost:3000` and log in again.
 
@@ -241,8 +243,8 @@ Import the repo → add the same env vars in Project Settings (set `NEXT_PUBLIC_
 The schema, RLS, storage and seed live in `supabase/` and `scripts/`.
 Full instructions: **[`scripts/README.md`](./scripts/README.md)**. In short:
 
-1. Run the 8 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor).
+1. Run the 9 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor).
 2. Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Settings → API → service_role).
 3. `npm run db:seed` → demo grower `ahmad@greenmap.demo` / `Demo1234!`, farm *Ladang Hijau*, ~30 plants, backdated logs, a 7-day trend, saved AI analyses, and one harvested plant with a fixed passport at `/passport/00000000-0000-4000-8000-0000deadbeef`.
 
-Need test rows for the Home **Today's Tasks** board? `scripts/test-tasks-data.sql` backdates a spread of overdue water / fertilizer / harvest-ready plants. Need billing state + a promoted listing? `npm run seed:billing`. Demo consumer login? `npm run seed:consumer`. A populated Customer Service inbox + an out-of-stock listing? `npm run seed:support`.
+Need test rows for the Home **Today's Tasks** board? `scripts/test-tasks-data.sql` backdates a spread of overdue water / fertilizer / harvest-ready plants. Need billing state + a promoted listing? `npm run seed:billing`. Demo consumer login? `npm run seed:consumer`. A populated Customer Service inbox + an out-of-stock listing? `npm run seed:support`. Demo 360° tour on the Map tab? `npm run seed:panoramas`.

@@ -65,6 +65,7 @@ export function FarmMap({
   const [mode, setMode] = useState<"2d" | "3d">("2d");
   const pano = usePanoramas(farm.id);
   const [addingPano, setAddingPano] = useState(false);
+  const [tourStartId, setTourStartId] = useState<string | null>(null);
 
   // Plants needing care (drives the optional highlight filter).
   const careIds = useMemo(
@@ -115,6 +116,12 @@ export function FarmMap({
             setSelectedPlant(plant); // single tap → open the bottom sheet
           }}
           onBackgroundClick={() => setSelectedPlant(null)}
+          panoramas={pano.panoramas}
+          onPanoramaClick={(p) => {
+            setSelectedPlant(null);
+            setTourStartId(p.id);
+            setMode("3d");
+          }}
         />
       ) : (
         <FarmTour
@@ -130,6 +137,7 @@ export function FarmMap({
           onRemoveTag={pano.removeTag}
           onAddPhoto={() => setAddingPano(true)}
           onUpdateHeading={pano.updateHeading}
+          startId={tourStartId}
         />
       )}
 
@@ -138,7 +146,10 @@ export function FarmMap({
         <button
           type="button"
           onClick={() => {
-            setMode((m) => (m === "2d" ? "3d" : "2d"));
+            setMode((m) => {
+              if (m === "3d") setTourStartId(null);
+              return m === "2d" ? "3d" : "2d";
+            });
             setPlacing(false);
             setSelectedPlant(null);
           }}

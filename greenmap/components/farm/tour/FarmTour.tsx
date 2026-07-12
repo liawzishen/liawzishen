@@ -32,6 +32,7 @@ export function FarmTour({
   onRemoveTag,
   onAddPhoto,
   onUpdateHeading,
+  startId,
 }: {
   farm: Farm;
   plants: Plant[];
@@ -50,6 +51,7 @@ export function FarmTour({
   onRemoveTag: (id: string) => Promise<void>;
   onAddPhoto: () => void;
   onUpdateHeading: (id: string, heading_deg: number) => Promise<void>;
+  startId: string | null;
 }) {
   const { t } = useI18n();
   const [currentId, setCurrentId] = useState<string | null>(null);
@@ -62,10 +64,15 @@ export function FarmTour({
     pitch: number;
   } | null>(null);
 
-  // Enter the first panorama once loaded (Task 6 adds startId for 2D badges).
+  // Enter the requested panorama (2D badge tap) or the first one.
   useEffect(() => {
-    if (!currentId && panoramas.length > 0) setCurrentId(panoramas[0].id);
-  }, [panoramas, currentId]);
+    if (currentId) return;
+    if (startId && panoramas.some((p) => p.id === startId)) {
+      setCurrentId(startId);
+    } else if (panoramas.length > 0) {
+      setCurrentId(panoramas[0].id);
+    }
+  }, [panoramas, currentId, startId]);
 
   const current = panoramas.find((p) => p.id === currentId) ?? null;
 
