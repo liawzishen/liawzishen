@@ -70,16 +70,37 @@ export function FarmMapCanvas({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const measure = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight;
+    let raf = 0;
+    let tries = 0;
+    const apply = (w: number, h: number) => {
       setSize({ width: w, height: h });
       fitToScreen(w, h);
     };
+    // Measure now; but when the canvas REMOUNTS (e.g. returning from the 3D
+    // tour) the element can still be 0×0 at effect time because layout hasn't
+    // settled. Storing 0 would leave `ready` false forever and the Stage would
+    // never render (blank map, only the zoom buttons). So keep re-checking on
+    // the next frame until it has a real size, and only ever store a real one.
+    const measure = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) {
+        apply(w, h);
+      } else if (tries++ < 120) {
+        raf = requestAnimationFrame(measure);
+      }
+    };
     measure();
-    const ro = new ResizeObserver(measure);
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) apply(w, h);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [CANVAS_W, CANVAS_H]);
 
