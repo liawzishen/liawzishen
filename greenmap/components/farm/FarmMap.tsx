@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { AddPlantModal } from "./AddPlantModal";
 import { PlantBottomSheet } from "./PlantBottomSheet";
+import { usePanoramas } from "./tour/usePanoramas";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Farm, Plant, Zone } from "@/types/database";
@@ -20,7 +21,7 @@ const FarmMapCanvas = dynamic(
   }
 );
 
-function WalkLoading() {
+function TourLoading() {
   const { t } = useI18n();
   return (
     <div className="flex h-full w-full items-center justify-center text-[15px] text-secondary">
@@ -29,11 +30,11 @@ function WalkLoading() {
   );
 }
 
-const FarmWalk = dynamic(
-  () => import("./walk/FarmWalk").then((m) => m.FarmWalk),
+const FarmTour = dynamic(
+  () => import("./tour/FarmTour").then((m) => m.FarmTour),
   {
     ssr: false,
-    loading: () => <WalkLoading />,
+    loading: () => <TourLoading />,
   }
 );
 
@@ -61,6 +62,7 @@ export function FarmMap({
   // sheet's CTA handles navigation to the full detail page.
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [mode, setMode] = useState<"2d" | "3d">("2d");
+  const pano = usePanoramas(farm.id);
 
   // Plants needing care (drives the optional highlight filter).
   const careIds = useMemo(
@@ -113,9 +115,13 @@ export function FarmMap({
           onBackgroundClick={() => setSelectedPlant(null)}
         />
       ) : (
-        <FarmWalk
+        <FarmTour
           farm={farm}
           plants={plants.filter((p) => p.lifecycle_status === "active")}
+          panoramas={pano.panoramas}
+          tags={pano.tags}
+          loading={pano.loading}
+          loadError={pano.loadError}
           onMarkerClick={(plant) => setSelectedPlant(plant)}
           onBackgroundClick={() => setSelectedPlant(null)}
         />
