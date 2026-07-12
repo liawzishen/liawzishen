@@ -1,4 +1,4 @@
-const iconProps = {
+﻿const iconProps = {
   width: 14,
   height: 14,
   viewBox: "0 0 24 24",
@@ -13,22 +13,41 @@ const iconProps = {
  * Horizontally scrollable KPI strip (dashboard cards). Shared by the Map tab
  * and anywhere a farm-level health summary is needed.
  */
+export interface KpiLabels {
+  total: string;
+  healthy: string;
+  attention: string;
+  critical: string;
+  ready: string;
+}
+
+const DEFAULT_LABELS: KpiLabels = {
+  total: "Total Plants",
+  healthy: "Healthy",
+  attention: "Needs Attention",
+  critical: "Critical",
+  ready: "Ready For Harvest",
+};
+
 export function KpiStrip({
   total,
   healthy,
   attention,
   critical,
   ready,
+  labels = DEFAULT_LABELS,
 }: {
   total: number;
   healthy: number;
   attention: number;
   critical: number;
   ready: number;
+  /** Display labels — pass the dictionary's `map.kpi` for i18n. */
+  labels?: KpiLabels;
 }) {
   const kpis = [
     {
-      label: "Total Plants",
+      label: labels.total,
       value: total,
       color: "#1E434A",
       tint: "#1E434A1A",
@@ -42,7 +61,7 @@ export function KpiStrip({
       ),
     },
     {
-      label: "Healthy",
+      label: labels.healthy,
       value: healthy,
       color: "#0DB074",
       tint: "#0DB07419",
@@ -53,7 +72,7 @@ export function KpiStrip({
       ),
     },
     {
-      label: "Needs Attention",
+      label: labels.attention,
       value: attention,
       color: "#F59E0B",
       tint: "#F59E0B1A",
@@ -66,7 +85,7 @@ export function KpiStrip({
       ),
     },
     {
-      label: "Critical",
+      label: labels.critical,
       value: critical,
       color: "#EF4444",
       tint: "#EF44441A",
@@ -79,7 +98,7 @@ export function KpiStrip({
       ),
     },
     {
-      label: "Ready For Harvest",
+      label: labels.ready,
       value: ready,
       color: "#3B82F6",
       tint: "#3B82F61A",

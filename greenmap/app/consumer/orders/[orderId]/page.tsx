@@ -57,7 +57,7 @@ export default async function OrderDetailPage({
   const status = STATUS_META[order.status];
 
   return (
-    <main className="pb-12">
+    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title={`Order #${order.id}`} backHref="/consumer/orders" />
 
       {/* Order summary */}

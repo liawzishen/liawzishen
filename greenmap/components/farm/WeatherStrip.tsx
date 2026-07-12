@@ -1,4 +1,5 @@
 import { weatherEmoji, type WeatherBundle } from "@/lib/weather/fetch";
+import { getDict } from "@/lib/i18n/server";
 import { cn } from "@/lib/utils";
 
 /**
@@ -7,7 +8,8 @@ import { cn } from "@/lib/utils";
  * watering ADVISORY lives on Home (the daily briefing page), so the two
  * tabs don't repeat each other. Kept compact so the map stays the hero.
  */
-export function WeatherStrip({ weather }: { weather: WeatherBundle }) {
+export async function WeatherStrip({ weather }: { weather: WeatherBundle }) {
+  const t = await getDict();
   // Today onward — past days matter on the charts, not in a glanceable strip.
   const days = weather.days.filter((d) => !d.isPast);
 
@@ -15,7 +17,7 @@ export function WeatherStrip({ weather }: { weather: WeatherBundle }) {
     <div>
       {weather.source === "fallback" && (
         <p className="mb-1.5 text-[11px] font-medium text-secondary">
-          Weather: sample data (offline)
+          {t.weather.offlineSample}
         </p>
       )}
       <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -29,7 +31,7 @@ export function WeatherStrip({ weather }: { weather: WeatherBundle }) {
               )}
             >
               <p className="text-[10px] font-semibold text-secondary">
-                {d.isToday ? "Today" : d.weekday}
+                {d.isToday ? t.weather.today : d.weekday}
               </p>
               <p className="mt-0.5 text-[18px] leading-none" aria-hidden>
                 {weatherEmoji(d.weatherCode)}

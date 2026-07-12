@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { LogModal, type LogType } from "./LogModal";
 import { healthDisplay } from "@/lib/health/display";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Plant } from "@/types/database";
 
-const QUICK: { type: LogType; icon: string; label: string }[] = [
-  { type: "water", icon: "💧", label: "Water" },
-  { type: "fertilize", icon: "🌿", label: "Fertilize" },
-  { type: "note", icon: "📝", label: "Note" },
+const QUICK: { type: LogType; icon: string }[] = [
+  { type: "water", icon: "💧" },
+  { type: "fertilize", icon: "🌿" },
+  { type: "note", icon: "📝" },
 ];
 
 /**
@@ -31,6 +32,7 @@ export function PlantBottomSheet({
   onClose: () => void;
   onLogged: (plantId: string, newScore: number | null) => void;
 }) {
+  const { t } = useI18n();
   // Retain the last plant so the sheet keeps its content while it slides out.
   const [shown, setShown] = useState<Plant | null>(plant);
   const [logType, setLogType] = useState<LogType | null>(null);
@@ -104,10 +106,12 @@ export function PlantBottomSheet({
                   key={a.type}
                   type="button"
                   onClick={() => setLogType(a.type)}
-                  className="flex flex-col items-center gap-1.5 rounded-squarcle bg-fill py-3 active:opacity-80"
+                  className="flex min-h-[68px] flex-col items-center justify-center gap-1.5 rounded-squarcle bg-fill py-3 active:opacity-80"
                 >
-                  <span className="text-[22px]">{a.icon}</span>
-                  <span className="text-[12px] font-medium">{a.label}</span>
+                  <span className="text-[24px]">{a.icon}</span>
+                  <span className="text-[12px] font-semibold">
+                    {t.quick[a.type]}
+                  </span>
                 </button>
               ))}
             </div>

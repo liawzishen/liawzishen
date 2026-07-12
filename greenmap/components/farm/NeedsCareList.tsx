@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { healthDisplay } from "@/lib/health/display";
+import { getDict } from "@/lib/i18n/server";
 import type { Plant } from "@/types/database";
 
 /**
@@ -7,13 +8,14 @@ import type { Plant } from "@/types/database";
  * map's "Need Care" marker filter (same rule: active + not marked healthy,
  * or live score below 70). Each row links to the plant's detail page.
  */
-export function NeedsCareList({
+export async function NeedsCareList({
   plants,
   farmId,
 }: {
   plants: Plant[];
   farmId: string;
 }) {
+  const t = await getDict();
   const needsCare = plants
     .filter(
       (p) =>
@@ -26,17 +28,17 @@ export function NeedsCareList({
   return (
     <section className="rounded-card p-4 glass">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[14px] font-bold">Needs care</h3>
+        <h3 className="text-[14px] font-bold">{t.map.panels.needsCare}</h3>
         {needsCare.length > 0 && (
           <span className="text-[11px] font-semibold text-warning">
-            {needsCare.length} plant{needsCare.length === 1 ? "" : "s"}
+            {t.map.panels.plantsCount(needsCare.length)}
           </span>
         )}
       </div>
 
       {needsCare.length === 0 ? (
         <p className="mt-3 rounded-input bg-fill px-3 py-3 text-center text-[13px] text-secondary">
-          All plants are doing well 🌱
+          {t.map.panels.allWell}
         </p>
       ) : (
         // ~5 rows visible; longer lists scroll inside the card

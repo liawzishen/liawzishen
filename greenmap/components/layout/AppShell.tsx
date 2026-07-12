@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
+import { SideRail, type RailTab } from "@/components/layout/SideRail";
 
 /*
  * 5-tab grower shell (06 §9): Home · Map · Scan(FAB) · Sales · Profile.
@@ -75,13 +77,14 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const base = `/farms/${farmId}`;
 
-  const tabs = [
-    { href: base, label: "Home", icon: <HomeIcon />, exact: true },
-    { href: `${base}/field`, label: "Map", icon: <MapIcon />, exact: false },
-    { href: `${base}/sales`, label: "Sales", icon: <SalesIcon />, exact: false },
-    { href: `${base}/profile`, label: "Profile", icon: <ProfileIcon />, exact: false },
+  const tabs: RailTab[] = [
+    { href: base, label: t.tabs.home, icon: <HomeIcon />, exact: true },
+    { href: `${base}/field`, label: t.tabs.map, icon: <MapIcon />, exact: false },
+    { href: `${base}/sales`, label: t.tabs.sales, icon: <SalesIcon />, exact: false },
+    { href: `${base}/profile`, label: t.tabs.profile, icon: <ProfileIcon />, exact: false },
   ];
 
   const isActive = (tab: { href: string; exact: boolean }) =>
@@ -92,7 +95,7 @@ export function AppShell({
       key={tab.href}
       href={tab.href}
       className={cn(
-        "flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
+        "pressable flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
         isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
       )}
     >
@@ -103,12 +106,19 @@ export function AppShell({
 
   return (
     <>
-      {/* Room for the floating bar + raised FAB */}
-      <div className="pb-[128px]">{children}</div>
+      {/* Room for the floating bar + raised FAB; at lg the rail owns nav */}
+      <div className="shell-breakout pb-[128px] lg:pb-8 lg:pl-[248px]">
+        {children}
+      </div>
+
+      <SideRail
+        tabs={tabs}
+        fab={{ href: `${base}/scan`, label: "AI Scan", icon: <SparkleIcon /> }}
+      />
 
       <nav
         aria-label="Main"
-        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong"
+        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong lg:hidden"
       >
         {tabLink(tabs[0])}
         {tabLink(tabs[1])}
@@ -118,7 +128,7 @@ export function AppShell({
           href={`${base}/scan`}
           aria-label="AI Scan"
           className={cn(
-            "-mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab transition active:scale-95",
+            "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",
             pathname.startsWith(`${base}/scan`) && "ring-2 ring-brand/40"
           )}
         >

@@ -3,8 +3,24 @@ import { createClient } from "@/lib/supabase/server";
 import { geminiSuggest } from "@/lib/ai/gemini-text";
 import { daysSince } from "@/lib/health/calculate";
 
-function mockSuggestion(cropType: string): string {
-  return `Keep ${cropType || "your plant"} on a steady watering rhythm and check the underside of the leaves for pests. (Demo tip — set GEMINI_API_KEY for tailored AI advice.)`;
+/**
+ * Keyless fallback tip. Tone follows the plant's health band so the advice
+ * never contradicts the status shown beside it (a "Critical" plant getting a
+ * cheery "keep it up!" read as a bug in user testing).
+ */
+function mockSuggestion(cropType: string, healthScore: number | null): string {
+  const crop = cropType || "your plant";
+  const demoNote = " (Demo tip — set GEMINI_API_KEY for tailored AI advice.)";
+  if (healthScore === null) {
+    return `Welcome ${crop} to the farm! Water it well today and log the first care events to start its health record.${demoNote}`;
+  }
+  if (healthScore < 40) {
+    return `${crop} needs urgent care — water it now, check the leaves and stem closely, and consider running an AI scan to find the problem.${demoNote}`;
+  }
+  if (healthScore < 70) {
+    return `${crop} is asking for attention — a good watering and a quick leaf check today should get it back on track.${demoNote}`;
+  }
+  return `Keep ${crop} on a steady watering rhythm and check the underside of the leaves for pests.${demoNote}`;
 }
 
 /**
@@ -42,7 +58,10 @@ export async function POST(req: Request) {
   const p = plant as { type: string; plant_date: string; health_score: number | null };
 
   if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ suggestion: mockSuggestion(p.type), mock: true });
+    return NextResponse.json({
+      suggestion: mockSuggestion(p.type, p.health_score),
+      mock: true,
+    });
   }
 
   const [{ data: water }, { data: fert }, { data: ai }] = await Promise.all([
@@ -82,6 +101,8 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ suggestion });
   } catch {
-    return NextResponse.json({ suggestion: mockSuggestion(p.type) });
+    return NextResponse.json({
+      suggestion: mockSuggestion(p.type, p.health_score),
+    });
   }
 }

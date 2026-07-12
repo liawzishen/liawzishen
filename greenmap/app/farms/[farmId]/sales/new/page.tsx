@@ -12,7 +12,7 @@ export default async function ListHarvestPage({
 }) {
   const { farmId } = await params;
   return (
-    <main className="pb-12">
+    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="List a Harvest" backHref={`/farms/${farmId}/sales`} />
       <ListHarvestForm farmId={farmId} />
     </main>

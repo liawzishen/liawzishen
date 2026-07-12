@@ -114,6 +114,17 @@
       transition-duration: 0.01ms !important;
     }
   }
+
+  /*
+    Keyboard focus ring (press-feedback spec 2026-07-10). Lives in @layer
+    base so component utilities (e.g. an input's `outline-none` + custom
+    focus border) can still override it where a bespoke style exists.
+    Mouse/touch never triggers :focus-visible, so this is keyboard-only.
+  */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
 }
 
 /* 0.5px hairline separators — warm wood tint (Tailwind v4 custom utilities) */
@@ -197,13 +208,15 @@
 }
 
 /*
-  Desktop breakout for the Map tab (2026-07-06 map-page spec): at ≥1024px the
-  field page escapes the 430px frame into a two-column dashboard (map +
-  weather/charts panel). Gated behind the media query so phones keep the
-  normal app frame — unlike the auth breakout, which is unconditional.
+  Desktop breakout (2026-07-10 spec, generalizing the 2026-07-06 map rule):
+  at ≥1024px a page marked .desktop-breakout — or any screen inside a tab
+  shell, which sets .shell-breakout on its content wrapper — escapes the
+  430px frame. Gated behind the media query so phones keep the normal app
+  frame — unlike the auth breakout, which is unconditional.
 */
 @media (min-width: 1024px) {
-  .app-frame:has(.map-breakout) {
+  .app-frame:has(.desktop-breakout),
+  .app-frame:has(.shell-breakout) {
     max-width: none;
     border: none;
   }
@@ -354,4 +367,70 @@
   .auth-drift {
     animation: none !important;
   }
+}
+
+/*
+  ── Press feedback (spec 2026-07-10) ──────────────────────────────────────
+  Tailwind's preflight sets -webkit-tap-highlight-color: transparent, so a
+  control with no :active style shows NOTHING when tapped. Rule: if it
+  responds to a click, it must visibly respond to the press.
+
+  .pressable — the surface darkens ~8% and sinks 1px while held (works on
+  any background via filter), then springs back with a slight overshoot.
+  Unlayered on purpose so it beats layered Tailwind utilities (e.g. a
+  hover:brightness-*) while pressed.
+*/
+.pressable {
+  touch-action: manipulation;
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.pressable:active {
+  filter: brightness(0.92);
+  transform: translateY(1px) scale(0.98);
+  transition-duration: 0.05s; /* press-in reads as instant; release springs */
+}
+@media (prefers-reduced-motion: reduce) {
+  .pressable:active {
+    transform: none; /* keep the darkening, drop the movement */
+  }
+}
+
+/* Wooden primary buttons: the outer shadow shrinks and the inner shadow
+   deepens while pressed — the button visibly compresses into the page. */
+.pressable.wood-btn-shadow:active {
+  box-shadow:
+    0 1px 2px rgb(92 58 33 / 0.25),
+    inset 0 1px 1px rgb(255 255 255 / 0.15),
+    inset 0 2px 6px rgb(0 0 0 / 0.28);
+}
+
+/* Center-origin glow "ripple" for primary CTAs — pure CSS, no tap-point
+   tracking. Sits on ::after so it never affects the button's children. */
+.pressable-glow {
+  position: relative;
+  overflow: hidden;
+}
+.pressable-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at center,
+    rgb(255 255 255 / 0.35),
+    transparent 65%
+  );
+  opacity: 0;
+  transform: scale(0.4);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease;
+  pointer-events: none;
+}
+.pressable-glow:active::after {
+  opacity: 1;
+  transform: scale(1.6);
+  transition-duration: 0.08s;
 }

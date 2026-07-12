@@ -94,9 +94,14 @@ export function PlanPageClient({
     <div className="px-5 pt-2">
       {allowance.degraded && (
         <p className="mb-4 rounded-input bg-warning/15 p-3 text-[13px] text-warning">
-          Billing isn&apos;t set up on this backend yet — run{" "}
-          <code>supabase/migrations/0005_billing.sql</code> in the Supabase SQL
-          editor. Scans are not limited until then.
+          Plans aren&apos;t available right now — your scans stay free and
+          unlimited in the meantime.
+          {process.env.NODE_ENV === "development" && (
+            <span className="mt-1 block text-[12px] opacity-80">
+              Dev: run <code>supabase/migrations/0005_billing.sql</code> in the
+              Supabase SQL editor.
+            </span>
+          )}
         </p>
       )}
 

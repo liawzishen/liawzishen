@@ -184,6 +184,7 @@ export interface OrderFeedback {
   user_id: string;
   order_ref: string;
   listing_id: string | null;
+  farm: string;
   rating: number; // 1–5
   comment: string;
   created_at: string;

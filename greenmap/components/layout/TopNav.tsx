@@ -15,7 +15,7 @@ export function TopNav({
       <div className="relative flex h-12 items-center justify-between px-4">
         <Link
           href={backHref}
-          className="flex min-w-[44px] items-center gap-0.5 text-[17px] text-brand"
+          className="flex min-w-[44px] items-center gap-0.5 text-[17px] text-brand transition-opacity active:opacity-60"
         >
           <span aria-hidden className="text-[24px] leading-none">
             ‹

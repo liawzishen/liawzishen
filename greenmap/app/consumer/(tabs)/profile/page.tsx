@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/Badge";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { LanguageSetting } from "@/components/profile/LanguageSetting";
 import {
   CONSUMER,
   FAVOURITES,
@@ -40,7 +41,7 @@ export default async function ConsumerProfilePage() {
   ];
 
   return (
-    <main className="px-5 pb-8 pt-12">
+    <main className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10">
       <div className="flex items-center gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           Profile
@@ -100,6 +101,9 @@ export default async function ConsumerProfilePage() {
       <h2 className="mb-2 mt-7 text-[13px] font-semibold uppercase tracking-wide text-secondary">
         Settings
       </h2>
+      <div className="mb-3">
+        <LanguageSetting />
+      </div>
       <div className="overflow-hidden rounded-card glass">
         {settings.map((s, i) => {
           const cls = `flex w-full items-center gap-3 p-4 text-left active:bg-fill/40 ${

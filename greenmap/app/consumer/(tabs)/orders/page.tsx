@@ -11,7 +11,7 @@ export default function ConsumerOrdersPage() {
   const past = ORDERS.filter((o) => o.status === "delivered");
 
   return (
-    <main className="px-5 pb-8 pt-12">
+    <main className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10">
       <div className="flex items-center gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           My Orders

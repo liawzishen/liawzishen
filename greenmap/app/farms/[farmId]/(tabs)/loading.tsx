@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
  */
 export default function TabLoading() {
   return (
-    <main className="px-5 pt-12">
+    <main className="px-5 pt-12 lg:mx-auto lg:w-full lg:max-w-[1200px] lg:px-8 lg:pt-10">
       <Skeleton className="h-4 w-24" />
       <Skeleton className="mt-2 h-7 w-44" />
       <Skeleton className="mt-1.5 h-4 w-28" />

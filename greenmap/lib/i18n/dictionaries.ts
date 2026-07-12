@@ -1,0 +1,358 @@
+/**
+ * GreenMap UI dictionaries — English + Bahasa Melayu.
+ *
+ * Cookie-based locale (no /[locale] routing): the app is fully authenticated,
+ * so SEO-driven URL locales would add churn for zero benefit — the pattern
+ * recommended for SaaS-style apps. Strings live here as one typed catalog per
+ * language; `ms` must satisfy the shape of `en`, so a missing translation is
+ * a compile error, never a blank screen.
+ *
+ * Parameterised strings are functions — call them with their params.
+ */
+
+export type Lang = "en" | "ms";
+export const LANGS: { value: Lang; label: string }[] = [
+  { value: "en", label: "English" },
+  { value: "ms", label: "Bahasa Melayu" },
+];
+
+export const en = {
+  tabs: {
+    home: "Home",
+    map: "Map",
+    sales: "Sales",
+    profile: "Profile",
+    market: "Market",
+    orders: "Orders",
+    scan: "AI Scan",
+  },
+  home: {
+    hi: (name: string) => `Hi, ${name} 👋`,
+    todaysTasks: "Today's Tasks",
+    toDo: (n: number) => `${n} to do`,
+    allCaughtUp: "All caught up 🎉",
+    noTasks: "No tasks need you right now.",
+    allDone: "All tasks done 🎉",
+    readyToHarvest: "Ready to Harvest",
+    needsWatering: "Needs Watering",
+    needsFertilizing: "Needs Fertilizing",
+    waterAll: "Water All",
+    fertilizeAll: "Fertilize All",
+    completedToday: "Completed Today",
+    watered: "Watered",
+    fertilized: "Fertilized",
+    harvest: "Harvest",
+    salesTitle: "Sales",
+    salesPreviewRow: "Your Harvest, Sold — preview",
+    recentActivity: "Recent Activity",
+    noActivity: "No activity yet — log care or run a scan to get started.",
+    forecast: "Forecast",
+    sampleData: "sample data",
+    rain: "rain",
+    soil: "soil",
+    readySince: (date: string) => `Ready since ${date}`,
+    lastWateredAgo: (d: number) => `Last watered ${d}d ago`,
+    notWateredYet: "Not watered yet",
+    lastFertilizedAgo: (d: number) => `Last fertilized ${d}d ago`,
+    notFertilizedYet: "Not fertilized yet",
+    stats: {
+      plants: "Plants",
+      healthy: "Healthy",
+      needCare: "Need Care",
+      harvest: "Harvest",
+    },
+    events: {
+      planted: "Planted",
+      water: "Watered",
+      fertilize: "Fertilized",
+      ai_scan: "AI Scan",
+      note: "Note",
+      harvested: "Harvested",
+    },
+  },
+  advice: {
+    // Every `detail` takes the rain % so `t.advice[level].detail(rain)` is a
+    // single call shape — only `skip` actually uses it.
+    skip: {
+      title: "Rain expected today",
+      detail: (rain: number) =>
+        `${rain}% chance of rain — you can likely skip watering.`,
+    },
+    urgent: {
+      title: "Hot and dry",
+      detail: (_rain: number) =>
+        "Soil is dry and heat is high — water in the early morning and again in the evening.",
+    },
+    water: {
+      title: "Soil is drying out",
+      detail: (_rain: number) =>
+        "Root-zone moisture is below the dry threshold — water your plants today.",
+    },
+    good: {
+      title: "Soil moisture is good",
+      detail: (_rain: number) =>
+        "No extra watering needed today — keep to your normal routine.",
+    },
+  },
+  weather: {
+    todayAtFarm: "Today at the farm",
+    rainChance: "Rain chance",
+    soilMoisture: "Soil moisture",
+    rainfall: "Rainfall",
+    temperature: "Temperature",
+    soilAndRain: "Soil moisture & rain",
+    today: "Today",
+    max: "max",
+    min: "min",
+    moisture: "moisture",
+    rainPct: "rain %",
+    dry: "dry",
+    offlineSample: "Weather: sample data (offline)",
+  },
+  map: {
+    subtitle: "tap a marker for details",
+    needCare: (n: number) => `Need Care (${n})`,
+    showingNeedCare: "Showing Need Care",
+    tapWhere: "Tap where the plant is",
+    firstPlant: "Tap ＋ to place your first plant",
+    loading3d: "Loading 3D…",
+    switchTo3d: "Switch to 3D walk",
+    switchTo2d: "Switch to 2D map",
+    walkHint: "Drag to look around · joystick to walk",
+    kpi: {
+      total: "Total Plants",
+      healthy: "Healthy",
+      attention: "Needs Attention",
+      critical: "Critical",
+      ready: "Ready For Harvest",
+    },
+    panels: {
+      farmHealth: "Farm health · 14 days",
+      avg: "avg",
+      needsCare: "Needs care",
+      plantsCount: (n: number) => `${n} plant${n === 1 ? "" : "s"}`,
+      allWell: "All plants are doing well 🌱",
+      upcomingHarvests: "Upcoming harvests",
+      planned: (n: number) => `${n} planned`,
+      ready: "Ready",
+      notEnoughHistory: "Not enough history yet — care logs and scans build this trend.",
+    },
+  },
+  quick: {
+    water: "Water",
+    fertilize: "Fertilize",
+    note: "Note",
+    status: "Status",
+    scan: "AI Scan",
+    harvestCta: "Harvest",
+  },
+  log: {
+    waterTitle: "Log Water",
+    fertilizeTitle: "Log Fertilizer",
+    noteTitle: "Add Note",
+    save: "Save",
+    saving: "Saving…",
+    cancel: "Cancel",
+    methodOptional: "Method (optional)",
+    methodPlaceholder: "e.g. Drip, Manual",
+    fertType: "Fertilizer Type",
+    fertTypePlaceholder: "e.g. NPK 15-15-15",
+    amountOptional: "Amount (optional)",
+    amountPlaceholder: "e.g. 50g",
+    category: "Category",
+    catUnknown: "Unknown",
+    catOrganic: "Organic",
+    catChemical: "Chemical",
+    note: "Note",
+    notePlaceholder: "What did you notice?",
+    pesticideUsed: "Pesticide used",
+    pesticideType: "Pesticide Type",
+    pesticideTypePlaceholder: "e.g. Neem oil spray",
+  },
+  profile: {
+    language: "Language",
+    languageHint: "App display language",
+    settings: "Settings",
+    signOut: "Sign Out",
+  },
+  common: {
+    preview: "PREVIEW",
+    seeAll: "See all",
+    back: "Back",
+    loading: "Loading…",
+  },
+};
+
+/** Dictionary shape — `ms` must provide every key `en` has. */
+export type Dict = typeof en;
+
+export const ms: Dict = {
+  tabs: {
+    home: "Utama",
+    map: "Peta",
+    sales: "Jualan",
+    profile: "Profil",
+    market: "Pasar",
+    orders: "Pesanan",
+    scan: "Imbas AI",
+  },
+  home: {
+    hi: (name: string) => `Hai, ${name} 👋`,
+    todaysTasks: "Tugas Hari Ini",
+    toDo: (n: number) => `${n} belum siap`,
+    allCaughtUp: "Semua selesai 🎉",
+    noTasks: "Tiada tugas buat masa ini.",
+    allDone: "Semua tugas selesai 🎉",
+    readyToHarvest: "Sedia Dituai",
+    needsWatering: "Perlu Disiram",
+    needsFertilizing: "Perlu Dibaja",
+    waterAll: "Siram Semua",
+    fertilizeAll: "Baja Semua",
+    completedToday: "Selesai Hari Ini",
+    watered: "Disiram",
+    fertilized: "Dibaja",
+    harvest: "Tuai",
+    salesTitle: "Jualan",
+    salesPreviewRow: "Hasil Tuaian Anda, Dijual — pratonton",
+    recentActivity: "Aktiviti Terkini",
+    noActivity: "Belum ada aktiviti — log penjagaan atau imbas untuk bermula.",
+    forecast: "Ramalan",
+    sampleData: "data contoh",
+    rain: "hujan",
+    soil: "tanah",
+    readySince: (date: string) => `Sedia sejak ${date}`,
+    lastWateredAgo: (d: number) => `Disiram ${d} hari lalu`,
+    notWateredYet: "Belum disiram",
+    lastFertilizedAgo: (d: number) => `Dibaja ${d} hari lalu`,
+    notFertilizedYet: "Belum dibaja",
+    stats: {
+      plants: "Pokok",
+      healthy: "Sihat",
+      needCare: "Perlu Jagaan",
+      harvest: "Tuaian",
+    },
+    events: {
+      planted: "Ditanam",
+      water: "Disiram",
+      fertilize: "Dibaja",
+      ai_scan: "Imbas AI",
+      note: "Catatan",
+      harvested: "Dituai",
+    },
+  },
+  advice: {
+    skip: {
+      title: "Hujan dijangka hari ini",
+      detail: (rain: number) =>
+        `${rain}% kemungkinan hujan — anda boleh langkau siraman.`,
+    },
+    urgent: {
+      title: "Panas dan kering",
+      detail: (_rain: number) =>
+        "Tanah kering dan cuaca panas — siram awal pagi dan sekali lagi pada waktu petang.",
+    },
+    water: {
+      title: "Tanah semakin kering",
+      detail: (_rain: number) =>
+        "Kelembapan akar di bawah paras kering — siram pokok anda hari ini.",
+    },
+    good: {
+      title: "Kelembapan tanah baik",
+      detail: (_rain: number) =>
+        "Tiada siraman tambahan diperlukan — teruskan rutin biasa.",
+    },
+  },
+  weather: {
+    todayAtFarm: "Hari ini di ladang",
+    rainChance: "Kemungkinan hujan",
+    soilMoisture: "Kelembapan tanah",
+    rainfall: "Hujan",
+    temperature: "Suhu",
+    soilAndRain: "Kelembapan tanah & hujan",
+    today: "Hari ini",
+    max: "maks",
+    min: "min",
+    moisture: "lembapan",
+    rainPct: "hujan %",
+    dry: "kering",
+    offlineSample: "Cuaca: data contoh (luar talian)",
+  },
+  map: {
+    subtitle: "tekan penanda untuk butiran",
+    needCare: (n: number) => `Perlu Jagaan (${n})`,
+    showingNeedCare: "Menunjukkan Perlu Jagaan",
+    tapWhere: "Tekan di lokasi pokok",
+    firstPlant: "Tekan ＋ untuk letak pokok pertama anda",
+    loading3d: "Memuatkan 3D…",
+    switchTo3d: "Tukar ke mod jalan 3D",
+    switchTo2d: "Tukar ke peta 2D",
+    walkHint: "Seret untuk melihat sekeliling · kayu bedik untuk berjalan",
+    kpi: {
+      total: "Jumlah Pokok",
+      healthy: "Sihat",
+      attention: "Perlu Perhatian",
+      critical: "Kritikal",
+      ready: "Sedia Dituai",
+    },
+    panels: {
+      farmHealth: "Kesihatan ladang · 14 hari",
+      avg: "purata",
+      needsCare: "Perlu jagaan",
+      plantsCount: (n: number) => `${n} pokok`,
+      allWell: "Semua pokok dalam keadaan baik 🌱",
+      upcomingHarvests: "Tuaian akan datang",
+      planned: (n: number) => `${n} dirancang`,
+      ready: "Sedia",
+      notEnoughHistory: "Sejarah belum mencukupi — log penjagaan dan imbasan membina trend ini.",
+    },
+  },
+  quick: {
+    water: "Siram",
+    fertilize: "Baja",
+    note: "Catatan",
+    status: "Status",
+    scan: "Imbas AI",
+    harvestCta: "Tuai",
+  },
+  log: {
+    waterTitle: "Log Siraman",
+    fertilizeTitle: "Log Baja",
+    noteTitle: "Tambah Catatan",
+    save: "Simpan",
+    saving: "Menyimpan…",
+    cancel: "Batal",
+    methodOptional: "Kaedah (pilihan)",
+    methodPlaceholder: "cth. Titis, Manual",
+    fertType: "Jenis Baja",
+    fertTypePlaceholder: "cth. NPK 15-15-15",
+    amountOptional: "Amaun (pilihan)",
+    amountPlaceholder: "cth. 50g",
+    category: "Kategori",
+    catUnknown: "Tidak pasti",
+    catOrganic: "Organik",
+    catChemical: "Kimia",
+    note: "Catatan",
+    notePlaceholder: "Apa yang anda perhatikan?",
+    pesticideUsed: "Racun perosak digunakan",
+    pesticideType: "Jenis Racun Perosak",
+    pesticideTypePlaceholder: "cth. Semburan minyak neem",
+  },
+  profile: {
+    language: "Bahasa",
+    languageHint: "Bahasa paparan aplikasi",
+    settings: "Tetapan",
+    signOut: "Log Keluar",
+  },
+  common: {
+    preview: "PRATONTON",
+    seeAll: "Lihat semua",
+    back: "Kembali",
+    loading: "Memuatkan…",
+  },
+};
+
+export const DICTS: Record<Lang, Dict> = { en, ms };
+
+export function isLang(v: unknown): v is Lang {
+  return v === "en" || v === "ms";
+}

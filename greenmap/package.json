@@ -9,22 +9,26 @@
     "db:seed": "tsx scripts/seed-demo.ts",
     "seed:billing": "tsx scripts/seed-billing.ts",
     "seed:consumer": "tsx scripts/seed-consumer.ts",
+    "seed:support": "tsx scripts/seed-support.ts",
     "test:smoke": "node scripts/smoke-test.mjs"
   },
   "dependencies": {
+    "@react-three/fiber": "^9.6.1",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.47.10",
+    "konva": "^9.3.16",
     "next": "^15.1.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "konva": "^9.3.16",
-    "react-konva": "^19.0.1"
+    "react-konva": "^19.0.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.185.1",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"

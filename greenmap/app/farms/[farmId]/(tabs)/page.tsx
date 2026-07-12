@@ -8,6 +8,7 @@ import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
 import { TodaysTasks, type TaskItem } from "@/components/home/TodaysTasks";
 import { getFarmWeather, weatherEmoji } from "@/lib/weather/fetch";
 import { wateringAdvice } from "@/lib/weather/advice";
+import { getDict, getLang } from "@/lib/i18n/server";
 import type { EventType } from "@/types/database";
 
 function daysSince(dateStr: string): number {
@@ -24,13 +25,14 @@ function relative(dateStr: string): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-const EVENT_META: Record<EventType, { icon: string; label: string }> = {
-  planted: { icon: "🌱", label: "Planted" },
-  water: { icon: "💧", label: "Watered" },
-  fertilize: { icon: "🌿", label: "Fertilized" },
-  ai_scan: { icon: "🔬", label: "AI Scan" },
-  note: { icon: "📝", label: "Note" },
-  harvested: { icon: "🧺", label: "Harvested" },
+/** Event icons — the labels come from the i18n dictionary at render time. */
+const EVENT_ICON: Record<EventType, string> = {
+  planted: "🌱",
+  water: "💧",
+  fertilize: "🌿",
+  ai_scan: "🔬",
+  note: "📝",
+  harvested: "🧺",
 };
 
 export default async function FarmHomePage({
@@ -39,12 +41,15 @@ export default async function FarmHomePage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const [bundle, { user, farms }] = await Promise.all([
+  const [bundle, { user, farms }, t, lang] = await Promise.all([
     getFarmBundle(farmId),
     getUserAndFarms(),
+    getDict(),
+    getLang(),
   ]);
   if (!bundle) notFound();
   const { farm, plants, care } = bundle;
+  const dateLocale = lang === "ms" ? "ms-MY" : "en-MY";
 
   const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
   const farmerName =
@@ -87,15 +92,15 @@ export default async function FarmHomePage({
   const fertilize: TaskItem[] = [];
   for (const p of active) {
     if (p.expected_harvest_date && p.expected_harvest_date <= today) {
-      harvest.push({ plantId: p.id, plantName: p.name, sub: `Ready since ${p.expected_harvest_date}` });
+      harvest.push({ plantId: p.id, plantName: p.name, sub: t.home.readySince(p.expected_harvest_date) });
     }
     const lw = care.lastWater.get(p.id);
     if (lw ? daysSince(lw) >= 3 : daysSince(p.plant_date) >= 2) {
-      water.push({ plantId: p.id, plantName: p.name, sub: lw ? `Last watered ${daysSince(lw)}d ago` : "Not watered yet" });
+      water.push({ plantId: p.id, plantName: p.name, sub: lw ? t.home.lastWateredAgo(daysSince(lw)) : t.home.notWateredYet });
     }
     const lf = care.lastFertilize.get(p.id);
     if (lf ? daysSince(lf) >= 14 : daysSince(p.plant_date) >= 7) {
-      fertilize.push({ plantId: p.id, plantName: p.name, sub: lf ? `Last fertilized ${daysSince(lf)}d ago` : "Not fertilized yet" });
+      fertilize.push({ plantId: p.id, plantName: p.name, sub: lf ? t.home.lastFertilizedAgo(daysSince(lf)) : t.home.notFertilizedYet });
     }
   }
   const totalTasks = harvest.length + water.length + fertilize.length;
@@ -108,24 +113,24 @@ export default async function FarmHomePage({
   }[];
 
   const stats = [
-    { label: "Plants", value: active.length, color: "#1E434A" },
-    { label: "Healthy", value: healthy, color: "#0DB074" },
-    { label: "Need Care", value: needCare, color: "#F59E0B" },
-    { label: "Harvest", value: harvestReadyCount, color: "#3B82F6" },
+    { label: t.home.stats.plants, value: active.length, color: "#1E434A" },
+    { label: t.home.stats.healthy, value: healthy, color: "#0DB074" },
+    { label: t.home.stats.needCare, value: needCare, color: "#F59E0B" },
+    { label: t.home.stats.harvest, value: harvestReadyCount, color: "#3B82F6" },
   ];
 
   return (
-    <main className="px-5 pt-12">
+    <main className="px-5 pt-12 lg:mx-auto lg:w-full lg:max-w-[1200px] lg:px-8 lg:pt-10">
       {/* Greeting */}
       <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
-        {new Date().toLocaleDateString("en-MY", {
+        {new Date().toLocaleDateString(dateLocale, {
           weekday: "long",
           day: "numeric",
           month: "long",
         })}
       </p>
       <h1 className="mt-1 text-[28px] font-bold leading-tight">
-        Hi, {farmerName} 👋
+        {t.home.hi(farmerName)}
       </h1>
       <FarmSwitcher
         farms={farms}
@@ -134,6 +139,9 @@ export default async function FarmHomePage({
         className="text-[14px] font-medium text-secondary"
       />
 
+      <div className="lg:mt-2 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8">
+        <div className="min-w-0">
+
       {/* Quick stats — a summary of the farm's state; taps through to the
           Map tab, which owns the full KPI breakdown and analysis. */}
       <div className="mt-4 grid grid-cols-4 gap-3">
@@ -141,7 +149,7 @@ export default async function FarmHomePage({
           <Link
             key={s.label}
             href={`/farms/${farmId}/field`}
-            className="rounded-card p-3 text-center glass active:opacity-80"
+            className="pressable rounded-card p-3 text-center glass"
           >
             <p
               className="text-[22px] font-bold leading-none"
@@ -159,7 +167,7 @@ export default async function FarmHomePage({
       {/* Today's weather advisory — one glance before the task list */}
       <Link
         href={`/farms/${farmId}/field`}
-        className="mt-4 flex items-center gap-2.5 rounded-card px-3.5 py-3 glass"
+        className="pressable mt-4 flex items-center gap-2.5 rounded-card px-3.5 py-3 glass"
         style={{ boxShadow: `inset 3px 0 0 ${advice.color}` }}
       >
         <span className="text-[18px] leading-none" aria-hidden>
@@ -170,8 +178,8 @@ export default async function FarmHomePage({
             className="block truncate text-[13px] font-bold"
             style={{ color: advice.color }}
           >
-            {advice.title}
-            {weather.source === "fallback" ? " · sample data" : ""}
+            {t.advice[advice.level].title}
+            {weather.source === "fallback" ? ` · ${t.home.sampleData}` : ""}
           </span>
           <span className="block truncate text-[12px] text-secondary">
             {weather.today.tempMax !== null
@@ -179,90 +187,90 @@ export default async function FarmHomePage({
               : "—"}{" "}
             ·{" "}
             {weather.today.rainProb !== null
-              ? `${Math.round(weather.today.rainProb)}% rain`
+              ? `${Math.round(weather.today.rainProb)}% ${t.home.rain}`
               : "—"}{" "}
             ·{" "}
             {weather.today.soilMoisture !== null
-              ? `soil ${Math.round(weather.today.soilMoisture * 100)}%`
-              : "soil —"}{" "}
+              ? `${t.home.soil} ${Math.round(weather.today.soilMoisture * 100)}%`
+              : `${t.home.soil} —`}{" "}
             {weatherEmoji(weather.today.weatherCode)}
           </span>
         </span>
         <span className="shrink-0 text-[12px] font-semibold text-brand">
-          Forecast ›
+          {t.home.forecast} ›
         </span>
       </Link>
 
       {/* Today's tasks */}
       <div className="mb-2 mt-7 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
-          Today&apos;s Tasks
+          {t.home.todaysTasks}
         </h2>
         {totalTasks > 0 && (
           <span className="text-[12px] font-medium text-secondary">
-            {totalTasks} to do
+            {t.home.toDo(totalTasks)}
           </span>
         )}
       </div>
       <TodaysTasks groups={{ harvest, water, fertilize }} farmId={farmId} />
 
-      {/* Sales summary (placeholder) */}
-      <h2 className="mb-2 mt-7 text-[13px] font-semibold uppercase tracking-wide text-secondary">
-        Sales
-      </h2>
-      <Card>
-        <div className="flex items-center justify-between">
-          <p className="text-[15px] font-semibold">Your Harvest, Sold</p>
-          <Badge tone="neutral">Coming soon</Badge>
         </div>
-        <div className="mt-3 grid grid-cols-3 gap-3">
-          {[
-            { label: "Products Sold", v: "—" },
-            { label: "Active Listings", v: "—" },
-            { label: "Revenue", v: "—" },
-          ].map((x) => (
-            <div key={x.label} className="rounded-input bg-fill p-3 text-center">
-              <p className="text-[18px] font-bold text-secondary">{x.v}</p>
-              <p className="mt-0.5 text-[10px] leading-tight text-secondary">
-                {x.label}
-              </p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-[12px] text-secondary">
-          List your harvest and track orders here in a later phase.
-        </p>
-      </Card>
+
+        <div className="min-w-0">
+
+      {/* Sales — one slim row, not a dashboard card. On a phone in the field
+          the sales preview was decoration; the Sales tab owns the detail. */}
+      <Link
+        href={`/farms/${farmId}/sales`}
+        className="pressable mt-7 lg:mt-0 flex items-center gap-3 rounded-card p-4 glass"
+      >
+        <span className="text-[18px]" aria-hidden>
+          🛒
+        </span>
+        <span className="min-w-0 flex-1 truncate text-[14px] font-medium">
+          {t.home.salesPreviewRow}
+        </span>
+        <Badge tone="warning">{t.common.preview}</Badge>
+        <span className="text-tertiary">›</span>
+      </Link>
 
       {/* Recent activity */}
       <h2 className="mb-2 mt-7 text-[13px] font-semibold uppercase tracking-wide text-secondary">
-        Recent Activity
+        {t.home.recentActivity}
       </h2>
       {feedItems.length === 0 ? (
         <Card className="text-center text-[14px] text-secondary">
-          No activity yet — log care or run a scan to get started.
+          {t.home.noActivity}
         </Card>
       ) : (
         <Card className="p-0">
           {/* ~5 rows visible; the rest scroll inside the card */}
-          <div className="max-h-[340px] overflow-y-auto [scrollbar-width:thin]">
+          <div className="max-h-[340px] overflow-y-auto [scrollbar-width:thin] lg:max-h-[480px]">
           {feedItems.map((f, i) => {
-            const m = EVENT_META[f.event_type] ?? { icon: "•", label: f.event_type };
+            const icon = EVENT_ICON[f.event_type] ?? "•";
+            const label = t.home.events[f.event_type] ?? f.event_type;
+            // Older task completions stored a note that just repeats the
+            // (English) label ("Watered" under "Watered") — hide those.
+            const note =
+              f.note &&
+              !["watered", "fertilized"].includes(f.note.trim().toLowerCase())
+                ? f.note
+                : null;
             return (
               <Link
                 key={i}
                 href={`/farms/${farmId}/plants/${f.plant_id}`}
-                className={`flex items-center gap-3 p-4 ${i > 0 ? "hairline-t" : ""}`}
+                className={`pressable flex items-center gap-3 p-4 ${i > 0 ? "hairline-t" : ""}`}
               >
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-fill text-[16px]">
-                  {m.icon}
+                  {icon}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[14px] font-medium">
-                    {nameById.get(f.plant_id) ?? "Plant"} · {m.label}
+                    {nameById.get(f.plant_id) ?? "Plant"} · {label}
                   </p>
-                  {f.note && (
-                    <p className="truncate text-[12px] text-secondary">{f.note}</p>
+                  {note && (
+                    <p className="truncate text-[12px] text-secondary">{note}</p>
                   )}
                 </div>
                 <span className="shrink-0 text-[12px] text-secondary">
@@ -274,6 +282,8 @@ export default async function FarmHomePage({
           </div>
         </Card>
       )}
+        </div>
+      </div>
     </main>
   );
 }

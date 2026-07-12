@@ -11,7 +11,7 @@
 > and recreates the demo grower's farms — never run it against a backend
 > holding data you care about.
 
-Run the six migrations **in order** in the Supabase SQL editor, then seed demo data.
+Run the eight migrations **in order** in the Supabase SQL editor, then seed demo data.
 
 ## 1. Run the migrations
 
@@ -23,8 +23,10 @@ Supabase Dashboard → **SQL Editor** → **New query**. Paste each file's conte
 4. `supabase/migrations/0004_storage.sql` — 3 public storage buckets
 5. `supabase/migrations/0005_billing.sql` — plan tiers, scan credits, payments, listing boosts
 6. `supabase/migrations/0006_farm_coordinates.sql` — optional `latitude`/`longitude` on `farms`, for exact-location weather on the Map tab
+7. `supabase/migrations/0007_support.sql` — customer service: refund requests, order feedback, support chat (customer-side RLS; refunds can only be created `pending`)
+8. `supabase/migrations/0008_seller_support.sql` — seller side: farm-ownership RLS so growers approve/reject refunds and reply to customers, plus `listing_stock` (in/out-of-stock)
 
-Each file is **re-runnable** — running it twice is safe. `0006` is additive and nullable — the app works without it (weather falls back to geocoding the farm's state), but the "Pin my farm's GPS location" button in farm setup needs it to persist the pin.
+Each file is **re-runnable** — running it twice is safe. `0006`–`0008` are additive — the app works without them (the affected panels show a friendly "run migration X" notice instead of breaking).
 
 > Prefer the CLI? With the Supabase CLI linked to your project, `supabase db push` applies everything in `supabase/migrations/` automatically.
 
@@ -64,11 +66,22 @@ Re-running `npm run db:seed` wipes the demo grower's farms and reseeds — safe 
 npm run seed:consumer
 ```
 
-Creates a **consumer** login `siti@greenmap.demo` / `Demo1234!` for experiencing
-the buyer/consumer side (the QR "growing story" home at `/consumer`). Idempotent
-and farm-preserving — it touches only that one account. Note: the product
-marketplace with ranking lives in the **grower** app (Sales → Browse Marketplace);
-the consumer role in the MVP is just the passport-scan home.
+Creates a **consumer** login `siti@greenmap.demo` / `Demo1234!` for the buyer
+app at `/consumer` (Home dashboard · Market · Orders · Profile + per-order
+customer service). Idempotent and farm-preserving — it touches only that one
+account.
+
+## Optional: demo customer-service data
+
+```bash
+npm run seed:support     # needs seed:consumer + migrations 0007 and 0008
+```
+
+Seeds a pending refund request, a customer message, and 4★ feedback from Siti
+on Ahmad's order (Ladang Hijau · GM-L1-02), and marks Pak Choi (l3) out of
+stock. Log in as `ahmad@greenmap.demo` → Sales → **Customer Service** to
+approve/reject the refund and reply. Idempotent — re-running resets the demo
+rows (handy after you've approved/rejected during a rehearsal).
 
 ## Verify it worked
 

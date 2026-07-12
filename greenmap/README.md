@@ -48,6 +48,24 @@ All eight build phases are **complete and type-clean** (`npx tsc --noEmit` → 0
 - **Billing & Marketplace preview.** Plan tiers, scan credits, listing boosts, and a simulated
   payment history (`lib/billing/`, `/farms/[farmId]/plan`, `/farms/[farmId]/sales/*`) — no real
   payment gateway; see `docs/00_BUILD_PLAN.md` §2 for what's intentionally still a static preview.
+- **Marketplace ranking engine.** Listing order is decided by `lib/marketplace/rank.ts`: a
+  capped **Promoted** tier (paid boosts, but never a wall of ads, and only if relevant/in stock)
+  followed by a weighted organic score — popularity (log-damped), engagement (Bayesian-smoothed
+  CTR + dwell), freshness, trust, proximity, health — with cold-start fairness for new listings.
+  Each card shows a chip naming the signal it over-indexes on. Engagement numbers are simulated
+  on the demo listings; the ranker itself is production-shaped.
+- **Consumer (buyer) app.** `/consumer` is a full tabbed app (Home dashboard with GreenPoints +
+  ranked "Fresh near you" · Market · Orders · Profile, plus a Scan FAB) mirroring the grower
+  shell. Listing detail + simulated checkout live at `/consumer/listing/[id]`. Demo login:
+  `siti@greenmap.demo` / `Demo1234!` (`npm run seed:consumer`).
+- **Customer service, both sides.** Buyers get a per-order support hub (refund/return request,
+  star feedback, seller chat, and an **AI admin assistant** — Gemini triages the issue but is
+  deliberately powerless: refunds insert as `pending` only, with **no client update policy**, so
+  the AI/customer can never self-approve). Growers get a **Customer Service inbox**
+  (`/farms/[farmId]/support`) to approve/reject refunds, reply to customers, and read feedback —
+  seller access is RLS keyed on farm ownership. Growers can also toggle listings
+  **in/out of stock** (`listing_stock`); the market greys sold-out cards and drops them from
+  promotion. Migrations `0007`/`0008`; demo data via `npm run seed:support`.
 
 ## Stack
 
@@ -81,6 +99,28 @@ npm run dev
 # → http://localhost:3000
 ```
 
+## Google / Apple sign-in (optional)
+
+The Apple and Google buttons on `/auth` run **real Supabase OAuth** (PKCE →
+`/auth/callback`). Out of the box they show a friendly "isn't switched on
+yet" message; to make Google live (free):
+
+1. **Google Cloud Console** → APIs & Services → Credentials → *Create
+   OAuth client ID* (type **Web application**). Add the authorized redirect
+   URI shown in Supabase: `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. **Supabase Dashboard** → Authentication → **Sign In / Providers → Google**
+   → enable, paste the Client ID + Secret.
+3. **Supabase Dashboard** → Authentication → **URL Configuration** → add your
+   app origin(s) (e.g. `http://localhost:3000/**` and the deployed URL) to
+   the redirect allow-list so `/auth/callback` is permitted.
+
+That's it — no code or env changes. First-time OAuth users get the role they
+selected on the auth page (Grower/Consumer) and their Google display name.
+
+**Apple** works identically via Supabase's Apple provider, but Apple only
+issues the required Service ID + key to members of the **paid** Apple
+Developer Program — without that account it stays a friendly disabled state.
+
 ## Environment variables
 
 | Variable | Scope | Needed for |
@@ -108,7 +148,8 @@ Never commit `.env.local`; never expose the server-only keys in the browser.
 7. **Plant Detail**: live health score (passive decay computed on load, never written), 7-day trend chart, a Gemini **suggestion card** (session-cached 60 min), and quick actions (Water / Fertilize / Note / manual Status) + activity timeline.
 8. **AI Scan**: upload a leaf photo (client-compressed) → Gemini Vision result → **review** → *Save to Plant Record* (re-sanitised server-side, logs `ai_scan`, recalculates score + history snapshot).
 9. **Harvest → Passport**: *Mark as Harvested* aggregates the journey, sets `lifecycle_status='harvested'`, mints a `qr_token`, and `/passport/[qrToken]` loads **fully public** (logged-out phone) — certificate, earned trust badges, full growing story, WhatsApp share.
-10. **Sales (preview)**: plan tiers + scan credits (`/farms/[farmId]/plan`), a simulated marketplace and listing flow (`/farms/[farmId]/sales/*`) — no real payment gateway.
+10. **Sales (preview)**: plan tiers + scan credits (`/farms/[farmId]/plan`), a simulated marketplace and listing flow (`/farms/[farmId]/sales/*`) — no real payment gateway. Rankings are decided by the marketplace ranking engine; the grower can toggle their own listings **in/out of stock** and open the **Customer Service** inbox to approve/reject refunds, reply to customers, and read feedback.
+11. **Consumer app**: log in as `siti@greenmap.demo` / `Demo1234!` → a tabbed buyer app (Home · Market · Orders · Profile + Scan FAB). Tap an order → support hub: request a refund/return (opens as `pending`; only the seller can approve), leave star feedback, message the seller, or ask the **AI admin assistant** (Gemini triage with a mock fallback).
 
 ## Project structure
 
@@ -116,7 +157,11 @@ Never commit `.env.local`; never expose the server-only keys in the browser.
 app/
   page.tsx                              Landing (server)
   auth/{layout,page}.tsx                 Rustic parchment theme + Register/Login + SunflowerScene
-  consumer/page.tsx                     Minimal consumer home
+  consumer/(tabs)/{page,market,orders,profile}/  Buyer app: Home dashboard · Market · Orders · Profile
+  consumer/listing/[listingId]/page.tsx Listing detail + simulated checkout (consumer route)
+  consumer/orders/[orderId]/page.tsx    Order detail + customer-service hub (refund/feedback/chats)
+  consumer/support/[thread]/page.tsx    Support chat — seller thread or the AI admin assistant
+  consumer/scan/page.tsx                Scan-a-passport page (links the sample QR)
   farm-dashboard/page.tsx               Standalone desktop dashboard mockup preview (not in the tab flow)
   farms/page.tsx                        Farm selector (empty state + create)
   farms/new/{profile,map,zones}/        3-step setup wizard (optional GPS pin on step 1; saves on step 3)
@@ -125,6 +170,7 @@ app/
   farms/[farmId]/map/page.tsx           Legacy URL — redirects straight to .../field
   farms/[farmId]/(tabs)/scan/page.tsx   Scan plant-picker tab
   farms/[farmId]/(tabs)/{sales,profile}/  Sales (preview) · Profile tabs
+  farms/[farmId]/support/page.tsx       Grower Customer Service inbox (refunds, replies, feedback)
   farms/[farmId]/plan/page.tsx          My Plan — tier, usage, top-up, payment history
   farms/[farmId]/sales/{market,new}/    Marketplace preview + list-harvest form
   farms/[farmId]/plants/[plantId]/{page,scan,activity,harvest}/
@@ -133,29 +179,32 @@ app/
   api/ai/{scan,save-scan,suggest}/route.ts
   api/health/recalculate/route.ts · api/passports/generate/route.ts
   api/tasks/{complete,uncomplete}/route.ts
-  api/payments/route.ts · api/satellite/route.ts
+  api/payments/route.ts · api/satellite/route.ts · api/support/chat/route.ts
 
 components/
   ai/ (ScanUploader, AIScanResultCard) · auth/ (SunflowerScene, PasswordChecklist, SignOutButton, map/{Landscape,TopoBackground,SceneProps})
   billing/ (PlanPageClient, BoostButton, CheckoutSheet) · sales/ (Marketplace, SalesDashboard, ListingDetail, ListHarvestForm)
+  consumer/ (demo-consumer data, SupportChat, OrderSupport) · seller/ (RefundActions, SellerThread, StockToggle)
   dashboard/ (FarmDashboard — the standalone preview above)
   farm/ (FarmMap, FarmMapCanvas, PlantMarker, PlantBottomSheet, KpiStrip, AddPlantModal, FarmCard, FarmSwitcher, LogModal,
          WeatherToday, WeatherCharts, WeatherStrip, FarmHealthTrend, NeedsCareList, UpcomingHarvests)
-  home/ (TodaysTasks) · layout/ (AppShell, TopNav, StepDots)
+  farm/walk/ (3D first-person walk — FarmWalk, WalkRig, PlantSprites, GroundTexture, Joystick, world.ts, markerTexture.ts;
+              lazy-loaded three.js, mounted by FarmMap's 2D⇄3D toggle)
+  home/ (TodaysTasks) · layout/ (AppShell, ConsumerShell, TopNav, StepDots)
   passport/ (HarvestPassportCard, TrustBadges, QrBlock, HarvestConfirm)
   plant/ (HealthTrendChart, ActivityTimeline, SuggestionCard, ManualStatusControl, PlantQuickActions)
   ui/ (Button, Card, Badge, Input, Select, Modal/BottomSheet, SegmentedControl, EmptyState, Skeleton)
 
-lib/  supabase/{client,server,admin,middleware} · ai/{gemini-vision,gemini-text,validate}
+lib/  supabase/{client,server,admin,middleware} · ai/{gemini-vision,gemini-text,gemini-support,validate}
       health/{calculate,live,recalculate,display} · passport/aggregate · billing/{plans,usage}
-      weather/{fetch,advice} · auth/password · farm/fetch · utils
+      weather/{fetch,advice} · marketplace/rank · auth/password · farm/fetch · utils
 middleware.ts                            route protection + role-based redirects
 types/  database.ts · index.ts
 docs/   00_BUILD_PLAN · 01_CODE_CONCEPT · 02_PROTOTYPE_MAPPING · 03_BACKEND_TRUTH · 08_DEMO
-supabase/migrations/  0001_init … 0006_farm_coordinates
+supabase/migrations/  0001_init … 0008_seller_support
 # ../docs/superpowers/specs/ (repo root, one level up) — design specs for
 # later features, e.g. the 2026-07-06 map-dashboard/weather spec
-scripts/  seed-demo.ts · seed-billing.ts · smoke-test.mjs · test-tasks-data.sql · README.md
+scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts · smoke-test.mjs · test-tasks-data.sql · README.md
 ```
 
 ## Conventions
@@ -167,7 +216,9 @@ scripts/  seed-demo.ts · seed-billing.ts · smoke-test.mjs · test-tasks-data.s
 - The health score is the deterministic **40/25/20/15** formula in `lib/health/calculate.ts` (one pure function shared by server writes and client display). Decay: watering −10/day, fertilizer −8/day; AI default 50; manual healthy/attention/critical = 100/50/0.
 - `growth_logs.event_type` uses exactly six strings — `planted`, `water`, `fertilize`, `ai_scan`, `note`, `harvested` (see `docs/03_BACKEND_TRUTH.md` §3).
 - Weather (`lib/weather/fetch.ts`) always degrades to a deterministic sample dataset on any network/parse failure — the Map tab and Home advisory must never break on stage. A farm's GPS pin (if set) beats geocoding its state name for forecast accuracy.
-- The desktop Map dashboard escapes the mobile 430px app frame via `.map-breakout` in `globals.css` (`@media (min-width: 1024px)`) — the same escape-hatch pattern the auth breakout uses, just media-query-gated instead of unconditional.
+- Desktop layouts escape the mobile 430px app frame via `.desktop-breakout` (per-page marker) or `.shell-breakout` (set by the tab shells) in `globals.css` (`@media (min-width: 1024px)`) — the same escape-hatch pattern the auth breakout uses, just media-query-gated instead of unconditional.
+- **Press feedback is universal** — `.pressable` / `.pressable-glow` in `globals.css` give every button and tappable card a darken-on-press + springy release (Tailwind v4 preflight zeroes `-webkit-tap-highlight-color`, so this is what restores the "it registered my tap" cue). Reuse these utilities; never add per-component `:active` styles.
+- **The Map tab has a 2D⇄3D toggle.** `FarmMap.tsx` holds a `mode` state and lazy-loads `components/farm/walk/` (client-only three.js, `next/dynamic` with `ssr: false`, ~352 KB async chunk so the field's first load stays unchanged). The 3D mode is a first-person **farm walk** — drag to look 360°, WASD/arrow keys or the on-screen joystick to move, and tapping a plant sprite opens the *same* `PlantBottomSheet` as 2D. `walk/world.ts` maps each plant's `position_x/y` onto a 60-unit ground plane; sprites reuse the 2D marker colours (`NODE_COLOR`), and the farm's uploaded/satellite photo becomes the ground texture when present. All labels go through the EN/BM dictionary keys `switchTo3d` / `switchTo2d` / `loading3d` / `walkHint`.
 
 ## Troubleshooting
 
@@ -190,8 +241,8 @@ Import the repo → add the same env vars in Project Settings (set `NEXT_PUBLIC_
 The schema, RLS, storage and seed live in `supabase/` and `scripts/`.
 Full instructions: **[`scripts/README.md`](./scripts/README.md)**. In short:
 
-1. Run the 6 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor).
+1. Run the 8 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor).
 2. Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Settings → API → service_role).
 3. `npm run db:seed` → demo grower `ahmad@greenmap.demo` / `Demo1234!`, farm *Ladang Hijau*, ~30 plants, backdated logs, a 7-day trend, saved AI analyses, and one harvested plant with a fixed passport at `/passport/00000000-0000-4000-8000-0000deadbeef`.
 
-Need test rows for the Home **Today's Tasks** board? `scripts/test-tasks-data.sql` backdates a spread of overdue water / fertilizer / harvest-ready plants. Need billing state without touching farms? `npm run seed:billing`.
+Need test rows for the Home **Today's Tasks** board? `scripts/test-tasks-data.sql` backdates a spread of overdue water / fertilizer / harvest-ready plants. Need billing state + a promoted listing? `npm run seed:billing`. Demo consumer login? `npm run seed:consumer`. A populated Customer Service inbox + an out-of-stock listing? `npm run seed:support`.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { isPasswordValid } from "@/lib/auth/password";
@@ -67,16 +67,50 @@ function GoogleLogo() {
   );
 }
 
+type SsoProvider = "apple" | "google";
+
 /**
- * Disabled SSO previews (user decision B, 2026-07-05): the reference layout's
- * Apple/Google buttons, shown honestly — no OAuth is configured (and Apple
- * sign-in needs a paid developer account), so they are real <button disabled>
- * elements with a "coming soon" caption. Wood-textured to match the map theme.
+ * Which OAuth providers are switched on for this Supabase project. GoTrue's
+ * public settings endpoint reports them, so a click on an unconfigured
+ * provider can show a friendly message instead of bouncing the farmer to a
+ * raw JSON error page. Cached for the page's lifetime; null = unknown
+ * (endpoint unreachable) → optimistically attempt the sign-in.
  */
-function SsoBlock({ isRegister }: { isRegister: boolean }) {
+let settingsCache: Record<string, boolean> | null | undefined;
+async function fetchEnabledProviders(): Promise<Record<string, boolean> | null> {
+  if (settingsCache !== undefined) return settingsCache;
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/settings`,
+      { headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" } }
+    );
+    const json = (await res.json()) as { external?: Record<string, boolean> };
+    settingsCache = json.external ?? null;
+  } catch {
+    settingsCache = null;
+  }
+  return settingsCache;
+}
+
+/**
+ * Live SSO buttons — real Supabase OAuth (PKCE). The flow lands on
+ * /auth/callback, which exchanges the code and, for first-time users,
+ * applies the role selected above (register mode). Providers must be
+ * enabled in Supabase → Authentication → Providers (see README §Google
+ * sign-in); Apple additionally needs a paid Apple Developer account.
+ */
+function SsoBlock({
+  isRegister,
+  busy,
+  onSso,
+}: {
+  isRegister: boolean;
+  busy: SsoProvider | null;
+  onSso: (provider: SsoProvider) => void;
+}) {
   const verb = isRegister ? "Sign up" : "Sign in";
   const woodBtn =
-    "flex h-11 items-center justify-center gap-2 rounded-lg border-2 border-wood-medium/50 bg-[#d2b48c]/40 font-rustic text-[13px] font-medium text-wood-dark opacity-70 cursor-not-allowed";
+    "pressable flex h-11 items-center justify-center gap-2 rounded-lg border-2 border-wood-medium/50 bg-[#d2b48c]/40 font-rustic text-[13px] font-medium text-wood-dark hover:bg-[#d2b48c]/60 disabled:pointer-events-none disabled:opacity-60";
   return (
     <div className="mt-4">
       <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-wood-medium/60">
@@ -85,15 +119,27 @@ function SsoBlock({ isRegister }: { isRegister: boolean }) {
         <span aria-hidden className="h-px flex-1 bg-wood-medium/25" />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <button type="button" disabled className={woodBtn}>
-          <AppleLogo /> Apple
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() => onSso("apple")}
+          className={woodBtn}
+        >
+          {busy === "apple" ? <Spinner /> : <AppleLogo />}
+          {busy === "apple" ? "Opening…" : "Apple"}
         </button>
-        <button type="button" disabled className={woodBtn}>
-          <GoogleLogo /> Google
+        <button
+          type="button"
+          disabled={busy !== null}
+          onClick={() => onSso("google")}
+          className={woodBtn}
+        >
+          {busy === "google" ? <Spinner /> : <GoogleLogo />}
+          {busy === "google" ? "Opening…" : "Google"}
         </button>
       </div>
       <p className="mt-2 text-center font-rustic text-[11px] italic text-wood-medium/60">
-        {verb} with Apple or Google — coming soon
+        {verb} with Apple or Google
       </p>
     </div>
   );
@@ -215,8 +261,20 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [ssoBusy, setSsoBusy] = useState<SsoProvider | null>(null);
 
   const isRegister = mode === "register";
+
+  // Surface an OAuth failure passed back by /auth/callback (?sso_error=…),
+  // then clean the URL so a refresh doesn't re-show it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ssoError = params.get("sso_error");
+    if (ssoError) {
+      setError(ssoError);
+      window.history.replaceState(null, "", "/auth");
+    }
+  }, []);
 
   // Sunflower growth meter (register) + wilt penalty (login).
   const pwdCriteria = useMemo(
@@ -308,6 +366,40 @@ export default function AuthPage() {
     window.location.href = destinationFor(userRole);
   }
 
+  /** Real OAuth via Supabase. Prechecks the provider is enabled so farmers
+   *  get a friendly message (not a raw JSON error) when it isn't. */
+  async function handleSso(provider: SsoProvider) {
+    setError(null);
+    setNotice(null);
+    setSsoBusy(provider);
+
+    const enabled = await fetchEnabledProviders();
+    if (enabled && !enabled[provider]) {
+      setError(
+        provider === "google"
+          ? "Google sign-in isn't switched on for this server yet."
+          : "Apple sign-in isn't switched on for this server yet."
+      );
+      setSsoBusy(null);
+      return;
+    }
+
+    const supabase = createClient();
+    const { error: ssoError } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        // The callback finalises role + name for first-time users. The role
+        // hint comes from the selector above (defaults to grower on login).
+        redirectTo: `${window.location.origin}/auth/callback?role=${role}`,
+      },
+    });
+    // On success the browser navigates away; we only get here on failure.
+    if (ssoError) {
+      setError(ssoError.message);
+      setSsoBusy(null);
+    }
+  }
+
   const passwordToggle = (
     <button
       type="button"
@@ -321,7 +413,7 @@ export default function AuthPage() {
 
   /* Rustic primary button — used for submit and the notice CTA. */
   const primaryBtn =
-    "flex h-[50px] w-full items-center justify-center gap-2 rounded-lg wood-btn-shadow bg-meadow-green font-rustic text-[16px] font-semibold text-paper-light transition hover:bg-meadow-dark active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
+    "pressable pressable-glow flex h-[50px] w-full items-center justify-center gap-2 rounded-lg wood-btn-shadow bg-meadow-green font-rustic text-[16px] font-semibold text-paper-light hover:bg-meadow-dark disabled:pointer-events-none disabled:opacity-50";
 
   /* The form contents — shared by both columns / breakpoints. */
   const formPanel = (
@@ -381,7 +473,7 @@ export default function AuthPage() {
                         onClick={() => setRole(card.value)}
                         aria-pressed={selected}
                         className={cn(
-                          "relative rounded-lg border-2 p-2.5 text-left transition",
+                          "pressable relative rounded-lg border-2 p-2.5 text-left",
                           selected
                             ? "border-wood-dark bg-[#e3d0a6]"
                             : "border-wood-light/40 bg-paper-light"
@@ -504,7 +596,7 @@ export default function AuthPage() {
             )}
           </button>
 
-          <SsoBlock isRegister={isRegister} />
+          <SsoBlock isRegister={isRegister} busy={ssoBusy} onSso={handleSso} />
         </form>
       )}
 
@@ -516,7 +608,7 @@ export default function AuthPage() {
               Already have an account?{" "}
               <button
                 type="button"
-                className="font-semibold text-meadow-green hover:underline"
+                className="font-semibold text-meadow-green transition-opacity hover:underline active:opacity-60"
                 onClick={() => switchMode("login")}
               >
                 Sign In
@@ -527,7 +619,7 @@ export default function AuthPage() {
               New here?{" "}
               <button
                 type="button"
-                className="font-semibold text-meadow-green hover:underline"
+                className="font-semibold text-meadow-green transition-opacity hover:underline active:opacity-60"
                 onClick={() => switchMode("register")}
               >
                 Create one

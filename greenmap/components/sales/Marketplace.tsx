@@ -33,16 +33,20 @@ const REASON_CHIP: Record<RankReason, string> = {
 export function Marketplace({
   basePath,
   boostedIds = [],
+  outOfStockIds = [],
 }: {
   /** URL prefix for a listing detail — grower or consumer market route.
    *  A card links to `${basePath}/${listingId}`. */
   basePath: string;
   /** Listings with an active paid boost — shown first with a Promoted tag. */
   boostedIds?: string[];
+  /** Listings the seller has marked out of stock (from listing_stock). */
+  outOfStockIds?: string[];
 }) {
   const [filter, setFilter] = useState("All");
 
   const ranked = useMemo(() => {
+    const oos = new Set(outOfStockIds);
     const filtered = LISTINGS.filter((l) => {
       if (filter === "✓ Passport") return l.verified;
       if (filter === "Within 10km") return l.distanceKm <= 10;
@@ -51,15 +55,17 @@ export function Marketplace({
     });
 
     // The ranker works in absolute time; convert each listing's "hours ago"
-    // into a harvest timestamp so freshness decays relative to now.
+    // into a harvest timestamp so freshness decays relative to now. Out-of-stock
+    // items still show, but inStock:false drops them from the promoted slots.
     const now = Date.now();
     const rankable = filtered.map((l) => ({
       ...l,
       harvestedAt: new Date(now - l.harvestedHoursAgo * 3_600_000).toISOString(),
+      inStock: !oos.has(l.id),
     }));
 
     return rankListings(rankable, { boostedIds, now: new Date(now) });
-  }, [filter, boostedIds]);
+  }, [filter, boostedIds, outOfStockIds]);
 
   return (
     <div className="pb-8">
@@ -93,19 +99,30 @@ export function Marketplace({
 
       {/* Product cards — ordered by the ranking engine */}
       <div className="mt-4 space-y-4 px-5">
-        {ranked.map(({ listing: l, promoted, reason }) => (
+        {ranked.map(({ listing: l, promoted, reason }) => {
+          const outOfStock = l.inStock === false;
+          return (
           <div key={l.id} className="overflow-hidden rounded-card glass">
-            <div className="relative h-32" style={{ background: l.gradient }}>
+            <div
+              className="relative h-32"
+              style={{ background: l.gradient, opacity: outOfStock ? 0.55 : 1 }}
+            >
               <span className="absolute left-3 top-3 text-[40px]">{l.emoji}</span>
               {l.verified && (
                 <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-brand-dark">
                   ✓ Passport Verified
                 </span>
               )}
-              {promoted && (
-                <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-warning">
-                  ⚡ Promoted
+              {outOfStock ? (
+                <span className="absolute bottom-3 left-3 rounded-full bg-label/85 px-2.5 py-1 text-[11px] font-semibold text-white">
+                  Out of stock
                 </span>
+              ) : (
+                promoted && (
+                  <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-warning">
+                    ⚡ Promoted
+                  </span>
+                )
               )}
             </div>
             <div className="p-4">
@@ -141,22 +158,29 @@ export function Marketplace({
                   {l.verified && (
                     <Link
                       href={`${basePath}/${l.id}`}
-                      className="text-[13px] font-semibold text-info"
+                      className="text-[13px] font-semibold text-info transition-opacity active:opacity-60"
                     >
                       🔍 Journey
                     </Link>
                   )}
-                  <Link
-                    href={`${basePath}/${l.id}`}
-                    className="rounded-btn bg-brand px-5 py-2.5 text-[15px] font-semibold text-white transition active:scale-95"
-                  >
-                    Buy
-                  </Link>
+                  {outOfStock ? (
+                    <span className="rounded-btn bg-fill px-5 py-2.5 text-[15px] font-semibold text-tertiary">
+                      Sold out
+                    </span>
+                  ) : (
+                    <Link
+                      href={`${basePath}/${l.id}`}
+                      className="rounded-btn bg-brand px-5 py-2.5 text-[15px] font-semibold text-white transition active:scale-95"
+                    >
+                      Buy
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
         {ranked.length === 0 && (
           <p className="py-10 text-center text-[14px] text-secondary">
             No listings match that filter.

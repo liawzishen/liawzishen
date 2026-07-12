@@ -4,18 +4,20 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogModal, type LogType } from "@/components/farm/LogModal";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Plant } from "@/types/database";
 
-const TILES: { type: LogType; icon: string; label: string }[] = [
-  { type: "water", icon: "💧", label: "Water" },
-  { type: "fertilize", icon: "🌿", label: "Fertilize" },
-  { type: "note", icon: "📝", label: "Note" },
+const TILES: { type: LogType; icon: string }[] = [
+  { type: "water", icon: "💧" },
+  { type: "fertilize", icon: "🌿" },
+  { type: "note", icon: "📝" },
 ];
 
 /**
  * Quick-action tiles on the plant detail page. Water/Fertilize/Note open the
  * shared LogModal (insert + recalculate); on success we refresh so the score,
  * trend and timeline update. AI Scan links to the Phase 6 scan flow.
+ * Tiles are deliberately tall (field use: gloves, sunlight, one thumb).
  */
 export function PlantQuickActions({
   plant,
@@ -25,28 +27,31 @@ export function PlantQuickActions({
   scanHref: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [logType, setLogType] = useState<LogType | null>(null);
 
   return (
     <>
       <div className="grid grid-cols-4 gap-3">
-        {TILES.map((t) => (
+        {TILES.map((tile) => (
           <button
-            key={t.type}
+            key={tile.type}
             type="button"
-            onClick={() => setLogType(t.type)}
-            className="flex flex-col items-center gap-1.5 rounded-squarcle py-3 glass active:opacity-80"
+            onClick={() => setLogType(tile.type)}
+            className="pressable flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-squarcle py-3 glass"
           >
-            <span className="text-[22px]">{t.icon}</span>
-            <span className="text-[11px] font-medium">{t.label}</span>
+            <span className="text-[26px]">{tile.icon}</span>
+            <span className="text-[12px] font-semibold">
+              {t.quick[tile.type]}
+            </span>
           </button>
         ))}
         <Link
           href={scanHref}
-          className="flex flex-col items-center gap-1.5 rounded-squarcle py-3 glass active:opacity-80"
+          className="pressable flex min-h-[76px] flex-col items-center justify-center gap-1.5 rounded-squarcle py-3 glass"
         >
-          <span className="text-[22px]">🔬</span>
-          <span className="text-[11px] font-medium">AI Scan</span>
+          <span className="text-[26px]">🔬</span>
+          <span className="text-[12px] font-semibold">{t.quick.scan}</span>
         </Link>
       </div>
 

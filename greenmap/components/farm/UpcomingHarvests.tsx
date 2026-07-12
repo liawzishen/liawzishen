@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getDict } from "@/lib/i18n/server";
 import type { Plant } from "@/types/database";
 
 function daysUntil(dateStr: string): number {
@@ -14,13 +15,14 @@ function daysUntil(dateStr: string): number {
  * overdue/today first ("Ready"), then the coming weeks. About five rows are
  * visible; the list scrolls internally beyond that.
  */
-export function UpcomingHarvests({
+export async function UpcomingHarvests({
   plants,
   farmId,
 }: {
   plants: Plant[];
   farmId: string;
 }) {
+  const t = await getDict();
   const upcoming = plants
     .filter((p) => p.lifecycle_status === "active" && p.expected_harvest_date)
     .sort((a, b) =>
@@ -30,10 +32,10 @@ export function UpcomingHarvests({
   return (
     <section className="rounded-card p-4 glass">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[14px] font-bold">Upcoming harvests</h3>
+        <h3 className="text-[14px] font-bold">{t.map.panels.upcomingHarvests}</h3>
         {upcoming.length > 0 && (
           <span className="text-[11px] text-secondary">
-            {upcoming.length} planned
+            {t.map.panels.planned(upcoming.length)}
           </span>
         )}
       </div>
@@ -77,7 +79,7 @@ export function UpcomingHarvests({
                         : "bg-fill text-secondary"
                     }`}
                   >
-                    {ready ? "Ready" : `${d}d`}
+                    {ready ? t.map.panels.ready : `${d}d`}
                   </span>
                 </Link>
               </li>

@@ -1,4 +1,5 @@
 import { healthDisplay } from "@/lib/health/display";
+import { getDict } from "@/lib/i18n/server";
 import type { FarmHealthPoint } from "@/lib/farm/fetch";
 
 /**
@@ -6,24 +7,25 @@ import type { FarmHealthPoint } from "@/lib/farm/fetch";
  * health_score_history snapshot across all plants, averaged per day.
  * Same dependency-free SVG style as the plant-level HealthTrendChart.
  */
-export function FarmHealthTrend({ points }: { points: FarmHealthPoint[] }) {
+export async function FarmHealthTrend({ points }: { points: FarmHealthPoint[] }) {
+  const t = await getDict();
   const latest = points.length > 0 ? points[points.length - 1].avg : null;
   const color = healthDisplay(latest).color;
 
   return (
     <section className="rounded-card p-4 glass">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-[14px] font-bold">Farm health · 14 days</h3>
+        <h3 className="text-[14px] font-bold">{t.map.panels.farmHealth}</h3>
         {latest !== null && (
           <span className="text-[13px] font-bold" style={{ color }}>
-            avg {latest}
+            {t.map.panels.avg} {latest}
           </span>
         )}
       </div>
 
       {points.length < 2 ? (
         <p className="mt-3 rounded-input bg-fill px-3 py-3 text-center text-[13px] text-secondary">
-          Not enough history yet — care logs and scans build this trend.
+          {t.map.panels.notEnoughHistory}
         </p>
       ) : (
         <Chart points={points} color={color} />
