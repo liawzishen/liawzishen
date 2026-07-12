@@ -188,6 +188,8 @@ components/
   dashboard/ (FarmDashboard — the standalone preview above)
   farm/ (FarmMap, FarmMapCanvas, PlantMarker, PlantBottomSheet, KpiStrip, AddPlantModal, FarmCard, FarmSwitcher, LogModal,
          WeatherToday, WeatherCharts, WeatherStrip, FarmHealthTrend, NeedsCareList, UpcomingHarvests)
+  farm/walk/ (3D first-person walk — FarmWalk, WalkRig, PlantSprites, GroundTexture, Joystick, world.ts, markerTexture.ts;
+              lazy-loaded three.js, mounted by FarmMap's 2D⇄3D toggle)
   home/ (TodaysTasks) · layout/ (AppShell, ConsumerShell, TopNav, StepDots)
   passport/ (HarvestPassportCard, TrustBadges, QrBlock, HarvestConfirm)
   plant/ (HealthTrendChart, ActivityTimeline, SuggestionCard, ManualStatusControl, PlantQuickActions)
@@ -215,6 +217,8 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - `growth_logs.event_type` uses exactly six strings — `planted`, `water`, `fertilize`, `ai_scan`, `note`, `harvested` (see `docs/03_BACKEND_TRUTH.md` §3).
 - Weather (`lib/weather/fetch.ts`) always degrades to a deterministic sample dataset on any network/parse failure — the Map tab and Home advisory must never break on stage. A farm's GPS pin (if set) beats geocoding its state name for forecast accuracy.
 - Desktop layouts escape the mobile 430px app frame via `.desktop-breakout` (per-page marker) or `.shell-breakout` (set by the tab shells) in `globals.css` (`@media (min-width: 1024px)`) — the same escape-hatch pattern the auth breakout uses, just media-query-gated instead of unconditional.
+- **Press feedback is universal** — `.pressable` / `.pressable-glow` in `globals.css` give every button and tappable card a darken-on-press + springy release (Tailwind v4 preflight zeroes `-webkit-tap-highlight-color`, so this is what restores the "it registered my tap" cue). Reuse these utilities; never add per-component `:active` styles.
+- **The Map tab has a 2D⇄3D toggle.** `FarmMap.tsx` holds a `mode` state and lazy-loads `components/farm/walk/` (client-only three.js, `next/dynamic` with `ssr: false`, ~352 KB async chunk so the field's first load stays unchanged). The 3D mode is a first-person **farm walk** — drag to look 360°, WASD/arrow keys or the on-screen joystick to move, and tapping a plant sprite opens the *same* `PlantBottomSheet` as 2D. `walk/world.ts` maps each plant's `position_x/y` onto a 60-unit ground plane; sprites reuse the 2D marker colours (`NODE_COLOR`), and the farm's uploaded/satellite photo becomes the ground texture when present. All labels go through the EN/BM dictionary keys `switchTo3d` / `switchTo2d` / `loading3d` / `walkHint`.
 
 ## Troubleshooting
 
