@@ -2,11 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
+import * as THREE from "three";
 import type { Farm, FarmPanorama, PanoramaPlantTag, Plant } from "@/types/database";
 import { PanoramaSphere } from "./PanoramaSphere";
 import { LookControls } from "./LookControls";
 import { TourEmptyState } from "./TourEmptyState";
 import { HopCircles } from "./HopCircles";
+import { PlantTagPins } from "./PlantTagPins";
+import { TagEditor } from "./TagEditor";
+import { vecToSpherical } from "./geometry";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 /**
@@ -23,6 +28,8 @@ export function FarmTour({
   loadError,
   onMarkerClick,
   onBackgroundClick,
+  onAddTag,
+  onRemoveTag,
 }: {
   farm: Farm;
   plants: Plant[];
@@ -32,12 +39,24 @@ export function FarmTour({
   loadError: boolean;
   onMarkerClick: (plant: Plant) => void;
   onBackgroundClick?: () => void;
+  onAddTag: (input: {
+    panorama_id: string;
+    plant_id: string;
+    yaw: number;
+    pitch: number;
+  }) => Promise<unknown>;
+  onRemoveTag: (id: string) => Promise<void>;
 }) {
   const { t } = useI18n();
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState(false);
   const [fading, setFading] = useState(false);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [tagMode, setTagMode] = useState<"off" | "aim" | "pick">("off");
+  const [pendingSpot, setPendingSpot] = useState<{
+    yaw: number;
+    pitch: number;
+  } | null>(null);
 
   // Enter the first panorama once loaded (Task 6 adds startId for 2D badges).
   useEffect(() => {
@@ -82,8 +101,6 @@ export function FarmTour({
       });
   }, [currentId, panoramas]);
 
-  void plants; void tags; void onMarkerClick; // consumed by Task 4 (plant pins)
-
   if (loading) {
     return (
       <div className="flex h-full w-full items-center justify-center text-[15px] text-secondary">
@@ -107,13 +124,50 @@ export function FarmTour({
           key={current.id}
           pano={current}
           onLoadError={() => setPhotoError(true)}
-        />
-        <HopCircles
-          farm={farm}
-          current={current}
-          panoramas={panoramas}
-          onHop={hopTo}
-        />
+        >
+          {tagMode === "aim" && (
+            <mesh
+              scale={[-1, 1, 1]}
+              onClick={(e: ThreeEvent<MouseEvent>) => {
+                e.stopPropagation();
+                // hit point is world-space; convert to photo space via the
+                // rotated parent group so tags stick to the photo.
+                const local = e.object.parent!.worldToLocal(e.point.clone());
+                setPendingSpot(vecToSpherical(local));
+                setTagMode("pick");
+              }}
+            >
+              {/* r=39: just BEHIND the pins (r=38) so pin taps win the raycast */}
+              <sphereGeometry args={[39, 32, 24]} />
+              <meshBasicMaterial
+                transparent
+                opacity={0}
+                side={THREE.DoubleSide}
+                depthWrite={false}
+              />
+            </mesh>
+          )}
+          <PlantTagPins
+            tags={tags.filter((tg) => tg.panorama_id === current.id)}
+            plants={plants}
+            editing={tagMode !== "off"}
+            onPinClick={(tag: PanoramaPlantTag, plant) => {
+              if (tagMode !== "off") {
+                if (window.confirm(t.tour.removeTag)) void onRemoveTag(tag.id);
+              } else {
+                onMarkerClick(plant);
+              }
+            }}
+          />
+        </PanoramaSphere>
+        {tagMode === "off" && (
+          <HopCircles
+            farm={farm}
+            current={current}
+            panoramas={panoramas}
+            onHop={hopTo}
+          />
+        )}
         <LookControls />
       </Canvas>
       <div
@@ -125,6 +179,44 @@ export function FarmTour({
       <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-label/80 px-4 py-1.5 text-[12px] font-medium text-white">
         {photoError ? t.tour.loadFailed : t.tour.hint}
       </div>
+      <button
+        type="button"
+        onClick={() => {
+          setTagMode((m) => (m === "off" ? "aim" : "off"));
+          setPendingSpot(null);
+        }}
+        className={`pressable absolute bottom-4 right-4 z-30 rounded-full px-4 py-2 text-[13px] font-bold shadow-card ${
+          tagMode !== "off"
+            ? "bg-warning text-white"
+            : "bg-white/95 text-brand-dark"
+        }`}
+      >
+        {tagMode !== "off" ? t.tour.cancel : t.tour.tagPlant}
+      </button>
+      {tagMode === "aim" && (
+        <div className="pointer-events-none absolute left-1/2 top-12 z-30 -translate-x-1/2 rounded-full bg-warning/90 px-4 py-1.5 text-[12px] font-semibold text-white">
+          {t.tour.tapSpot}
+        </div>
+      )}
+      {tagMode === "pick" && pendingSpot && (
+        <TagEditor
+          plants={plants}
+          onPick={(plant) => {
+            void onAddTag({
+              panorama_id: current.id,
+              plant_id: plant.id,
+              yaw: pendingSpot.yaw,
+              pitch: pendingSpot.pitch,
+            });
+            setTagMode("off");
+            setPendingSpot(null);
+          }}
+          onCancel={() => {
+            setTagMode("off");
+            setPendingSpot(null);
+          }}
+        />
+      )}
     </div>
   );
 }

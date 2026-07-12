@@ -124,6 +124,8 @@ export function FarmMap({
           loadError={pano.loadError}
           onMarkerClick={(plant) => setSelectedPlant(plant)}
           onBackgroundClick={() => setSelectedPlant(null)}
+          onAddTag={pano.addTag}
+          onRemoveTag={pano.removeTag}
         />
       )}
 
