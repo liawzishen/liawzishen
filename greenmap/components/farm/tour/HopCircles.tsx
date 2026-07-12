@@ -1,17 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
 import type { ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Farm, FarmPanorama } from "@/types/database";
-import { mapBearing, bearingToYaw, toVec } from "./geometry";
+import { mapBearing, bearingToYaw } from "./geometry";
 
-const CIRCLE_PITCH = -0.38; // radians below the horizon — reads as "on the ground"
+// Floor rings sit CLOSE to the camera so they read as big "step here" targets
+// (Matterport style), not distant specks. Placed on the ground plane a few
+// units ahead, in the real map-bearing direction of each other panorama.
+const GROUND = 5; // horizontal distance ahead (world units)
+const DROP = 2.3; // how far below eye level the floor sits
+const BASE_R = 1.7; // ring radius on the ground
 
 /**
- * Matterport-style navigation: one semi-transparent white ring per other
- * panorama, placed at its real map bearing. Nearer spots render larger.
- * Rings live OUTSIDE the heading-rotated group — bearings are world-space.
+ * Matterport-style navigation: one pulsing white floor ring per other
+ * panorama, in that spot's real map-bearing direction. Tap one to hop there.
+ * Rendered OUTSIDE the heading-rotated sphere group — bearings are world-space.
  */
 export function HopCircles({
   farm,
@@ -24,61 +30,86 @@ export function HopCircles({
   panoramas: FarmPanorama[];
   onHop: (target: FarmPanorama) => void;
 }) {
-  const rings = useMemo(() => {
-    const w = farm.canvas_width;
-    const h = farm.canvas_height;
+  const targets = useMemo(() => {
     return panoramas
       .filter((p) => p.id !== current.id)
       .map((p) => {
-        const dx = (p.position_x - current.position_x) * w;
-        const dy = (p.position_y - current.position_y) * h;
-        const dist = Math.sqrt(dx * dx + dy * dy);
         const yaw = bearingToYaw(mapBearing(farm, current, p));
-        // Nearer → bigger ring (clamped so far spots stay tappable).
-        const scale = Math.max(1.4, Math.min(3.2, 900 / Math.max(dist, 1)));
-        return { pano: p, pos: toVec(yaw, CIRCLE_PITCH), scale };
+        const dirX = -Math.sin(yaw);
+        const dirZ = -Math.cos(yaw);
+        return {
+          pano: p,
+          pos: [dirX * GROUND, -DROP, dirZ * GROUND] as [
+            number,
+            number,
+            number,
+          ],
+        };
       });
   }, [farm, current, panoramas]);
 
   return (
     <group>
-      {rings.map(({ pano, pos, scale }) => (
-        <group
-          key={pano.id}
-          position={pos}
-          onUpdate={(self) => self.lookAt(0, 0, 0)}
-        >
-          <mesh
-            onClick={(e: ThreeEvent<MouseEvent>) => {
-              e.stopPropagation();
-              onHop(pano);
-            }}
-          >
-            {/* invisible fat disc = ≥44px tap target */}
-            <circleGeometry args={[scale * 0.9, 24]} />
-            <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-          </mesh>
-          <mesh>
-            <ringGeometry args={[scale * 0.55, scale * 0.75, 32]} />
-            <meshBasicMaterial
-              color="#ffffff"
-              transparent
-              opacity={0.85}
-              side={THREE.DoubleSide}
-              depthWrite={false}
-            />
-          </mesh>
-          <mesh>
-            <circleGeometry args={[scale * 0.5, 24]} />
-            <meshBasicMaterial
-              color="#ffffff"
-              transparent
-              opacity={0.25}
-              depthWrite={false}
-            />
-          </mesh>
-        </group>
+      {targets.map(({ pano, pos }) => (
+        <HopRing key={pano.id} position={pos} onHop={() => onHop(pano)} />
       ))}
+    </group>
+  );
+}
+
+/** A single flat floor ring with a gentle "tap me" pulse + generous hit area. */
+function HopRing({
+  position,
+  onHop,
+}: {
+  position: [number, number, number];
+  onHop: () => void;
+}) {
+  const pulse = useRef<THREE.Group>(null);
+
+  useFrame(({ clock }) => {
+    if (!pulse.current) return;
+    const s = 1 + Math.sin(clock.elapsedTime * 2.6) * 0.09;
+    pulse.current.scale.set(s, s, s);
+  });
+
+  return (
+    <group position={position}>
+      {/* Generous invisible flat disc = easy tap target (doesn't pulse). */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          onHop();
+        }}
+      >
+        <circleGeometry args={[BASE_R * 1.7, 32]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+
+      {/* Visible pulsing ring + soft fill, laid flat on the ground. */}
+      <group ref={pulse} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh>
+          <ringGeometry args={[BASE_R * 0.7, BASE_R, 48]} />
+          <meshBasicMaterial
+            color="#ffffff"
+            transparent
+            opacity={0.95}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh position={[0, 0, 0.01]}>
+          <circleGeometry args={[BASE_R * 0.7, 32]} />
+          <meshBasicMaterial
+            color="#bfe3ff"
+            transparent
+            opacity={0.35}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
     </group>
   );
 }
