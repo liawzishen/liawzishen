@@ -115,6 +115,28 @@ export interface Plant {
   created_at: string;
 }
 
+/** One 360° photo pinned to a spot on the 2D map (photo-sphere tour). */
+export interface FarmPanorama {
+  id: string;
+  farm_id: string;
+  image_url: string;
+  position_x: number; // 0.0–1.0 fraction of canvas_width (standing spot)
+  position_y: number; // 0.0–1.0 fraction of canvas_height
+  heading_deg: number; // compass direction the photo centre faces
+  label: string | null;
+  created_at: string;
+}
+
+/** A plant pinned inside a panorama (Matterport-style tag). */
+export interface PanoramaPlantTag {
+  id: string;
+  panorama_id: string;
+  plant_id: string;
+  yaw: number; // radians, photo-space
+  pitch: number; // radians
+  created_at: string;
+}
+
 export interface GrowthLog {
   id: string;
   plant_id: string;

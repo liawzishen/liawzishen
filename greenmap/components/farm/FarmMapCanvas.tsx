@@ -1,10 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Rect, Group, Image as KonvaImage } from "react-konva";
+import {
+  Stage,
+  Layer,
+  Rect,
+  Group,
+  Image as KonvaImage,
+  Circle,
+  Text,
+} from "react-konva";
 import type Konva from "konva";
 import { PlantMarker } from "./PlantMarker";
-import type { Farm, Plant } from "@/types/database";
+import type { Farm, FarmPanorama, Plant } from "@/types/database";
 
 interface Props {
   farm: Farm;
@@ -17,6 +25,9 @@ interface Props {
   /** Marker ids to highlight (e.g. "Need Care" filter); others dim. */
   highlightIds?: string[] | null;
   selectedId?: string | null;
+  /** 360° capture spots (floor-plan view of the tour). Hidden while placing. */
+  panoramas?: FarmPanorama[];
+  onPanoramaClick?: (pano: FarmPanorama) => void;
 }
 
 /**
@@ -33,6 +44,8 @@ export function FarmMapCanvas({
   onBackgroundClick,
   highlightIds,
   selectedId,
+  panoramas,
+  onPanoramaClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
@@ -242,6 +255,41 @@ export function FarmMapCanvas({
 
         {/* Markers */}
         <Layer>
+          {!placing &&
+            (panoramas ?? []).map((pano) => (
+              <Group
+                key={pano.id}
+                x={pano.position_x * CANVAS_W}
+                y={pano.position_y * CANVAS_H}
+                onClick={(e) => {
+                  e.cancelBubble = true;
+                  onPanoramaClick?.(pano);
+                }}
+                onTap={(e) => {
+                  e.cancelBubble = true;
+                  onPanoramaClick?.(pano);
+                }}
+              >
+                <Circle
+                  radius={16}
+                  fill="#ffffff"
+                  opacity={0.92}
+                  shadowBlur={6}
+                  shadowOpacity={0.25}
+                />
+                <Circle radius={16} stroke="#4E7FA8" strokeWidth={2} />
+                <Text
+                  text="360°"
+                  fontSize={9}
+                  fontStyle="bold"
+                  fill="#2B5C82"
+                  width={32}
+                  align="center"
+                  offsetX={16}
+                  offsetY={4.5}
+                />
+              </Group>
+            ))}
           {plants.map((plant) => (
             <PlantMarker
               key={plant.id}

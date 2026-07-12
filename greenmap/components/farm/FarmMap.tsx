@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { AddPlantModal } from "./AddPlantModal";
 import { PlantBottomSheet } from "./PlantBottomSheet";
+import { usePanoramas } from "./tour/usePanoramas";
+import { AddPanoramaSheet } from "./tour/AddPanoramaSheet";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Farm, Plant, Zone } from "@/types/database";
@@ -20,7 +22,7 @@ const FarmMapCanvas = dynamic(
   }
 );
 
-function WalkLoading() {
+function TourLoading() {
   const { t } = useI18n();
   return (
     <div className="flex h-full w-full items-center justify-center text-[15px] text-secondary">
@@ -29,11 +31,11 @@ function WalkLoading() {
   );
 }
 
-const FarmWalk = dynamic(
-  () => import("./walk/FarmWalk").then((m) => m.FarmWalk),
+const FarmTour = dynamic(
+  () => import("./tour/FarmTour").then((m) => m.FarmTour),
   {
     ssr: false,
-    loading: () => <WalkLoading />,
+    loading: () => <TourLoading />,
   }
 );
 
@@ -61,6 +63,9 @@ export function FarmMap({
   // sheet's CTA handles navigation to the full detail page.
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [mode, setMode] = useState<"2d" | "3d">("2d");
+  const pano = usePanoramas(farm.id);
+  const [addingPano, setAddingPano] = useState(false);
+  const [tourStartId, setTourStartId] = useState<string | null>(null);
 
   // Plants needing care (drives the optional highlight filter).
   const careIds = useMemo(
@@ -111,13 +116,28 @@ export function FarmMap({
             setSelectedPlant(plant); // single tap → open the bottom sheet
           }}
           onBackgroundClick={() => setSelectedPlant(null)}
+          panoramas={pano.panoramas}
+          onPanoramaClick={(p) => {
+            setSelectedPlant(null);
+            setTourStartId(p.id);
+            setMode("3d");
+          }}
         />
       ) : (
-        <FarmWalk
+        <FarmTour
           farm={farm}
           plants={plants.filter((p) => p.lifecycle_status === "active")}
+          panoramas={pano.panoramas}
+          tags={pano.tags}
+          loading={pano.loading}
+          loadError={pano.loadError}
           onMarkerClick={(plant) => setSelectedPlant(plant)}
           onBackgroundClick={() => setSelectedPlant(null)}
+          onAddTag={pano.addTag}
+          onRemoveTag={pano.removeTag}
+          onAddPhoto={() => setAddingPano(true)}
+          onUpdateHeading={pano.updateHeading}
+          startId={tourStartId}
         />
       )}
 
@@ -126,7 +146,10 @@ export function FarmMap({
         <button
           type="button"
           onClick={() => {
-            setMode((m) => (m === "2d" ? "3d" : "2d"));
+            setMode((m) => {
+              if (m === "3d") setTourStartId(null);
+              return m === "2d" ? "3d" : "2d";
+            });
             setPlacing(false);
             setSelectedPlant(null);
           }}
@@ -179,6 +202,21 @@ export function FarmMap({
         >
           {placing ? "✕" : "＋"}
         </button>
+      )}
+
+      {addingPano && (
+        <AddPanoramaSheet
+          farm={farm}
+          onSave={async (input) => {
+            const created = await pano.addPanorama(input);
+            if (created) {
+              setAddingPano(false);
+              setMode("3d");
+            }
+            return created !== null;
+          }}
+          onClose={() => setAddingPano(false)}
+        />
       )}
 
       {pendingPos && (
