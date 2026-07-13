@@ -60,7 +60,7 @@ export function useAerialMosaic(farm: Farm, panoramas: FarmPanorama[]) {
         const radius = DISC_RADIUS_FRAC * Math.min(mw, mh);
 
         const ordered = [...panoramas].sort((a, b) =>
-          a.created_at < b.created_at ? -1 : 1
+          a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0
         );
         let drew = 0;
         for (const p of ordered) {

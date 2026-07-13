@@ -28,6 +28,7 @@ export function nadirSampleUV(
   size: number,
   headingDeg: number
 ): NadirSample | null {
+  if (size <= 0) return null;
   const c = size / 2;
   const dx = px - c;
   const dy = py - c;

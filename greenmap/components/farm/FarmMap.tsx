@@ -189,7 +189,7 @@ export function FarmMap({
 
       {/* Aerial generation hint */}
       {mode === "2d" && aerial.generating && (
-        <div className="pointer-events-none absolute right-3 bottom-16 z-10 rounded-full bg-label/80 px-3 py-1 text-[11px] font-medium text-white">
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 -translate-x-1/2 rounded-full bg-label/80 px-3 py-1 text-[11px] font-medium text-white">
           {t.tour.generatingAerial}
         </div>
       )}

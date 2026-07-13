@@ -22,6 +22,10 @@ ok("centre fully opaque", !!centre && centre.alpha === 1);
 // Corners are outside the inscribed disc.
 ok("corner → null", nadirSampleUV(0, 0, S, 0) === null);
 
+// Degenerate tile size → null (no divide-by-zero / NaN).
+ok("size 0 → null", nadirSampleUV(0, 0, 0, 0) === null);
+ok("size <0 → null", nadirSampleUV(0, 0, -10, 0) === null);
+
 // Top-centre pixel = map-north direction; at heading 0 it samples the photo centre column.
 const north = nadirSampleUV(c, 0, S, 0);
 ok("north non-null", north !== null);
