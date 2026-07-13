@@ -65,17 +65,16 @@ export function useAerialMosaic(farm: Farm, panoramas: FarmPanorama[]) {
         let drew = 0;
         for (const p of ordered) {
           if (disposed) return;
-          let img: HTMLImageElement;
           try {
-            img = await loadImage(p.image_url);
+            const img = await loadImage(p.image_url);
+            const disc = reprojectNadir(img, SRC_W, SRC_H, p.heading_deg, DISC);
+            const cx = p.position_x * mw;
+            const cy = p.position_y * mh;
+            ctx.drawImage(disc, cx - radius, cy - radius, radius * 2, radius * 2);
+            drew++;
           } catch {
-            continue; // skip a broken photo, keep going
+            continue; // skip a photo that fails to load, reproject, or draw
           }
-          const disc = reprojectNadir(img, SRC_W, SRC_H, p.heading_deg, DISC);
-          const cx = p.position_x * mw;
-          const cy = p.position_y * mh;
-          ctx.drawImage(disc, cx - radius, cy - radius, radius * 2, radius * 2);
-          drew++;
         }
         if (disposed) return;
         setCanvas(drew > 0 ? out : null);
