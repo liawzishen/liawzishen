@@ -28,6 +28,8 @@ interface Props {
   /** 360° capture spots (floor-plan view of the tour). Hidden while placing. */
   panoramas?: FarmPanorama[];
   onPanoramaClick?: (pano: FarmPanorama) => void;
+  /** Generated top-down aerial mosaic; when set, it is the map background. */
+  aerialCanvas?: HTMLCanvasElement | null;
 }
 
 /**
@@ -46,6 +48,7 @@ export function FarmMapCanvas({
   selectedId,
   panoramas,
   onPanoramaClick,
+  aerialCanvas,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
@@ -256,9 +259,15 @@ export function FarmMapCanvas({
           setPos(clampPosition(e.target.x(), e.target.y(), scale))
         }
       >
-        {/* Background */}
+        {/* Background: generated aerial → farm photo/satellite → gradient */}
         <Layer listening={false}>
-          {bgImage ? (
+          {aerialCanvas ? (
+            <KonvaImage
+              image={aerialCanvas}
+              width={CANVAS_W}
+              height={CANVAS_H}
+            />
+          ) : bgImage ? (
             <KonvaImage image={bgImage} width={CANVAS_W} height={CANVAS_H} />
           ) : (
             <Group>

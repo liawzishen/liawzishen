@@ -158,6 +158,7 @@ export const en = {
     loading: "Loading photo…",
     save: "Save",
     cancel: "Cancel",
+    generatingAerial: "Building field view…",
   },
   quick: {
     water: "Water",
@@ -347,6 +348,7 @@ export const ms: Dict = {
     loading: "Memuatkan foto…",
     save: "Simpan",
     cancel: "Batal",
+    generatingAerial: "Membina paparan ladang…",
   },
   quick: {
     water: "Siram",

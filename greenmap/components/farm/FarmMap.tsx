@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { AddPlantModal } from "./AddPlantModal";
 import { PlantBottomSheet } from "./PlantBottomSheet";
 import { usePanoramas } from "./tour/usePanoramas";
+import { useAerialMosaic } from "./tour/useAerialMosaic";
 import { AddPanoramaSheet } from "./tour/AddPanoramaSheet";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
@@ -64,6 +65,9 @@ export function FarmMap({
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   const [mode, setMode] = useState<"2d" | "3d">("2d");
   const pano = usePanoramas(farm.id);
+  // Auto-generated top-down aerial from the 360° captures — becomes the 2D
+  // background (only computed in 2D; empty list in 3D means no work).
+  const aerial = useAerialMosaic(farm, mode === "2d" ? pano.panoramas : []);
   const [addingPano, setAddingPano] = useState(false);
   const [tourStartId, setTourStartId] = useState<string | null>(null);
 
@@ -122,6 +126,7 @@ export function FarmMap({
             setTourStartId(p.id);
             setMode("3d");
           }}
+          aerialCanvas={aerial.canvas}
         />
       ) : (
         <FarmTour
@@ -180,6 +185,13 @@ export function FarmMap({
         >
           {careOnly ? t.map.showingNeedCare : t.map.needCare(careIds.length)}
         </button>
+      )}
+
+      {/* Aerial generation hint */}
+      {mode === "2d" && aerial.generating && (
+        <div className="pointer-events-none absolute right-3 bottom-16 z-10 rounded-full bg-label/80 px-3 py-1 text-[11px] font-medium text-white">
+          {t.tour.generatingAerial}
+        </div>
       )}
 
       {/* Placement hint */}
