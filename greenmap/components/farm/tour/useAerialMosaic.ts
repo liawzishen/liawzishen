@@ -42,28 +42,48 @@ function discAverageColor(
 /**
  * Build a top-down aerial mosaic from the farm's 360° captures and return it
  * as a canvas to use as the 2D map background. Lazy (runs after paint) and
- * memoized on the capture set (ids + headings). Returns null — so the caller
- * keeps its normal background — when there are no captures or on any failure.
- * Live, browser-only, no storage.
+ * memoized on the capture set (ids + headings + canvas size). Returns null — so
+ * the caller keeps its normal background — when there are no captures or on any
+ * failure. Live, browser-only, no storage.
+ *
+ * `enabled` pauses generation without discarding the finished canvas, so
+ * flipping 2D → 3D → 2D reuses it instead of re-decoding and re-reprojecting
+ * every panorama (which flashed the fallback background and burned main-thread
+ * time on every toggle). Work still restarts whenever `key` actually changes.
  */
-export function useAerialMosaic(farm: Farm, panoramas: FarmPanorama[]) {
+export function useAerialMosaic(
+  farm: Farm,
+  panoramas: FarmPanorama[],
+  enabled = true
+) {
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [generating, setGenerating] = useState(false);
-  const key = panoramas.map((p) => `${p.id}:${p.heading_deg}`).join("|");
-  const started = useRef(false);
+  const key = `${farm.canvas_width}x${farm.canvas_height}|${panoramas
+    .map((p) => `${p.id}:${p.heading_deg}`)
+    .join("|")}`;
+  // Which key the canvas we're holding was built for, and which one is in
+  // flight — together these make re-enabling a no-op when nothing changed.
+  const builtKey = useRef<string | null>(null);
+  const runningKey = useRef<string | null>(null);
 
   useEffect(() => {
-    started.current = false;
+    if (!enabled) {
+      setGenerating(false); // nothing is in flight while paused
+      return; // keep `canvas` — that's the whole point
+    }
     if (panoramas.length === 0) {
+      builtKey.current = key;
       setCanvas(null);
       setGenerating(false);
       return;
     }
+    // Already have (or are already building) exactly this mosaic.
+    if (builtKey.current === key || runningKey.current === key) return;
     let disposed = false;
 
     const run = async () => {
-      if (disposed || started.current) return;
-      started.current = true;
+      if (disposed || runningKey.current === key) return;
+      runningKey.current = key;
       setGenerating(true);
       try {
         const w = farm.canvas_width;
@@ -110,6 +130,7 @@ export function useAerialMosaic(farm: Farm, panoramas: FarmPanorama[]) {
         }
         if (disposed) return;
         if (discs.length === 0) {
+          builtKey.current = key;
           setCanvas(null);
           return;
         }
@@ -133,10 +154,18 @@ export function useAerialMosaic(farm: Farm, panoramas: FarmPanorama[]) {
             radius * 2
           );
         }
+        builtKey.current = key;
         setCanvas(out);
       } catch {
-        if (!disposed) setCanvas(null);
+        if (!disposed) {
+          builtKey.current = null; // let a later attempt retry this key
+          setCanvas(null);
+        }
       } finally {
+        // Only release the marker if it's still ours: a disposed run has
+        // already had it cleared by the cleanup below, and clearing it again
+        // could release a replacement run's claim (StrictMode double-invoke).
+        if (!disposed && runningKey.current === key) runningKey.current = null;
         if (!disposed) setGenerating(false);
       }
     };
@@ -153,6 +182,9 @@ export function useAerialMosaic(farm: Farm, panoramas: FarmPanorama[]) {
 
     return () => {
       disposed = true;
+      // An aborted run left nothing behind — clear the marker so remounting
+      // (StrictMode, a mode flip) can start it again.
+      if (runningKey.current === key) runningKey.current = null;
       const cic = (
         globalThis as unknown as {
           cancelIdleCallback?: (h: number) => void;
@@ -162,7 +194,7 @@ export function useAerialMosaic(farm: Farm, panoramas: FarmPanorama[]) {
       else window.clearTimeout(handle);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, farm.canvas_width, farm.canvas_height]);
+  }, [enabled, key]);
 
   return { canvas, generating };
 }

@@ -66,8 +66,9 @@ export function FarmMap({
   const [mode, setMode] = useState<"2d" | "3d">("2d");
   const pano = usePanoramas(farm.id);
   // Auto-generated top-down aerial from the 360° captures — becomes the 2D
-  // background (only computed in 2D; empty list in 3D means no work).
-  const aerial = useAerialMosaic(farm, mode === "2d" ? pano.panoramas : []);
+  // background. Generation is paused (not reset) in 3D, so coming back to 2D
+  // reuses the finished canvas instead of rebuilding it from scratch.
+  const aerial = useAerialMosaic(farm, pano.panoramas, mode === "2d");
   const [addingPano, setAddingPano] = useState(false);
   const [tourStartId, setTourStartId] = useState<string | null>(null);
 

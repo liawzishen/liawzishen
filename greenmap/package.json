@@ -12,7 +12,8 @@
     "seed:support": "tsx scripts/seed-support.ts",
     "demo:panos": "node scripts/fetch-demo-panos.mjs",
     "seed:panoramas": "tsx scripts/seed-panoramas.ts",
-    "test:smoke": "node scripts/smoke-test.mjs"
+    "test:smoke": "node scripts/smoke-test.mjs",
+    "test:aerial": "tsx scripts/test-aerial.ts"
   },
   "dependencies": {
     "@react-three/fiber": "^9.6.1",
