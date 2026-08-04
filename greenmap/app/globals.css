@@ -21,17 +21,44 @@
   --color-card: #fdf9ee; /* warm paper surfaces (inputs on photos, QR block) */
   --color-label: #2f2013; /* primary text — dark ink brown, high contrast */
   --color-secondary: #6b4423; /* secondary text — deep brown, ≥6:1 on paper */
-  --color-tertiary: #c2a878; /* borders, dividers, chevrons — warm sand */
+  /*
+    Borders, dividers, chevrons. Darkened from the original #c2a878 (2.07:1)
+    because these carry ESSENTIAL cues — a chevron, a checkbox ring, a
+    dropzone edge — which WCAG 1.4.11 holds to 3:1. Now 4.02:1 on the input
+    fill and 4.27:1 on the page. Purely decorative uses (grab handles,
+    timeline rules) already pass an /40–/50 alpha and stay soft.
+  */
+  --color-tertiary: #8b6f42;
   --color-fill: #efe3c8; /* segmented controls, pressed states — paper fill */
 
   /* Brand */
   --color-brand: #4f772d; /* meadow green — primary actions, healthy */
   --color-brand-dark: #31572c; /* text on light green badges */
 
-  /* Status & plant health */
-  --color-warning: #ff9f0a; /* attention (health 40–69), PREVIEW badges */
-  --color-critical: #ff3b30; /* critical (health 0–39) */
-  --color-info: #007aff; /* AI suggestions, info, water */
+  /*
+    Status & plant health.
+
+    These come in FILL and INK pairs, and the distinction is load-bearing.
+    The bright iOS hues were carried onto parchment unchanged and, as text,
+    they were unreadable: #ff9f0a measured 1.86:1 on the page and 1.69:1 on
+    its own 15% badge tint, against the 4.5:1 AA floor. Rather than dull the
+    brand, each hue keeps its bright FILL value (canvas markers, solid pills,
+    progress bars — large blocks of colour, where a 3:1 non-text floor
+    applies) and gains a darkened INK value for any text or icon.
+
+    Rule: `bg-warning` = fill. `text-warning-ink` = text. Never `text-warning`.
+
+    Ink values are verified against every surface (bg/card/fill/glass) AND
+    against each hue's own 15% tint — the worst case, since the tint darkens
+    the background under the label. Worst measured: warning 4.94:1,
+    critical 5.12:1, info 4.89:1. White on any ink fill clears 6.8:1.
+  */
+  --color-warning: #ff9f0a; /* FILL — attention (health 40–69), markers */
+  --color-warning-ink: #8a4b00; /* TEXT — 4.94:1 worst case */
+  --color-critical: #ff3b30; /* FILL — critical (health 0–39) */
+  --color-critical-ink: #a4160d; /* TEXT — 5.12:1 worst case */
+  --color-info: #007aff; /* FILL — AI suggestions, info, water */
+  --color-info-ink: #0a4fb8; /* TEXT — 4.89:1 worst case */
 
   /* Typography — SF Pro on Apple, system sans elsewhere. No serif anywhere. */
   --font-sans:
@@ -72,8 +99,14 @@
 
 @layer base {
   :root {
-    /* Brand gradient for primary buttons + the scan FAB — meadow greens */
-    --gradient-brand: linear-gradient(145deg, #5c8a3a, #446b26);
+    /*
+      Brand gradient for primary buttons + the scan FAB — meadow greens.
+      The light end was #5c8a3a, which put the button's own label (#f6ecd5)
+      at 3.47:1 and the FAB's white glyph at 4.08:1 — both under AA. A
+      gradient is only as accessible as its LIGHTEST stop, so that stop now
+      carries the label: #f6ecd5 reads 4.79:1 on it, white 5.62:1.
+    */
+    --gradient-brand: linear-gradient(145deg, #4a722d, #3d6122);
   }
 
   html {
@@ -433,4 +466,146 @@
   opacity: 1;
   transform: scale(1.6);
   transition-duration: 0.08s;
+}
+
+/*
+  ── Skip link ─────────────────────────────────────────────────────────────
+  A persistent nav rail sits before page content on every screen, so keyboard
+  users previously tabbed the whole thing on each navigation. Off-screen
+  until focused, then a solid parchment chip (never translucent — it has to
+  stay readable over whatever it lands on).
+*/
+.skip-link {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  border-radius: var(--radius-btn);
+  background: #faf3e3;
+  border: 2px solid #5c3a21;
+  padding: 0.625rem 1rem;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2f2013;
+  transform: translateY(calc(-100% - 1rem));
+}
+.skip-link:focus-visible,
+.skip-link:focus {
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .skip-link {
+    transition: transform 0.15s ease;
+  }
+}
+
+/*
+  ── Forced colours (Windows High Contrast) ────────────────────────────────
+  The UI leans on translucency, gradients and tint-only badges, none of which
+  survive here: the OS replaces backgrounds and text with system colours but
+  does NOT strip `background-image`, so gradients would otherwise sit under
+  forced text and destroy legibility. Flatten decoration, then re-express
+  every state that was carried by colour alone as a real, visible outline.
+*/
+@media (forced-colors: active) {
+  body::before {
+    display: none !important;
+  }
+
+  /* Gradients survive forced-colors unless explicitly removed. */
+  .bg-gradient-brand {
+    background-image: none !important;
+    background-color: ButtonFace !important;
+    color: ButtonText !important;
+    border: 1px solid ButtonBorder !important;
+  }
+
+  .glass,
+  .glass-strong,
+  .glass-sheet {
+    background: Canvas !important;
+    backdrop-filter: none !important;
+    border: 1px solid CanvasText !important;
+    box-shadow: none !important;
+  }
+
+  :focus-visible {
+    outline: 3px solid Highlight !important;
+    outline-offset: 2px;
+  }
+
+  /*
+    Selected / current / checked states were tint-and-shadow only. Outline
+    rather than border so nothing reflows when the state flips.
+  */
+  [aria-current]:not([aria-current="false"]),
+  [aria-selected="true"],
+  [aria-checked="true"],
+  [aria-pressed="true"] {
+    outline: 2px solid Highlight !important;
+    outline-offset: -2px;
+  }
+}
+
+/*
+  ── Print ─────────────────────────────────────────────────────────────────
+  Driven by the Harvest Passport: it carries a QR code and is the one screen
+  people hand to a buyer on paper. Chrome disappears, glass flattens to ink
+  on white, and fixed/sticky elements are un-pinned so they don't stamp
+  themselves onto every page.
+*/
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+  body::before {
+    display: none !important;
+  }
+
+  .app-frame {
+    max-width: none !important;
+    border: none !important;
+    background: #fff !important;
+  }
+
+  main {
+    animation: none !important;
+  }
+
+  /* Navigation, floating CTAs and anything opted out are not paper content. */
+  nav,
+  .print-hide {
+    display: none !important;
+  }
+
+  .fixed,
+  .sticky {
+    position: static !important;
+  }
+
+  .glass,
+  .glass-strong,
+  .glass-sheet {
+    background: #fff !important;
+    backdrop-filter: none !important;
+    border: 1px solid #767676 !important;
+    box-shadow: none !important;
+  }
+
+  /* Keep a card, its QR, and a heading with what follows it. */
+  .rounded-card,
+  img,
+  svg {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
 }

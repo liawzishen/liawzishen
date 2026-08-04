@@ -33,19 +33,26 @@ const HEALTHY: HealthDisplay = {
   icon: "✓",
   textClass: "text-brand",
 };
+/*
+ * `color` is the CANVAS fill — a marker blob on the map, where the bright
+ * iOS hue reads well and only the 3:1 non-text floor applies. `textClass` is
+ * the DOM label, which needs 4.5:1 and so uses the darkened ink token. The
+ * two intentionally differ; keeping the bright hue in `textClass` was what
+ * put "Attention" on screen at 1.86:1.
+ */
 const ATTENTION: HealthDisplay = {
   band: "attention",
   label: "Attention",
   color: "#FF9F0A",
   icon: "!",
-  textClass: "text-warning",
+  textClass: "text-warning-ink",
 };
 const CRITICAL: HealthDisplay = {
   band: "critical",
   label: "Critical",
   color: "#FF3B30",
   icon: "✕",
-  textClass: "text-critical",
+  textClass: "text-critical-ink",
 };
 const NEW: HealthDisplay = {
   band: "new",
