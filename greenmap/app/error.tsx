@@ -16,7 +16,10 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+    <main
+      id="main-content"
+      className="flex min-h-dvh flex-col items-center justify-center px-6 text-center"
+    >
       <div className="text-[44px]" aria-hidden>🌧️</div>
       <h1 className="mt-2 text-[20px] font-bold">Something went wrong</h1>
       <p className="mt-1.5 max-w-xs text-[15px] leading-relaxed text-secondary">

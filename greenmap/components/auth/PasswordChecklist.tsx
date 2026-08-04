@@ -38,10 +38,10 @@ export function PasswordChecklist({
 
   const strengthColor =
     strength === "weak"
-      ? "text-critical"
+      ? "text-critical-ink"
       : strength === "fair"
-        ? "text-warning"
-        : "text-brand";
+        ? "text-warning-ink"
+        : "text-brand-dark";
 
   const segmentColor =
     strength === "weak"
@@ -118,6 +118,15 @@ export function PasswordChecklist({
                 {passed ? "✓" : ""}
               </span>
               {rule.label}
+              {/*
+                Whether a rule is MET was previously carried by colour and by
+                a tick that is aria-hidden, so a screen-reader user heard the
+                requirement and nothing about their progress against it. This
+                states it in text. No live region on purpose — announcing all
+                five rules on every keystroke would be unusable; the status is
+                simply there to be read when the list is navigated.
+              */}
+              <span className="sr-only">{passed ? " — met" : " — not met"}</span>
             </li>
           );
         })}

@@ -168,6 +168,13 @@ export function FarmDashboard() {
   const sel = selected ? PLANTS[selected] : null;
   const selStatus = sel ? statusOf(sel.pct) : null;
 
+  /*
+   * `accentText` is theme-aware because a single accent cannot serve both
+   * themes as TEXT. The brand green #0DB074 reads 6.36:1 on the dark page
+   * but only 2.81:1 on the light panel — so light mode uses a darkened
+   * #097a50 (5.37:1) for accent LABELS. The bright hue is still used for
+   * fills and the map, where only the 3:1 non-text floor applies.
+   */
   const t = dark
     ? {
         page: "bg-[#0a1e23] text-slate-100",
@@ -177,6 +184,7 @@ export function FarmDashboard() {
         navText: "text-slate-300",
         navHover: "hover:bg-white/5 hover:text-white",
         chip: "bg-white/5 border-white/10",
+        accentText: "text-[#0DB074]",
       }
     : {
         page: "bg-[#F5F7F8] text-[#1E434A]",
@@ -186,6 +194,7 @@ export function FarmDashboard() {
         navText: "text-slate-500",
         navHover: "hover:bg-slate-100 hover:text-[#1E434A]",
         chip: "bg-white border-slate-200",
+        accentText: "text-[#097a50]",
       };
 
   const fieldStyle: React.CSSProperties = {
@@ -229,10 +238,14 @@ export function FarmDashboard() {
         {/* Location dropdown */}
         <div className="relative mt-6">
           <button
+            type="button"
+            aria-expanded={locOpen}
             onClick={() => setLocOpen((v) => !v)}
             className={`flex w-full items-center gap-2 rounded-xl border ${t.border} ${t.chip} px-3 py-2.5 text-left transition hover:border-[#0DB074]/50`}
           >
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#0DB074]/15 text-[#0DB074]">
+            {/* Icon needs 3:1 as a non-text cue; the bright green sat at
+                2.41:1 on the light tint. */}
+            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#0DB074]/15 ${t.accentText}`}>
               <svg {...svg} width={15} height={15}>
                 <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                 <circle cx="12" cy="10" r="3" />
@@ -274,10 +287,15 @@ export function FarmDashboard() {
             return (
               <button
                 key={item.label}
+                type="button"
+                // The active item was signalled by a tint and a colour swap
+                // alone — nothing a screen reader could report, and the
+                // colour itself failed contrast in light mode.
+                aria-current={active ? "page" : undefined}
                 onClick={() => setNavActive(item.label)}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] transition ${
                   active
-                    ? "bg-[#0DB074]/10 font-semibold text-[#0DB074]"
+                    ? `bg-[#0DB074]/10 font-semibold ${t.accentText}`
                     : `font-medium ${t.navText} ${t.navHover}`
                 }`}
               >
@@ -288,8 +306,12 @@ export function FarmDashboard() {
           })}
         </nav>
 
-        {/* Theme toggle */}
+        {/* Theme toggle — a switch, so it must report its on/off state.
+            The sliding knob is purely visual. */}
         <button
+          type="button"
+          role="switch"
+          aria-checked={dark}
           onClick={() => setDark((v) => !v)}
           className={`mt-4 flex items-center justify-between rounded-xl border ${t.border} px-3 py-2.5`}
         >
@@ -316,7 +338,7 @@ export function FarmDashboard() {
       </aside>
 
       {/* ============ MAIN ============ */}
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main id="main-content" className="flex min-w-0 flex-1 flex-col">
         {/* Header */}
         <header className="flex items-center justify-between px-6 pt-5">
           <div>

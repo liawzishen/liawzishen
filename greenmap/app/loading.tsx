@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 /** App-wide loading skeleton shown during navigation + data fetches. */
 export default function Loading() {
   return (
-    <main className="px-5 pt-12">
+    <main id="main-content" className="px-5 pt-12">
       <Skeleton className="h-4 w-24" />
       <Skeleton className="mt-2 h-7 w-44" />
       <Skeleton className="mt-1.5 h-4 w-28" />

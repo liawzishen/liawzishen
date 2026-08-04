@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { isPasswordValid } from "@/lib/auth/password";
@@ -210,7 +210,18 @@ function Field({
   trailing?: React.ReactNode;
   error?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className">) {
-  const inputId = id ?? label.toLowerCase().replace(/\s+/g, "-");
+  const reactId = useId();
+  // useId, not the label text: two fields sharing a label (the register form
+  // has both "Password" and a confirm field) otherwise collide on one id and
+  // the second <label htmlFor> points at the first input.
+  const inputId = id ?? `auth-${reactId}`;
+  const errorId = `${inputId}-error`;
+  const hintId = `${inputId}-hint`;
+  const describedBy =
+    [hint && !error ? hintId : null, error ? errorId : null]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   return (
     <div>
       <label
@@ -223,11 +234,17 @@ function Field({
         <input
           id={inputId}
           suppressHydrationWarning
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
           className={cn(
-            "h-[48px] w-full rounded-lg border-2 border-wood-light/40 bg-paper-dark/25 px-3.5 text-[15px] text-wood-dark placeholder:text-wood-medium/50",
-            "outline-none transition focus:border-wood-medium focus:bg-paper-light",
+            // Solid resting border: wood-light at 40% left the field with no
+            // discernible edge (1.28:1). The focus ring is the global
+            // :focus-visible outline — no outline-none here — with the
+            // border/fill shift riding on top as a redundant cue.
+            "h-[48px] w-full rounded-lg border-2 border-wood-light bg-paper-dark/25 px-3.5 text-[15px] text-wood-dark placeholder:text-wood-medium",
+            "transition focus:border-wood-dark focus:bg-paper-light",
             !!trailing && "pr-12",
-            error && "border-critical/70"
+            error && "border-critical-ink"
           )}
           {...inputProps}
         />
@@ -238,9 +255,15 @@ function Field({
         )}
       </div>
       {hint && !error && (
-        <p className="mt-1 text-[13px] text-wood-medium">{hint}</p>
+        <p id={hintId} className="mt-1 text-[13px] text-wood-medium">
+          {hint}
+        </p>
       )}
-      {error && <p className="mt-1 text-[13px] text-critical">{error}</p>}
+      {error && (
+        <p id={errorId} className="mt-1 text-[13px] font-medium text-critical-ink">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -555,7 +578,7 @@ export default function AuthPage() {
 
           {error && (
             <p
-              className="rounded-lg border border-critical/40 bg-critical/10 p-3 text-[14px] text-critical"
+              className="rounded-lg border border-critical-ink/50 bg-critical/10 p-3 text-[14px] text-critical-ink"
               role="alert"
             >
               {error}
@@ -563,7 +586,10 @@ export default function AuthPage() {
           )}
 
           {locked && (
-            <div className="rounded-lg border border-critical/40 bg-critical/10 p-3 text-center text-[13px] text-critical">
+            <div
+              role="alert"
+              className="rounded-lg border border-critical-ink/50 bg-critical/10 p-3 text-center text-[13px] text-critical-ink"
+            >
               Too many attempts — the sunflowers wilted.{" "}
               <button
                 type="button"
@@ -632,7 +658,10 @@ export default function AuthPage() {
   );
 
   return (
-    <main className="auth-breakout relative min-h-dvh w-full overflow-x-hidden">
+    <main
+      id="main-content"
+      className="auth-breakout relative min-h-dvh w-full overflow-x-hidden"
+    >
       {/* z-0 · Parchment map — the backdrop AND the paper the form sits on */}
       <TopoBackground interactive />
 
