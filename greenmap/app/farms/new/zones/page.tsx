@@ -122,7 +122,8 @@ export default function SetupZonesPage() {
       <StepDots step={3} />
 
       <div className="px-6 pt-2">
-        <h1 className="text-[28px] font-bold leading-tight">Almost Done!</h1>
+        {/* TopNav's "Set Up Farm" is the <h1>; this step is an <h2> under it. */}
+        <h2 className="text-[28px] font-bold leading-tight">Almost Done!</h2>
         <p className="mt-1 text-[15px] text-secondary">
           Add optional zones to organise your plants, or skip for now.
         </p>
@@ -230,7 +231,7 @@ export default function SetupZonesPage() {
         )}
 
         {error && (
-          <p className="mt-4 rounded-input bg-critical/10 p-3 text-[14px] text-critical">
+          <p className="mt-4 rounded-input bg-critical/10 p-3 text-[14px] text-critical-ink">
             {error}
           </p>
         )}

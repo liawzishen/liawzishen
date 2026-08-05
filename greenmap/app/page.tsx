@@ -49,9 +49,11 @@ export default function LandingPage() {
             🌿 GreenMap
           </span>
           <div className="flex items-center gap-2">
+            {/* min-h-24 keeps this text link at the 24×24 target floor
+                (WCAG 2.5.8) without growing the 36px-tall header row. */}
             <Link
               href="/auth"
-              className="px-2 text-[15px] font-medium text-brand transition-opacity active:opacity-60"
+              className="inline-flex min-h-[24px] items-center px-2 text-[15px] font-medium text-brand transition-opacity active:opacity-60"
             >
               Log In
             </Link>

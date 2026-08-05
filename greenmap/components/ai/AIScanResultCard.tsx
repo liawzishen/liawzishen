@@ -16,8 +16,10 @@ export function AIScanResultCard({ result }: { result: ScanResult }) {
     return (
       <Card className="mt-4">
         <div className="flex items-center gap-2">
-          <span className="text-[18px]">⚠️</span>
-          <p className="text-[14px] font-semibold text-warning">Couldn&apos;t analyse the photo</p>
+          <span aria-hidden className="text-[18px]">⚠️</span>
+          <p className="text-[14px] font-semibold text-warning-ink">
+            Couldn&apos;t analyse the photo
+          </p>
         </div>
         <p className="mt-2 text-[14px] text-secondary">{result.diagnosis}</p>
       </Card>
@@ -36,14 +38,16 @@ export function AIScanResultCard({ result }: { result: ScanResult }) {
       <p className="mt-2 text-[16px] font-medium leading-snug">{result.diagnosis}</p>
 
       {result.mock && (
-        <p className="mt-2 rounded-input bg-warning/10 p-2 text-[12px] text-warning">
+        <p className="mt-2 rounded-input bg-warning/10 p-2 text-[12px] text-warning-ink">
           Sample result — add GEMINI_API_KEY for real AI analysis.
         </p>
       )}
 
       <div className="mt-3 flex items-center gap-2">
         <span className="text-[12px] text-secondary">Confidence</span>
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-fill">
+        {/* The bar is a duplicate of the "%" text beside it — hide the graphic
+            so it isn't announced as an unlabelled group. */}
+        <div aria-hidden className="h-2 flex-1 overflow-hidden rounded-full bg-fill">
           <div
             className="h-full rounded-full bg-info"
             style={{ width: `${result.confidence}%` }}
@@ -58,7 +62,7 @@ export function AIScanResultCard({ result }: { result: ScanResult }) {
       <ul className="mt-1.5 space-y-1.5">
         {result.recommendations.map((r, i) => (
           <li key={i} className="flex gap-2 text-[14px]">
-            <span className="text-brand">•</span>
+            <span aria-hidden className="text-brand-dark">•</span>
             <span>{r}</span>
           </li>
         ))}

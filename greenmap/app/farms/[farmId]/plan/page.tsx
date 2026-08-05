@@ -35,7 +35,10 @@ export default async function PlanPage({
   const payments = (paymentsRes.data ?? []) as PaymentRow[];
 
   return (
-    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title="My Plan" backHref={`/farms/${farmId}/profile`} />
       <PlanPageClient farmId={farmId} allowance={allowance} payments={payments} />
     </main>

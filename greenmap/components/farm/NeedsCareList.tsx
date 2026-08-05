@@ -30,7 +30,7 @@ export async function NeedsCareList({
       <div className="flex items-baseline justify-between">
         <h3 className="text-[14px] font-bold">{t.map.panels.needsCare}</h3>
         {needsCare.length > 0 && (
-          <span className="text-[11px] font-semibold text-warning">
+          <span className="text-[11px] font-semibold text-warning-ink">
             {t.map.panels.plantsCount(needsCare.length)}
           </span>
         )}

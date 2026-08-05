@@ -148,6 +148,25 @@ export function ScanUploader({
     }
   }
 
+  /*
+   * Every step of this flow lands somewhere other than the focus point — the
+   * preview swaps in place, the overlay says "Analysing…", the result card
+   * appears below the fold. A persistent polite live region narrates the
+   * phase so a screen-reader user isn't left guessing whether anything ran.
+   */
+  const statusMessage =
+    phase === "scanning"
+      ? "Analysing your leaf photo…"
+      : phase === "saving"
+        ? "Saving this scan to the plant record…"
+        : phase === "result" && result
+          ? result.error
+            ? "The photo could not be analysed."
+            : `Analysis complete. ${result.diagnosis}`
+          : phase === "preview" && previewUrl
+            ? "Photo ready. Scan the leaf when you are."
+            : "";
+
   return (
     <div>
       <input
@@ -156,12 +175,17 @@ export function ScanUploader({
         accept="image/*"
         capture="environment"
         onChange={onPick}
+        aria-label="Leaf photo"
         className="hidden"
       />
 
+      <p role="status" className="sr-only">
+        {statusMessage}
+      </p>
+
       {left !== undefined && (
         <p className="mb-3 text-[13px] font-medium text-secondary">
-          🔬{" "}
+          <span aria-hidden>🔬</span>{" "}
           {left === null
             ? "Unlimited scans"
             : `${left} scan${left === 1 ? "" : "s"} left this month`}
@@ -173,11 +197,14 @@ export function ScanUploader({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={previewUrl}
-            alt="Leaf preview"
+            alt="The leaf photo you selected for AI analysis"
             className="aspect-square w-full object-cover"
           />
           {phase === "scanning" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-[14px] font-medium text-white">
+            <div
+              aria-hidden
+              className="absolute inset-0 flex items-center justify-center bg-black/45 text-[14px] font-medium text-white"
+            >
               Analysing…
             </div>
           )}
@@ -188,14 +215,17 @@ export function ScanUploader({
           onClick={() => inputRef.current?.click()}
           className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-tertiary bg-fill text-secondary"
         >
-          <span className="text-[40px]">📷</span>
+          <span aria-hidden className="text-[40px]">📷</span>
           <span className="text-[14px] font-medium">Tap to add a leaf photo</span>
           <span className="text-[12px]">Fill the frame with one leaf, in good light</span>
         </button>
       )}
 
       {error && (
-        <p className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical">
+        <p
+          role="alert"
+          className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical-ink"
+        >
           {error}
         </p>
       )}
@@ -227,7 +257,7 @@ export function ScanUploader({
           </>
         )}
         {phase === "scanning" && (
-          <Button full disabled>
+          <Button full busy>
             Analysing…
           </Button>
         )}
@@ -241,7 +271,7 @@ export function ScanUploader({
               <Button variant="fill" full onClick={reset} disabled={phase === "saving"}>
                 Scan Again
               </Button>
-              <Button full onClick={save} disabled={phase === "saving"}>
+              <Button full onClick={save} busy={phase === "saving"}>
                 {phase === "saving" ? "Saving…" : "Save to Plant Record"}
               </Button>
             </>

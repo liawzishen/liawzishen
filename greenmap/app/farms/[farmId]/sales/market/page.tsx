@@ -27,7 +27,10 @@ export default async function MarketplacePage({
     .map((s) => s.listing_id as string);
 
   return (
-    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title="Marketplace" backHref={`/farms/${farmId}/sales`} />
       <Marketplace
         basePath={`/farms/${farmId}/sales/market`}

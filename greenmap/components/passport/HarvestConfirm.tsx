@@ -50,7 +50,7 @@ export function HarvestConfirm({
       </Card>
 
       {error && (
-        <p className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical">
+        <p className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical-ink">
           {error}
         </p>
       )}

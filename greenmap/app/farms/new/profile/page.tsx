@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useFarmSetup } from "@/contexts/farm-setup-context";
 import { TopNav } from "@/components/layout/TopNav";
@@ -43,6 +43,9 @@ export default function SetupProfilePage() {
     useFarmSetup();
   const [pinning, setPinning] = useState(false);
   const [pinError, setPinError] = useState<string | null>(null);
+  // Roving tabindex for the size radiogroup: the group is one tab stop and
+  // the arrow keys move focus with the selection (APG radiogroup).
+  const sizeRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const valid =
     name.trim().length >= 2 && location !== "" && cropType.trim().length >= 2;
@@ -71,18 +74,55 @@ export default function SetupProfilePage() {
     );
   }
 
-  function next() {
+  function selectSizeAt(index: number) {
+    const i = (index + SIZE_OPTIONS.length) % SIZE_OPTIONS.length;
+    update({ size: SIZE_OPTIONS[i].value });
+    sizeRefs.current[i]?.focus();
+  }
+
+  function onSizeKeyDown(e: React.KeyboardEvent, index: number) {
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        e.preventDefault();
+        selectSizeAt(index + 1);
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        e.preventDefault();
+        selectSizeAt(index - 1);
+        break;
+      case "Home":
+        e.preventDefault();
+        selectSizeAt(0);
+        break;
+      case "End":
+        e.preventDefault();
+        selectSizeAt(SIZE_OPTIONS.length - 1);
+        break;
+    }
+  }
+
+  function next(e: React.FormEvent) {
+    e.preventDefault();
     if (!valid) return;
     router.push("/farms/new/map");
   }
 
   return (
-    <main className="desktop-breakout pb-28 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-28 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title="Set Up Farm" backHref="/farms" />
       <StepDots step={1} />
 
+      {/* A real <form>, so Enter in any field advances the wizard instead of
+          doing nothing. TopNav's "Set Up Farm" is the <h1>; the step is an
+          <h2> under it. */}
+      <form onSubmit={next}>
       <div className="px-6 pt-2">
-        <h1 className="text-[28px] font-bold leading-tight">Farm Profile</h1>
+        <h2 className="text-[28px] font-bold leading-tight">Farm Profile</h2>
         <p className="mt-1 text-[15px] text-secondary">
           Tell us about your farm. You can change these later.
         </p>
@@ -115,8 +155,9 @@ export default function SetupProfilePage() {
           <div className="rounded-input bg-fill p-3">
             {latitude !== null && longitude !== null ? (
               <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 text-[13px] font-medium">
-                  📍 Farm pinned{" "}
+                {/* The pin lands without moving focus, so it has to be spoken. */}
+                <p role="status" className="min-w-0 text-[13px] font-medium">
+                  <span aria-hidden>📍</span> Farm pinned{" "}
                   <span className="text-secondary">
                     ({latitude}, {longitude})
                   </span>
@@ -124,7 +165,7 @@ export default function SetupProfilePage() {
                 <button
                   type="button"
                   onClick={() => update({ latitude: null, longitude: null })}
-                  className="shrink-0 text-[13px] font-semibold text-critical"
+                  className="shrink-0 px-1 py-1 text-[13px] font-semibold text-critical-ink"
                 >
                   Remove
                 </button>
@@ -134,9 +175,16 @@ export default function SetupProfilePage() {
                 type="button"
                 onClick={pinLocation}
                 disabled={pinning}
+                aria-busy={pinning || undefined}
                 className="w-full text-left text-[13px] font-semibold text-brand disabled:opacity-60"
               >
-                {pinning ? "Locating…" : "📍 Pin my farm's GPS location"}
+                {pinning ? (
+                  "Locating…"
+                ) : (
+                  <>
+                    <span aria-hidden>📍</span> Pin my farm&apos;s GPS location
+                  </>
+                )}
                 <span className="mt-0.5 block text-[12px] font-normal text-secondary">
                   Optional — gives you an exact weather &amp; soil forecast for
                   your farm, not just the state.
@@ -144,23 +192,36 @@ export default function SetupProfilePage() {
               </button>
             )}
             {pinError && (
-              <p className="mt-1.5 text-[12px] text-critical">{pinError}</p>
+              <p role="alert" className="mt-1.5 text-[12px] text-critical-ink">
+                {pinError}
+              </p>
             )}
           </div>
 
-          <div>
-            <p className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-secondary">
+          {/*
+            One value out of three — a radiogroup, not three independent
+            toggles. aria-pressed said "this button is on" three times over
+            and never said which one the answer was.
+          */}
+          <fieldset role="radiogroup">
+            <legend className="mb-1.5 text-[12px] font-semibold uppercase tracking-wide text-secondary">
               Farm Size
-            </p>
+            </legend>
             <div className="grid grid-cols-3 gap-3">
-              {SIZE_OPTIONS.map((opt) => {
+              {SIZE_OPTIONS.map((opt, i) => {
                 const selected = size === opt.value;
                 return (
                   <button
                     key={opt.value}
+                    ref={(el) => {
+                      sizeRefs.current[i] = el;
+                    }}
                     type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    tabIndex={selected ? 0 : -1}
                     onClick={() => update({ size: opt.value })}
-                    aria-pressed={selected}
+                    onKeyDown={(e) => onSizeKeyDown(e, i)}
                     className={cn(
                       "rounded-input p-3 text-center transition",
                       selected
@@ -178,7 +239,7 @@ export default function SetupProfilePage() {
                 );
               })}
             </div>
-          </div>
+          </fieldset>
 
           <Input
             label="Main Crop"
@@ -190,12 +251,19 @@ export default function SetupProfilePage() {
         </div>
       </div>
 
-      {/* Sticky footer CTA */}
+      {/* Sticky footer CTA — inside the <form> so it is a real submit and
+          Enter from any field advances the wizard. */}
       <div className="fixed bottom-0 left-1/2 w-full max-w-[430px] -translate-x-1/2 px-6 py-4 glass-strong">
-        <Button full disabled={!valid} onClick={next}>
+        <Button type="submit" full disabled={!valid}>
           Next: Choose Map
         </Button>
+        {!valid && (
+          <p className="mt-1.5 text-center text-[12px] text-secondary">
+            Add a farm name and state to continue.
+          </p>
+        )}
       </div>
+      </form>
     </main>
   );
 }

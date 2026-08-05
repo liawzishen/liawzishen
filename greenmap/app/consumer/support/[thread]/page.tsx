@@ -63,7 +63,8 @@ export default async function SupportChatPage({
   const backHref = order ? `/consumer/orders/${order.id}` : "/consumer/profile";
 
   return (
-    <main>
+    <main id="main-content">
+      {/* TopNav renders `title` as the page <h1>. */}
       <TopNav title={title} backHref={backHref} />
       <SupportChat
         thread={thread as SupportThread}

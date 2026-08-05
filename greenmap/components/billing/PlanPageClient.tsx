@@ -93,7 +93,7 @@ export function PlanPageClient({
   return (
     <div className="px-5 pt-2">
       {allowance.degraded && (
-        <p className="mb-4 rounded-input bg-warning/15 p-3 text-[13px] text-warning">
+        <p className="mb-4 rounded-input bg-warning/15 p-3 text-[13px] text-warning-ink">
           Plans aren&apos;t available right now — your scans stay free and
           unlimited in the meantime.
           {process.env.NODE_ENV === "development" && (

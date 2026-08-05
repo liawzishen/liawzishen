@@ -54,12 +54,12 @@ export function RefundActions({ refundId }: { refundId: string }) {
           type="button"
           onClick={() => decide("rejected")}
           disabled={!!busy}
-          className="flex-1 rounded-btn bg-fill py-2.5 text-[14px] font-semibold text-critical transition active:scale-95 disabled:opacity-50"
+          className="flex-1 rounded-btn bg-fill py-2.5 text-[14px] font-semibold text-critical-ink transition active:scale-95 disabled:opacity-50"
         >
           {busy === "rejected" ? "…" : "Reject"}
         </button>
       </div>
-      {error && <p className="mt-1.5 text-[12px] text-critical">{error}</p>}
+      {error && <p className="mt-1.5 text-[12px] text-critical-ink">{error}</p>}
     </div>
   );
 }

@@ -86,8 +86,8 @@ export function AddPanoramaSheet({
         </button>
         <p className="mt-1.5 text-[11.5px] text-secondary">{t.tour.sizeHint}</p>
 
-        {warn && <p className="mt-2 text-[12.5px] text-warning">{warn}</p>}
-        {error && <p className="mt-2 text-[12.5px] text-critical">{error}</p>}
+        {warn && <p className="mt-2 text-[12.5px] text-warning-ink">{warn}</p>}
+        {error && <p className="mt-2 text-[12.5px] text-critical-ink">{error}</p>}
 
         {file && (
           <>

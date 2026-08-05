@@ -7,7 +7,7 @@ import { getFarmBundle, getUserAndFarms } from "@/lib/farm/fetch";
 import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
 import { TodaysTasks, type TaskItem } from "@/components/home/TodaysTasks";
 import { getFarmWeather, weatherEmoji } from "@/lib/weather/fetch";
-import { wateringAdvice } from "@/lib/weather/advice";
+import { wateringAdvice, type AdviceLevel } from "@/lib/weather/advice";
 import { getDict, getLang } from "@/lib/i18n/server";
 import type { EventType } from "@/types/database";
 
@@ -24,6 +24,19 @@ function relative(dateStr: string): string {
   if (h < 24) return `${h}h`;
   return `${Math.floor(h / 24)}d`;
 }
+
+/**
+ * Advisory TEXT colour. `advice.color` is a FILL value — it drives the inset
+ * accent bar, where a large block of colour only owes 3:1 — but as text those
+ * bright hues sit under 2:1 on the glass card. The headline takes the matching
+ * ink token instead.
+ */
+const ADVICE_TEXT_CLASS: Record<AdviceLevel, string> = {
+  skip: "text-info-ink",
+  good: "text-brand-dark",
+  water: "text-warning-ink",
+  urgent: "text-critical-ink",
+};
 
 /** Event icons — the labels come from the i18n dictionary at render time. */
 const EVENT_ICON: Record<EventType, string> = {
@@ -112,15 +125,20 @@ export default async function FarmHomePage({
     created_at: string;
   }[];
 
+  // Stat colours are TEXT, so they use the ink tokens rather than the bright
+  // iOS fills these tiles used to carry (#F59E0B measured 1.9:1 on glass).
   const stats = [
-    { label: t.home.stats.plants, value: active.length, color: "#1E434A" },
-    { label: t.home.stats.healthy, value: healthy, color: "#0DB074" },
-    { label: t.home.stats.needCare, value: needCare, color: "#F59E0B" },
-    { label: t.home.stats.harvest, value: harvestReadyCount, color: "#3B82F6" },
+    { label: t.home.stats.plants, value: active.length, className: "text-label" },
+    { label: t.home.stats.healthy, value: healthy, className: "text-brand-dark" },
+    { label: t.home.stats.needCare, value: needCare, className: "text-warning-ink" },
+    { label: t.home.stats.harvest, value: harvestReadyCount, className: "text-info-ink" },
   ];
 
   return (
-    <main className="px-5 pt-12 lg:mx-auto lg:w-full lg:max-w-[1200px] lg:px-8 lg:pt-10">
+    <main
+      id="main-content"
+      className="px-5 pt-12 lg:mx-auto lg:w-full lg:max-w-[1200px] lg:px-8 lg:pt-10"
+    >
       {/* Greeting */}
       <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
         {new Date().toLocaleDateString(dateLocale, {
@@ -151,10 +169,7 @@ export default async function FarmHomePage({
             href={`/farms/${farmId}/field`}
             className="pressable rounded-card p-3 text-center glass"
           >
-            <p
-              className="text-[22px] font-bold leading-none"
-              style={{ color: s.color }}
-            >
+            <p className={`text-[22px] font-bold leading-none ${s.className}`}>
               {s.value}
             </p>
             <p className="mt-1 text-[11px] leading-tight text-secondary">
@@ -175,8 +190,7 @@ export default async function FarmHomePage({
         </span>
         <span className="min-w-0 flex-1">
           <span
-            className="block truncate text-[13px] font-bold"
-            style={{ color: advice.color }}
+            className={`block truncate text-[13px] font-bold ${ADVICE_TEXT_CLASS[advice.level]}`}
           >
             {t.advice[advice.level].title}
             {weather.source === "fallback" ? ` · ${t.home.sampleData}` : ""}
@@ -196,7 +210,7 @@ export default async function FarmHomePage({
             {weatherEmoji(weather.today.weatherCode)}
           </span>
         </span>
-        <span className="shrink-0 text-[12px] font-semibold text-brand">
+        <span className="shrink-0 text-[12px] font-semibold text-brand-dark">
           {t.home.forecast} ›
         </span>
       </Link>
@@ -231,7 +245,9 @@ export default async function FarmHomePage({
           {t.home.salesPreviewRow}
         </span>
         <Badge tone="warning">{t.common.preview}</Badge>
-        <span className="text-tertiary">›</span>
+        <span aria-hidden className="text-tertiary">
+          ›
+        </span>
       </Link>
 
       {/* Recent activity */}
@@ -262,7 +278,10 @@ export default async function FarmHomePage({
                 href={`/farms/${farmId}/plants/${f.plant_id}`}
                 className={`pressable flex items-center gap-3 p-4 ${i > 0 ? "hairline-t" : ""}`}
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-fill text-[16px]">
+                <span
+                  aria-hidden
+                  className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-fill text-[16px]"
+                >
                   {icon}
                 </span>
                 <div className="min-w-0 flex-1">

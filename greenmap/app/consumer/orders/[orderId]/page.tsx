@@ -1,9 +1,25 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TopNav } from "@/components/layout/TopNav";
+import { Badge } from "@/components/ui/Badge";
 import { OrderSupport } from "@/components/consumer/OrderSupport";
-import { getOrder, STATUS_META } from "@/components/consumer/demo-consumer";
+import {
+  getOrder,
+  STATUS_META,
+  type OrderStatus,
+} from "@/components/consumer/demo-consumer";
 import type { OrderFeedback, RefundRequest } from "@/types/database";
+
+/*
+ * STATUS_META.tone is a raw FILL hex (#F59E0B / #007aff …). Painted as pill
+ * TEXT it fails contrast, so the pill renders through <Badge>, whose tones
+ * pair each tint with its verified ink colour.
+ */
+const STATUS_TONE: Record<OrderStatus, "brand" | "info" | "warning"> = {
+  delivered: "brand",
+  confirmed: "info",
+  pending: "warning",
+};
 
 /**
  * Consumer order detail + customer-service hub. The order is mock data; the
@@ -57,32 +73,39 @@ export default async function OrderDetailPage({
   const status = STATUS_META[order.status];
 
   return (
-    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title={`Order #${order.id}`} backHref="/consumer/orders" />
 
       {/* Order summary */}
       <div className="px-5 pt-2">
         <div className="rounded-card p-4 glass">
           <div className="flex items-center gap-3">
-            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-input bg-fill text-[26px]">
+            <span
+              aria-hidden="true"
+              className="grid h-14 w-14 shrink-0 place-items-center rounded-input bg-fill text-[26px]"
+            >
               {order.emoji}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[16px] font-semibold">{order.item}</p>
+              {/* The item is this page's title — it was a styled <p>, so the
+                  screen had no h1 at all (the TopNav title is a span). */}
+              {/* TopNav's "Order #…" is the page <h1>; this names the item. */}
+              <h2 className="truncate text-[16px] font-semibold">{order.item}</h2>
               <p className="truncate text-[13px] text-secondary">
                 {order.qty} · {order.farm} · {order.date}
               </p>
             </div>
-            <span
-              className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-              style={{ backgroundColor: `${status.tone}1A`, color: status.tone }}
-            >
+            <Badge tone={STATUS_TONE[order.status]} className="shrink-0">
               {status.label}
-            </span>
+            </Badge>
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-tertiary/50 pt-3">
             <span className="text-[13px] text-secondary">Total paid</span>
-            <span className="text-[17px] font-bold text-brand">RM {order.total}</span>
+            {/* brand-dark: plain brand measures 4.46:1 on a glass card. */}
+            <span className="text-[17px] font-bold text-brand-dark">RM {order.total}</span>
           </div>
         </div>
       </div>

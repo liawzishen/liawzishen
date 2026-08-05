@@ -58,7 +58,10 @@ export function LogModal({
 
   const valid = type !== "note" || text.trim().length > 0;
 
-  async function save() {
+  // Native submit, so Enter in any field saves instead of doing nothing —
+  // the fields used to sit in a plain <div> beside an onClick button.
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     if (!valid || saving) return;
     setError(null);
     setSaving(true);
@@ -129,102 +132,111 @@ export function LogModal({
       <h2 className="text-[20px] font-bold">{titles[type]}</h2>
       <p className="mt-0.5 text-[13px] text-secondary">{plant.name}</p>
 
-      <div className="mt-4 space-y-4">
-        {type === "water" && (
-          <Input
-            label={t.log.methodOptional}
-            placeholder={t.log.methodPlaceholder}
-            value={method}
-            onChange={(e) => setMethod(e.target.value)}
-            autoFocus
-          />
-        )}
-
-        {type === "fertilize" && (
-          <>
+      <form onSubmit={save}>
+        <div className="mt-4 space-y-4">
+          {type === "water" && (
             <Input
-              label={t.log.fertType}
-              placeholder={t.log.fertTypePlaceholder}
-              value={fertType}
-              onChange={(e) => setFertType(e.target.value)}
+              label={t.log.methodOptional}
+              placeholder={t.log.methodPlaceholder}
+              value={method}
+              onChange={(e) => setMethod(e.target.value)}
               autoFocus
             />
-            <Input
-              label={t.log.amountOptional}
-              placeholder={t.log.amountPlaceholder}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-            <Select
-              label={t.log.category}
-              value={category}
-              onChange={(e) =>
-                setCategory(e.target.value as FertilizerCategory)
-              }
-            >
-              <option value="unknown">{t.log.catUnknown}</option>
-              <option value="organic">{t.log.catOrganic}</option>
-              <option value="chemical">{t.log.catChemical}</option>
-            </Select>
-          </>
-        )}
+          )}
 
-        {type === "note" && (
-          <div>
-            <label
-              htmlFor="note-text"
-              className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-secondary"
-            >
-              {t.log.note}
+          {type === "fertilize" && (
+            <>
+              <Input
+                label={t.log.fertType}
+                placeholder={t.log.fertTypePlaceholder}
+                value={fertType}
+                onChange={(e) => setFertType(e.target.value)}
+                autoFocus
+              />
+              <Input
+                label={t.log.amountOptional}
+                placeholder={t.log.amountPlaceholder}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+              <Select
+                label={t.log.category}
+                value={category}
+                onChange={(e) =>
+                  setCategory(e.target.value as FertilizerCategory)
+                }
+              >
+                <option value="unknown">{t.log.catUnknown}</option>
+                <option value="organic">{t.log.catOrganic}</option>
+                <option value="chemical">{t.log.catChemical}</option>
+              </Select>
+            </>
+          )}
+
+          {type === "note" && (
+            <div>
+              <label
+                htmlFor="note-text"
+                className="mb-1.5 block text-[12px] font-semibold uppercase tracking-wide text-secondary"
+              >
+                {t.log.note}
+              </label>
+              {/* `required` is what tells AT that Save stays disabled until
+                  this field has text — the dependency was silent before. */}
+              <textarea
+                id="note-text"
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                rows={3}
+                autoFocus
+                required
+                placeholder={t.log.notePlaceholder}
+                className="w-full rounded-input bg-fill px-4 py-3 text-[16px] text-label placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-brand/50"
+              />
+            </div>
+          )}
+
+          {(type === "fertilize" || type === "note") && (
+            <label className="flex items-center gap-3 text-[15px]">
+              <input
+                type="checkbox"
+                checked={pesticideUsed}
+                onChange={(e) => setPesticideUsed(e.target.checked)}
+                className="h-5 w-5 accent-brand"
+              />
+              <span>{t.log.pesticideUsed}</span>
             </label>
-            <textarea
-              id="note-text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={3}
-              autoFocus
-              placeholder={t.log.notePlaceholder}
-              className="w-full rounded-input bg-fill px-4 py-3 text-[16px] text-label placeholder:text-secondary focus:outline-none focus:ring-2 focus:ring-brand/50"
+          )}
+
+          {type === "note" && pesticideUsed && (
+            <Input
+              label={t.log.pesticideType}
+              placeholder={t.log.pesticideTypePlaceholder}
+              value={pesticideType}
+              onChange={(e) => setPesticideType(e.target.value)}
             />
-          </div>
+          )}
+        </div>
+
+        {error && (
+          <p
+            role="alert"
+            className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical-ink"
+          >
+            {error}
+          </p>
         )}
 
-        {(type === "fertilize" || type === "note") && (
-          <label className="flex items-center gap-3 text-[15px]">
-            <input
-              type="checkbox"
-              checked={pesticideUsed}
-              onChange={(e) => setPesticideUsed(e.target.checked)}
-              className="h-5 w-5 accent-brand"
-            />
-            <span>{t.log.pesticideUsed}</span>
-          </label>
-        )}
-
-        {type === "note" && pesticideUsed && (
-          <Input
-            label={t.log.pesticideType}
-            placeholder={t.log.pesticideTypePlaceholder}
-            value={pesticideType}
-            onChange={(e) => setPesticideType(e.target.value)}
-          />
-        )}
-      </div>
-
-      {error && (
-        <p className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical">
-          {error}
-        </p>
-      )}
-
-      <div className="mt-5 flex gap-3">
-        <Button variant="fill" full onClick={onClose}>
-          {t.log.cancel}
-        </Button>
-        <Button full onClick={save} disabled={!valid || saving}>
-          {saving ? t.log.saving : t.log.save}
-        </Button>
-      </div>
+        <div className="mt-5 flex gap-3">
+          <Button variant="fill" full onClick={onClose}>
+            {t.log.cancel}
+          </Button>
+          {/* type="submit" is explicit: Button now defaults to "button". */}
+          <Button type="submit" full disabled={!valid} busy={saving}>
+            {saving ? t.log.saving : t.log.save}
+          </Button>
+        </div>
+      </form>
     </BottomSheet>
   );
 }

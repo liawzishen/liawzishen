@@ -32,7 +32,10 @@ export default async function ConsumerHomePage() {
   ];
 
   return (
-    <main className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10">
+    <main
+      id="main-content"
+      className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10"
+    >
       <div className="flex items-center gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           GreenMap
@@ -71,7 +74,10 @@ export default async function ConsumerHomePage() {
         href="/consumer/scan"
         className="mt-4 flex items-center gap-3 rounded-card p-4 glass active:opacity-90"
       >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand/12 text-[22px]">
+        <span
+          aria-hidden="true"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand/12 text-[22px]"
+        >
           📷
         </span>
         <span className="min-w-0 flex-1">
@@ -80,7 +86,9 @@ export default async function ConsumerHomePage() {
             Point your camera at a QR code to see the growing journey.
           </span>
         </span>
-        <span className="shrink-0 text-tertiary">›</span>
+        <span aria-hidden="true" className="shrink-0 text-tertiary">
+          ›
+        </span>
       </Link>
 
       {/* Fresh near you — top ranked listings */}
@@ -100,6 +108,7 @@ export default async function ConsumerHomePage() {
             className="flex items-center gap-3 rounded-card p-3 glass active:opacity-90"
           >
             <span
+              aria-hidden="true"
               className="grid h-14 w-14 shrink-0 place-items-center rounded-input text-[26px]"
               style={{ background: l.gradient }}
             >
@@ -109,8 +118,11 @@ export default async function ConsumerHomePage() {
               <div className="flex items-center gap-2">
                 <p className="truncate text-[15px] font-semibold">{l.name}</p>
                 {promoted && (
-                  <span className="shrink-0 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold text-warning">
-                    ⚡
+                  /* The bolt alone carried the "promoted" meaning in colour —
+                     it is decorative, the sr-only word is what says it. */
+                  <span className="shrink-0 rounded-full bg-warning/15 px-1.5 py-0.5 text-[10px] font-bold text-warning-ink">
+                    <span aria-hidden="true">⚡</span>
+                    <span className="sr-only">Promoted</span>
                   </span>
                 )}
               </div>
@@ -119,7 +131,8 @@ export default async function ConsumerHomePage() {
               </p>
             </div>
             <div className="shrink-0 text-right">
-              <p className="text-[15px] font-bold text-brand">RM {l.price}</p>
+              {/* brand-dark: plain brand measures 4.46:1 on a glass card. */}
+              <p className="text-[15px] font-bold text-brand-dark">RM {l.price}</p>
               <p className="text-[11px] text-secondary">/{l.unit}</p>
             </div>
           </Link>
@@ -133,8 +146,10 @@ export default async function ConsumerHomePage() {
       <div className="grid grid-cols-3 gap-3">
         {impact.map((s) => (
           <div key={s.label} className="rounded-card p-3 text-center glass">
-            <p className="text-[20px] leading-none">{s.icon}</p>
-            <p className="mt-1.5 text-[20px] font-bold leading-none text-brand">
+            <p aria-hidden="true" className="text-[20px] leading-none">
+              {s.icon}
+            </p>
+            <p className="mt-1.5 text-[20px] font-bold leading-none text-brand-dark">
               {s.value}
             </p>
             <p className="mt-1 text-[11px] leading-tight text-secondary">{s.label}</p>

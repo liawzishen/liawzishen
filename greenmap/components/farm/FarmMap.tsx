@@ -175,7 +175,7 @@ export function FarmMap({
           type="button"
           onClick={() => setCareOnly((v) => !v)}
           className={`absolute left-3 top-3 rounded-full px-3 py-1.5 text-[12px] font-semibold shadow-card backdrop-blur transition ${
-            careOnly ? "bg-warning text-white" : "bg-white/95 text-warning"
+            careOnly ? "bg-warning text-white" : "bg-white/95 text-warning-ink"
           }`}
         >
           {careOnly ? t.map.showingNeedCare : t.map.needCare(careIds.length)}

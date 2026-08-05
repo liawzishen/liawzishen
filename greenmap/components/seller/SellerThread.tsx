@@ -91,7 +91,7 @@ export function SellerThread({
           ↑
         </button>
       </div>
-      {error && <p className="mt-1.5 text-[12px] text-critical">{error}</p>}
+      {error && <p className="mt-1.5 text-[12px] text-critical-ink">{error}</p>}
     </div>
   );
 }

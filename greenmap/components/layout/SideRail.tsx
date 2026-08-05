@@ -28,6 +28,7 @@ export function SideRail({
   const pathname = usePathname();
   const isActive = (tab: RailTab) =>
     tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
+  const fabActive = pathname.startsWith(fab.href);
 
   return (
     <nav
@@ -42,9 +43,13 @@ export function SideRail({
           <Link
             key={tab.href}
             href={tab.href}
+            // Tint + colour alone don't reach assistive tech; say "current page".
+            aria-current={isActive(tab) ? "page" : undefined}
             className={cn(
               "pressable flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[14px] font-medium transition-colors",
-              isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
+              // brand-dark, not brand: on glass + a brand tint, plain
+              // --color-brand measures 4.46:1 — just under the 4.5:1 AA floor.
+              isActive(tab) ? "bg-brand/12 text-brand-dark" : "text-secondary"
             )}
           >
             {tab.icon}
@@ -54,9 +59,10 @@ export function SideRail({
       </div>
       <Link
         href={fab.href}
+        aria-current={fabActive ? "page" : undefined}
         className={cn(
           "pressable pressable-glow mt-auto flex h-12 items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold text-white bg-gradient-brand shadow-fab",
-          pathname.startsWith(fab.href) && "ring-2 ring-brand/40"
+          fabActive && "ring-2 ring-brand/40"
         )}
       >
         {fab.icon}

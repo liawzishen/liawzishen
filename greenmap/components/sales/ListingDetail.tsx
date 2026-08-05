@@ -74,10 +74,19 @@ export function ListingDetail({
   if (stage === "pay") {
     return (
       <div className="px-6 pb-28 pt-2">
-        <p className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
+        <p
+          id="pay-method-label"
+          className="text-[13px] font-semibold uppercase tracking-wide text-secondary"
+        >
           Payment method
         </p>
-        <div className="mt-2 space-y-2">
+        {/* One method out of two — the rows are radios, so they need a group
+            that carries the "Payment method" name. */}
+        <div
+          role="radiogroup"
+          aria-labelledby="pay-method-label"
+          className="mt-2 space-y-2"
+        >
           <PayRow
             icon="🏦"
             title="FPX Online Banking"
@@ -135,7 +144,7 @@ export function ListingDetail({
           </span>
         )}
         {promoted && (
-          <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-[12px] font-semibold text-warning">
+          <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-[12px] font-semibold text-warning-ink">
             ⚡ Promoted
           </span>
         )}
@@ -212,25 +221,35 @@ export function ListingDetail({
           </div>
         </div>
 
-        {/* Fulfilment */}
-        <div className="mt-3 flex gap-2">
+        {/* Fulfilment — one option out of two. It had no accessible group
+            name and no selected state at all; the choice was carried purely
+            by which button turned green. */}
+        <div
+          role="radiogroup"
+          aria-label="Fulfilment method"
+          className="mt-3 flex gap-2"
+        >
           <button
             type="button"
+            role="radio"
+            aria-checked={mode === "pickup"}
             onClick={() => setMode("pickup")}
             className={`flex-1 rounded-input p-3 text-[14px] font-medium transition ${
               mode === "pickup" ? "bg-brand text-white" : "bg-fill text-label"
             }`}
           >
-            📍 Pickup · Free
+            <span aria-hidden="true">📍</span> Pickup · Free
           </button>
           <button
             type="button"
+            role="radio"
+            aria-checked={mode === "delivery"}
             onClick={() => setMode("delivery")}
             className={`flex-1 rounded-input p-3 text-[14px] font-medium transition ${
               mode === "delivery" ? "bg-brand text-white" : "bg-fill text-label"
             }`}
           >
-            🛵 Delivery · RM 5
+            <span aria-hidden="true">🛵</span> Delivery · RM 5
           </button>
         </div>
       </div>
@@ -275,24 +294,32 @@ function PayRow({
   onClick: () => void;
 }) {
   return (
+    // Selection was conveyed by a green circle alone; aria-checked states it.
     <button
       type="button"
+      role="radio"
+      aria-checked={on}
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-input p-3.5 text-left glass transition active:opacity-80"
     >
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-fill text-[18px]">
+      <span
+        aria-hidden="true"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-fill text-[18px]"
+      >
         {icon}
       </span>
       <div className="flex-1">
         <p className="text-[15px] font-medium">{title}</p>
         <p className="text-[12px] text-secondary">{sub}</p>
       </div>
+      {/* Decoration only — a transparent tick was still being announced. */}
       <span
+        aria-hidden="true"
         className={`grid h-6 w-6 place-items-center rounded-full border-2 text-[13px] ${
-          on ? "border-brand bg-brand text-white" : "border-tertiary text-transparent"
+          on ? "border-brand bg-brand text-white" : "border-tertiary"
         }`}
       >
-        ✓
+        {on ? "✓" : ""}
       </span>
     </button>
   );

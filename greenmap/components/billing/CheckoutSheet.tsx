@@ -166,7 +166,7 @@ export function CheckoutSheet({
 
       {phase === "error" && (
         <div className="py-6 text-center">
-          <p className="rounded-input bg-critical/10 p-3 text-[14px] text-critical">
+          <p className="rounded-input bg-critical/10 p-3 text-[14px] text-critical-ink">
             {errorMsg}
           </p>
           <div className="mt-4 flex gap-3">

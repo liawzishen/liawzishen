@@ -33,23 +33,30 @@ export default async function PlantScanPage({
     : "";
 
   return (
-    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title="AI Scan" backHref={`/farms/${farmId}/plants/${plantId}`} />
       <div className="px-6 pt-2">
-        <h1 className="text-[24px] font-bold leading-tight">{p.name}</h1>
+        {/* TopNav's "AI Scan" is the page <h1>; the plant is its subject. */}
+        <h2 className="text-[24px] font-bold leading-tight">{p.name}</h2>
         <p className="mt-0.5 text-[14px] text-secondary">
           Snap a leaf for an instant Gemini health check.
         </p>
         <div className="mt-4">
           {blocked && allowance ? (
             <div className="rounded-card p-6 text-center glass">
-              <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-warning/15 text-[26px]">
+              <div
+                aria-hidden
+                className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-warning/15 text-[26px]"
+              >
                 🔬
               </div>
-              <h2 className="mt-3 text-[18px] font-bold">
+              <h3 className="mt-3 text-[18px] font-bold">
                 You&apos;ve used all {(allowance.limit ?? 0) + allowance.bonus}{" "}
                 scans this month
-              </h2>
+              </h3>
               <p className="mt-1 text-[14px] leading-relaxed text-secondary">
                 Upgrade your plan or top up to keep scanning. Your{" "}
                 {allowance.planName} scans reset on {resetLabel}.

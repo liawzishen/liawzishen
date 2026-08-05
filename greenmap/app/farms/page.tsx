@@ -46,7 +46,10 @@ export default async function FarmSelectorPage() {
   }
 
   return (
-    <main className="desktop-breakout px-6 pb-12 pt-14 lg:mx-auto lg:w-full lg:max-w-[1100px] lg:px-8 lg:pt-16">
+    <main
+      id="main-content"
+      className="desktop-breakout px-6 pb-12 pt-14 lg:mx-auto lg:w-full lg:max-w-[1100px] lg:px-8 lg:pt-16"
+    >
       <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
         Welcome, {name}
       </p>

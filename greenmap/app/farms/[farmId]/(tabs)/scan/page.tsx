@@ -44,7 +44,10 @@ export default async function ScanPickerPage({
     .sort((a, b) => (a.health_score ?? -1) - (b.health_score ?? -1));
 
   return (
-    <main className="px-5 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10">
+    <main
+      id="main-content"
+      className="px-5 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10"
+    >
       <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
         AI
       </p>
@@ -58,7 +61,7 @@ export default async function ScanPickerPage({
           href={`/farms/${farmId}/plan`}
           className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold glass transition active:bg-white/60"
         >
-          🔬{" "}
+          <span aria-hidden>🔬</span>{" "}
           {allowance.remaining === null
             ? `${allowance.planName} — unlimited scans`
             : `${allowance.remaining} of ${(allowance.limit ?? 0) + allowance.bonus} scans left`}

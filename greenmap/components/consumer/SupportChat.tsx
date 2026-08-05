@@ -95,8 +95,15 @@ export function SupportChat({
 
   return (
     <div className="flex min-h-[calc(100dvh-56px)] flex-col">
-      {/* Messages */}
-      <div className="flex-1 space-y-3 px-5 pb-40 pt-4">
+      {/* Messages — a chat transcript is a live region: the reply arrives
+          without focus ever moving, so it has to be announced. role="log"
+          (polite) announces only what gets appended, never the backlog. */}
+      <div
+        role="log"
+        aria-live="polite"
+        aria-label="Conversation"
+        className="flex-1 space-y-3 px-5 pb-40 pt-4"
+      >
         {messages.map((m, i) => (
           <div key={i}>
             <Bubble sender={m.sender}>{m.body}</Bubble>
@@ -107,9 +114,12 @@ export function SupportChat({
         ))}
         {sending && (
           <Bubble sender={thread === "admin" ? "ai" : "seller"}>
-            <span className="inline-flex gap-1">
+            {/* The pulsing dots are the only "typing" cue on screen — give
+                the same state a text form for anyone not seeing them. */}
+            <span aria-hidden="true" className="inline-flex gap-1">
               <Dot /> <Dot /> <Dot />
             </span>
+            <span className="sr-only">Typing…</span>
           </Bubble>
         )}
         <div ref={endRef} />
@@ -142,15 +152,19 @@ export function SupportChat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message…"
-            className="h-11 flex-1 rounded-full bg-white/80 px-4 text-[15px] outline-none ring-1 ring-tertiary/40 focus:ring-brand"
+            // A placeholder is not a label, and the ring is this field's only
+            // boundary — at /40 it was under the 3:1 non-text floor.
+            aria-label="Message"
+            className="h-11 flex-1 rounded-full bg-white/80 px-4 text-[15px] outline-none ring-1 ring-tertiary focus:ring-brand"
           />
           <button
             type="submit"
             disabled={!input.trim() || sending}
+            aria-busy={sending || undefined}
             className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-white transition active:scale-95 disabled:opacity-40"
-            aria-label="Send"
+            aria-label={sending ? "Sending message" : "Send message"}
           >
-            ↑
+            <span aria-hidden="true">↑</span>
           </button>
         </form>
       </div>

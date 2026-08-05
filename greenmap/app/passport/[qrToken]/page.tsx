@@ -91,11 +91,17 @@ export default async function PublicPassportPage({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[440px] flex-col px-5 pb-12 pt-10">
+      {/*
+        This screen is the app's print target — it is what a grower hands a
+        buyer on paper. Navigation and sharing affordances are `print-hide`d
+        (globals.css @media print); the passport card, growing story, QR block
+        and the GreenMap wordmark are the paper content and stay.
+      */}
       <header className="relative flex h-7 items-center justify-center">
         {user ? (
           <Link
             href={`/farms/${farm.id}`}
-            className="absolute left-0 inline-flex items-center gap-0.5 text-[14px] font-semibold text-brand active:opacity-80"
+            className="print-hide absolute left-0 inline-flex min-h-[24px] items-center gap-0.5 text-[14px] font-semibold text-brand active:opacity-80"
           >
             <svg
               width="18"
@@ -106,6 +112,7 @@ export default async function PublicPassportPage({
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
+              aria-hidden
             >
               <path d="m15 18-6-6 6-6" />
             </svg>
@@ -114,9 +121,9 @@ export default async function PublicPassportPage({
         ) : (
           <Link
             href="/"
-            className="absolute right-0 text-[13px] font-semibold text-brand active:opacity-80"
+            className="print-hide absolute right-0 inline-flex min-h-[24px] items-center text-[13px] font-semibold text-brand active:opacity-80"
           >
-            Open GreenMap ›
+            Open GreenMap <span aria-hidden>›</span>
           </Link>
         )}
         <p className="text-[17px] font-bold">🌿 GreenMap</p>
@@ -159,7 +166,10 @@ export default async function PublicPassportPage({
               return (
                 <li key={log.id} className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-fill text-[14px]">
+                    <span
+                      aria-hidden
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-fill text-[14px]"
+                    >
                       {m.icon}
                     </span>
                     {!last && <span className="w-px flex-1 bg-tertiary" />}
@@ -186,10 +196,12 @@ export default async function PublicPassportPage({
       {isOwner && (
         <Link
           href={`/farms/${farm.id}/sales/new`}
-          className="relative mt-4 flex w-full items-center justify-center rounded-btn bg-brand py-3 text-[15px] font-semibold text-white active:opacity-90"
+          className="print-hide relative mt-4 flex w-full items-center justify-center rounded-btn bg-brand py-3 text-[15px] font-semibold text-white active:opacity-90"
         >
-          💰 Sell This Harvest
-          <span className="absolute right-3 rounded-full bg-warning px-2 py-0.5 text-[10px] font-bold text-white">
+          <span aria-hidden>💰</span> Sell This Harvest
+          {/* Solid pill with a white label: the fill has to be the INK value —
+              white on #ff9f0a measures 2.06:1. */}
+          <span className="absolute right-3 rounded-full bg-warning-ink px-2 py-0.5 text-[10px] font-bold text-white">
             PREVIEW
           </span>
         </Link>
@@ -198,8 +210,8 @@ export default async function PublicPassportPage({
         href={waLink}
         target="_blank"
         rel="noopener noreferrer"
-        className={`mt-4 block w-full rounded-btn py-3 text-center text-[15px] font-semibold ${
-          isOwner ? "bg-fill text-brand" : "bg-brand text-white"
+        className={`print-hide mt-4 block w-full rounded-btn py-3 text-center text-[15px] font-semibold ${
+          isOwner ? "bg-fill text-brand-dark" : "bg-brand text-white"
         }`}
       >
         Share on WhatsApp

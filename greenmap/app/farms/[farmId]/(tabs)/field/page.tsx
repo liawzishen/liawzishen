@@ -61,7 +61,17 @@ export default async function FarmFieldPage({
   ).length;
 
   return (
-    <main className="desktop-breakout mx-auto w-full max-w-[1400px] px-5 pt-12 lg:px-8 lg:pt-8">
+    <main
+      id="main-content"
+      className="desktop-breakout mx-auto w-full max-w-[1400px] px-5 pt-12 lg:px-8 lg:pt-8"
+    >
+      {/*
+        The visible page title is the farm name inside <FarmSwitcher>, which
+        renders it as a <span> in a button — so this screen had no heading at
+        all. Until the switcher can host the heading itself, name the page
+        here for assistive tech without changing the layout.
+      */}
+      <h1 className="sr-only">{farm.name}</h1>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-6">
         {/* ── Left column: header + KPIs + map + analysis grid ─────────── */}
         <div className="min-w-0">

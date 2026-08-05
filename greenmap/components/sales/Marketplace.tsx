@@ -119,7 +119,7 @@ export function Marketplace({
                 </span>
               ) : (
                 promoted && (
-                  <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-warning">
+                  <span className="absolute bottom-3 left-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-warning-ink">
                     ⚡ Promoted
                   </span>
                 )
@@ -158,7 +158,7 @@ export function Marketplace({
                   {l.verified && (
                     <Link
                       href={`${basePath}/${l.id}`}
-                      className="text-[13px] font-semibold text-info transition-opacity active:opacity-60"
+                      className="text-[13px] font-semibold text-info-ink transition-opacity active:opacity-60"
                     >
                       🔍 Journey
                     </Link>

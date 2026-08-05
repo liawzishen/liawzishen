@@ -26,6 +26,7 @@ const CATEGORIES: {
 function Chevron({ open }: { open: boolean }) {
   return (
     <svg
+      aria-hidden
       width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
       className={`text-tertiary transition-transform ${open ? "rotate-180" : ""}`}
@@ -38,6 +39,7 @@ function Chevron({ open }: { open: boolean }) {
 function Check({ className }: { className?: string }) {
   return (
     <svg
+      aria-hidden
       width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={className}
     >
@@ -57,6 +59,14 @@ export function TodaysTasks({
   const { t } = useI18n();
   const [groups, setGroups] = useState<TaskGroups>(initial);
   const [completed, setCompleted] = useState<CompletedEntry[]>([]);
+  /*
+   * Completing a task is an optimistic write with a silent rollback: the row
+   * vanishes (or reappears) with nothing said. These two live regions narrate
+   * both outcomes — success politely, a failed save assertively, because a
+   * task the grower believes is logged and isn't matters.
+   */
+  const [announcement, setAnnouncement] = useState("");
+  const [failure, setFailure] = useState("");
 
   const groupLabel: Record<GroupKey, string> = {
     harvest: t.home.readyToHarvest,
@@ -102,12 +112,15 @@ export function TodaysTasks({
   async function completeOne(group: GroupKey, action: CareAction, item: TaskItem) {
     setGroups((g) => ({ ...g, [group]: g[group].filter((t) => t.plantId !== item.plantId) }));
     setCompleted((c) => [{ item, group, action }, ...c]);
+    setFailure("");
     try {
       await send("complete", action, [item.plantId]);
+      setAnnouncement(`${item.plantName} — ${doneLabel[action]}`);
       router.refresh();
     } catch {
       setCompleted((c) => c.filter((e) => !(e.action === action && e.item.plantId === item.plantId)));
       setGroups((g) => ({ ...g, [group]: [item, ...g[group]] }));
+      setFailure(`Couldn't save ${item.plantName}. It's back in the list.`);
     }
   }
 
@@ -117,14 +130,17 @@ export function TodaysTasks({
     setBusy((b) => ({ ...b, [group]: true }));
     setGroups((g) => ({ ...g, [group]: [] }));
     setCompleted((c) => [...items.map((item) => ({ item, group, action })), ...c]);
+    setFailure("");
     try {
       await send("complete", action, items.map((t) => t.plantId));
+      setAnnouncement(`${items.length} plants — ${doneLabel[action]}`);
       router.refresh();
     } catch {
       setGroups((g) => ({ ...g, [group]: items }));
       setCompleted((c) =>
         c.filter((e) => !(e.group === group && items.some((i) => i.plantId === e.item.plantId)))
       );
+      setFailure(`Couldn't save ${groupLabel[group]}. Those plants are back in the list.`);
     } finally {
       setBusy((b) => ({ ...b, [group]: false }));
     }
@@ -135,8 +151,10 @@ export function TodaysTasks({
       c.filter((e) => !(e.action === entry.action && e.item.plantId === entry.item.plantId))
     );
     setGroups((g) => ({ ...g, [entry.group]: [entry.item, ...g[entry.group]] }));
+    setFailure("");
     try {
       await send("uncomplete", entry.action, [entry.item.plantId]);
+      setAnnouncement(`${entry.item.plantName} moved back to ${groupLabel[entry.group]}`);
       router.refresh();
     } catch {
       setGroups((g) => ({
@@ -144,6 +162,7 @@ export function TodaysTasks({
         [entry.group]: g[entry.group].filter((t) => t.plantId !== entry.item.plantId),
       }));
       setCompleted((c) => [entry, ...c]);
+      setFailure(`Couldn't undo ${entry.item.plantName}.`);
     }
   }
 
@@ -176,9 +195,11 @@ export function TodaysTasks({
               <button
                 type="button"
                 onClick={() => toggle(cat.key)}
+                aria-expanded={isOpen}
+                aria-controls={`tasks-${cat.key}`}
                 className="flex min-h-[44px] flex-1 items-center gap-2 text-left"
               >
-                <span className="text-[18px]">{cat.icon}</span>
+                <span aria-hidden className="text-[18px]">{cat.icon}</span>
                 <span className="text-[15px] font-semibold">
                   {groupLabel[cat.key]}
                 </span>
@@ -192,7 +213,11 @@ export function TodaysTasks({
                   type="button"
                   onClick={() => completeAll(cat.key, cat.action as CareAction)}
                   disabled={busy[cat.key]}
-                  className="min-h-[40px] shrink-0 rounded-full bg-brand/10 px-4 py-2 text-[13px] font-semibold text-brand active:opacity-80 disabled:opacity-50"
+                  aria-busy={busy[cat.key]}
+                  // While saving the label collapses to "…", which would leave
+                  // the button nameless — pin the name to the real action.
+                  aria-label={batchLabel[cat.action]}
+                  className="min-h-[40px] shrink-0 rounded-full bg-brand/10 px-4 py-2 text-[13px] font-semibold text-brand-dark active:opacity-80 disabled:opacity-50"
                 >
                   {busy[cat.key] ? "…" : batchLabel[cat.action]}
                 </button>
@@ -200,14 +225,22 @@ export function TodaysTasks({
             </div>
 
             {isOpen && (
-              <div className="px-3.5 pb-3.5">
+              <div id={`tasks-${cat.key}`} className="px-3.5 pb-3.5">
                 {/* ~4–5 rows visible; longer lists scroll inside the box */}
                 <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
                   {items.map((item) =>
                     cat.action ? (
+                      /*
+                       * This row is a checkbox in all but name — a ring on the
+                       * right that fills in when the care is logged. Announcing
+                       * it as a plain button hid both what it does and the fact
+                       * that it has an on/off state.
+                       */
                       <button
                         key={item.plantId}
                         type="button"
+                        role="checkbox"
+                        aria-checked={false}
                         onClick={() => completeOne(cat.key, cat.action as CareAction, item)}
                         className="flex min-h-[60px] w-full items-center gap-3 rounded-input bg-fill/60 p-3.5 text-left transition active:bg-brand/5"
                       >
@@ -232,8 +265,8 @@ export function TodaysTasks({
                           <p className="truncate text-[15px] font-medium">{item.plantName}</p>
                           <p className="truncate text-[12px] text-secondary">{item.sub}</p>
                         </div>
-                        <span className="shrink-0 text-[14px] font-semibold text-brand">
-                          {t.home.harvest} ›
+                        <span className="shrink-0 text-[14px] font-semibold text-brand-dark">
+                          {t.home.harvest} <span aria-hidden>›</span>
                         </span>
                       </Link>
                     )
@@ -251,9 +284,11 @@ export function TodaysTasks({
           <button
             type="button"
             onClick={() => setDoneOpen((v) => !v)}
+            aria-expanded={doneOpen}
+            aria-controls="tasks-completed"
             className="flex w-full items-center gap-2 p-3.5 text-left"
           >
-            <span className="text-[18px]">✅</span>
+            <span aria-hidden className="text-[18px]">✅</span>
             <span className="text-[14px] font-semibold">{t.home.completedToday}</span>
             <span className="rounded-full bg-fill px-2 py-0.5 text-[12px] font-semibold text-secondary">
               {completed.length}
@@ -262,7 +297,7 @@ export function TodaysTasks({
           </button>
 
           {doneOpen && (
-            <div className="px-3.5 pb-3.5">
+            <div id="tasks-completed" className="px-3.5 pb-3.5">
               <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:thin]">
                 {completed.map((entry) => (
                   <div
@@ -277,10 +312,15 @@ export function TodaysTasks({
                         {doneLabel[entry.action]}
                       </p>
                     </div>
+                    {/* The checked half of the same control: a filled tick that
+                        un-checks the task. Same role as the active row so the
+                        two states read as one widget, not two gadgets. */}
                     <button
                       type="button"
+                      role="checkbox"
+                      aria-checked
                       onClick={() => uncheck(entry)}
-                      aria-label={`Undo ${entry.item.plantName}`}
+                      aria-label={`${entry.item.plantName} — ${doneLabel[entry.action]}`}
                       className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-white active:opacity-80"
                     >
                       <Check />

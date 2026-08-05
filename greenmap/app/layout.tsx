@@ -45,6 +45,16 @@ export default async function RootLayout({
     <html lang={lang} className={fredoka.variable}>
       <body>
         {/*
+          Skip link — must stay the first focusable thing in <body>. Every
+          screen renders a persistent tab bar / side rail before its content,
+          so without this a keyboard user re-tabs the whole nav on every
+          navigation. Pages expose the target as id="main-content".
+        */}
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
+
+        {/*
           Mobile-first app frame (06 §7): target 393–430px wide.
           Desktop simply centres the frame — full desktop layouts are Phase 2.
           Pages carrying the `auth-breakout` marker (the split login) escape

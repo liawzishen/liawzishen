@@ -65,7 +65,7 @@ export function SuggestionCard({ plantId }: { plantId: string }) {
 
   if (loading) {
     return (
-      <div className="mt-4 rounded-card bg-info/10 p-4 text-[14px] text-info">
+      <div className="mt-4 rounded-card bg-info/10 p-4 text-[14px] text-info-ink">
         Thinking of a tip…
       </div>
     );
@@ -76,7 +76,7 @@ export function SuggestionCard({ plantId }: { plantId: string }) {
     <div className="mt-4 flex gap-3 rounded-card bg-info/10 p-4">
       <span className="text-[20px]">💡</span>
       <div>
-        <p className="text-[12px] font-semibold uppercase tracking-wide text-info">
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-info-ink">
           AI Suggestion
         </p>
         <p className="mt-0.5 text-[14px] leading-snug">{suggestion}</p>

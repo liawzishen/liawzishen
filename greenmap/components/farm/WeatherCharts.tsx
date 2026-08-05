@@ -95,8 +95,8 @@ export async function TemperatureChart({ days }: { days: DailyWeather[] }) {
       <div className="flex items-baseline justify-between">
         <h3 className="text-[14px] font-bold">{t.weather.temperature}</h3>
         <p className="text-[11px] text-secondary">
-          <span className="font-semibold text-warning">● {t.weather.max}</span>
-          <span className="ml-2 font-semibold text-info">● {t.weather.min}</span> °C
+          <span className="font-semibold text-warning-ink">● {t.weather.max}</span>
+          <span className="ml-2 font-semibold text-info-ink">● {t.weather.min}</span> °C
         </p>
       </div>
       <svg
@@ -152,7 +152,7 @@ export async function MoistureRainChart({ days }: { days: DailyWeather[] }) {
         <h3 className="text-[14px] font-bold">{t.weather.soilAndRain}</h3>
         <p className="text-[11px] text-secondary">
           <span className="font-semibold text-brand">● {t.weather.moisture}</span>
-          <span className="ml-2 font-semibold text-info">▮ {t.weather.rainPct}</span>
+          <span className="ml-2 font-semibold text-info-ink">▮ {t.weather.rainPct}</span>
         </p>
       </div>
       <svg

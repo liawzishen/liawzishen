@@ -42,7 +42,10 @@ export default async function ProfilePage({
       : `${allowance.remaining} scan${allowance.remaining === 1 ? "" : "s"} left`;
 
   return (
-    <main className="px-5 pb-10 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10">
+    <main
+      id="main-content"
+      className="px-5 pb-10 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10"
+    >
       <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
         Account
       </p>
@@ -69,7 +72,7 @@ export default async function ProfilePage({
               <p className="mt-0.5 truncate text-[16px] font-semibold">
                 {allowance.planName}
                 <span className="ml-2 text-[13px] font-normal text-secondary">
-                  🔬 {scansLine}
+                  <span aria-hidden>🔬</span> {scansLine}
                 </span>
               </p>
             </div>

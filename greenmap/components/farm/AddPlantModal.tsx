@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -32,11 +32,15 @@ export function AddPlantModal({
   const [harvestDate, setHarvestDate] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hintId = useId();
 
   const valid = name.trim().length >= 1 && type.trim().length >= 1;
 
-  async function save() {
-    if (!valid) return;
+  // Native submit, so Enter in any field saves the plant instead of doing
+  // nothing (the fields used to sit in a plain <div> beside an onClick button).
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!valid || saving) return;
     setError(null);
     setSaving(true);
     const supabase = createClient();
@@ -83,56 +87,75 @@ export function AddPlantModal({
           New plants start as “New” until their first health check.
         </p>
 
-        <div className="mt-4 space-y-4">
-          <Input
-            label="Plant Name"
-            placeholder="e.g. Tomato A"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            autoFocus
-          />
-          <Input
-            label="Type"
-            placeholder="e.g. Tomato"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-          />
-          {zones.length > 0 && (
-            <Select
-              label="Zone (optional)"
-              value={zoneId}
-              onChange={(e) => setZoneId(e.target.value)}
+        <form onSubmit={save}>
+          <div className="mt-4 space-y-4">
+            <Input
+              label="Plant Name"
+              placeholder="e.g. Tomato A"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+            />
+            <Input
+              label="Type"
+              placeholder="e.g. Tomato"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            />
+            {zones.length > 0 && (
+              <Select
+                label="Zone (optional)"
+                value={zoneId}
+                onChange={(e) => setZoneId(e.target.value)}
+              >
+                <option value="">No zone</option>
+                {zones.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+            <Input
+              label="Expected Harvest (optional)"
+              type="date"
+              value={harvestDate}
+              onChange={(e) => setHarvestDate(e.target.value)}
+            />
+          </div>
+
+          {error && (
+            <p
+              role="alert"
+              className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical-ink"
             >
-              <option value="">No zone</option>
-              {zones.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.name}
-                </option>
-              ))}
-            </Select>
+              {error}
+            </p>
           )}
-          <Input
-            label="Expected Harvest (optional)"
-            type="date"
-            value={harvestDate}
-            onChange={(e) => setHarvestDate(e.target.value)}
-          />
-        </div>
 
-        {error && (
-          <p className="mt-3 rounded-input bg-critical/10 p-3 text-[14px] text-critical">
-            {error}
-          </p>
-        )}
+          <div className="mt-5 flex gap-3">
+            <Button variant="fill" full onClick={onCancel}>
+              Cancel
+            </Button>
+            {/* type="submit" is explicit: Button now defaults to "button". */}
+            <Button
+              type="submit"
+              full
+              disabled={!valid}
+              busy={saving}
+              aria-describedby={!valid ? hintId : undefined}
+            >
+              {saving ? "Adding…" : "Add Plant"}
+            </Button>
+          </div>
 
-        <div className="mt-5 flex gap-3">
-          <Button variant="fill" full onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button full onClick={save} disabled={!valid || saving}>
-            {saving ? "Adding…" : "Add Plant"}
-          </Button>
-        </div>
+          {/* A disabled CTA has to say WHY it is disabled. */}
+          {!valid && (
+            <p id={hintId} className="mt-2 text-center text-[12px] text-secondary">
+              Enter a plant name and type to continue.
+            </p>
+          )}
+        </form>
       </div>
     </div>
   );

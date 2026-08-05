@@ -36,12 +36,16 @@ export default async function PlantActivityPage({
   const analysisRows = (analyses ?? []) as AiAnalysis[];
 
   return (
-    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title="Activity" backHref={`/farms/${farmId}/plants/${plantId}`} />
       <div className="px-6 pt-2">
-        <h1 className="text-[22px] font-bold leading-tight">
+        {/* TopNav's "Activity" is the page <h1>; the plant is its subject. */}
+        <h2 className="text-[22px] font-bold leading-tight">
           {(plant as { name: string }).name}
-        </h1>
+        </h2>
         <p className="mt-0.5 text-[14px] text-secondary">
           {all.length} event{all.length === 1 ? "" : "s"}
         </p>

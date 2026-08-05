@@ -39,7 +39,7 @@ export async function WeatherStrip({ weather }: { weather: WeatherBundle }) {
               <p className="mt-1 text-[13px] font-bold leading-none">
                 {d.tempMax !== null ? `${Math.round(d.tempMax)}°` : "—"}
               </p>
-              <p className="mt-0.5 text-[10px] font-medium text-info">
+              <p className="mt-0.5 text-[10px] font-medium text-info-ink">
                 💧{" "}
                 {d.soilMoisture !== null
                   ? `${Math.round(d.soilMoisture * 100)}%`

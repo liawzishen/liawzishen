@@ -1,6 +1,17 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
-import { ORDERS, STATUS_META } from "@/components/consumer/demo-consumer";
+import { ORDERS, STATUS_META, type OrderStatus } from "@/components/consumer/demo-consumer";
+
+/*
+ * STATUS_META.tone is a raw FILL hex (#F59E0B / #007aff …). Painted as pill
+ * TEXT it fails contrast, so the pill renders through <Badge>, whose tones
+ * pair each tint with its verified ink colour.
+ */
+const STATUS_TONE: Record<OrderStatus, "brand" | "info" | "warning"> = {
+  delivered: "brand",
+  confirmed: "info",
+  pending: "warning",
+};
 
 /**
  * Consumer orders (Phase-3 preview). Simulated purchase history grouped
@@ -11,7 +22,10 @@ export default function ConsumerOrdersPage() {
   const past = ORDERS.filter((o) => o.status === "delivered");
 
   return (
-    <main className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10">
+    <main
+      id="main-content"
+      className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10"
+    >
       <div className="flex items-center gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           My Orders
@@ -68,7 +82,10 @@ function OrderCard({ order }: { order: (typeof ORDERS)[number] }) {
       className="block rounded-card p-4 glass active:opacity-90"
     >
       <div className="flex items-center gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-input bg-fill text-[20px]">
+        <span
+          aria-hidden="true"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-input bg-fill text-[20px]"
+        >
           {order.emoji}
         </span>
         <div className="min-w-0 flex-1">
@@ -77,16 +94,14 @@ function OrderCard({ order }: { order: (typeof ORDERS)[number] }) {
             {order.qty} · {order.farm} · {order.date}
           </p>
         </div>
-        <span
-          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-          style={{ backgroundColor: `${s.tone}1A`, color: s.tone }}
-        >
+        <Badge tone={STATUS_TONE[order.status]} className="shrink-0">
           {s.label}
-        </span>
+        </Badge>
       </div>
       <div className="mt-3 flex items-center justify-between border-t border-tertiary/50 pt-3">
         <span className="text-[12px] text-secondary">Order #{order.id}</span>
-        <span className="text-[15px] font-bold text-brand">RM {order.total}</span>
+        {/* brand-dark: plain brand measures 4.46:1 on a glass card. */}
+        <span className="text-[15px] font-bold text-brand-dark">RM {order.total}</span>
       </div>
     </Link>
   );

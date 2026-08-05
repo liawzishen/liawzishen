@@ -142,7 +142,8 @@ export default function SetupMapPage() {
       <StepDots step={2} />
 
       <div className="px-6 pt-2">
-        <h1 className="text-[28px] font-bold leading-tight">Choose Your Map</h1>
+        {/* TopNav's "Set Up Farm" is the <h1>; this step is an <h2> under it. */}
+        <h2 className="text-[28px] font-bold leading-tight">Choose Your Map</h2>
         <p className="mt-1 text-[15px] text-secondary">
           Pick a background for your farm canvas.
         </p>
@@ -196,10 +197,10 @@ export default function SetupMapPage() {
               className="block w-full text-[14px] text-secondary file:mr-3 file:rounded-btn file:border-0 file:bg-brand file:px-4 file:py-2 file:text-white"
             />
             {uploading && (
-              <p className="mt-2 text-[13px] text-info">Uploading…</p>
+              <p className="mt-2 text-[13px] text-info-ink">Uploading…</p>
             )}
             {uploadError && (
-              <p className="mt-2 text-[13px] text-critical">{uploadError}</p>
+              <p className="mt-2 text-[13px] text-critical-ink">{uploadError}</p>
             )}
           </div>
         )}
@@ -221,7 +222,7 @@ export default function SetupMapPage() {
               {satLoading ? "Searching…" : "🛰️ Find satellite image"}
             </Button>
             {satError ? (
-              <p className="text-[13px] text-critical">{satError}</p>
+              <p className="text-[13px] text-critical-ink">{satError}</p>
             ) : backgroundUrl ? (
               <p className="text-[13px] text-brand-dark">
                 Satellite image found — see the preview below.

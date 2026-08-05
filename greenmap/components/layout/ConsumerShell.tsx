@@ -81,15 +81,22 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
     <Link
       key={tab.href}
       href={tab.href}
+      // The tint + colour swap is invisible to assistive tech (and to anyone
+      // who can't separate green from brown), so the state has to be spoken.
+      aria-current={isActive(tab) ? "page" : undefined}
       className={cn(
         "pressable flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
-        isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
+        // brand-dark, not brand: this 10px label sits on glass + a brand tint,
+        // where plain --color-brand measures 4.46:1 — just under AA.
+        isActive(tab) ? "bg-brand/12 text-brand-dark" : "text-secondary"
       )}
     >
       {tab.icon}
       {tab.label}
     </Link>
   );
+
+  const scanActive = pathname.startsWith("/consumer/scan");
 
   return (
     <>
@@ -113,9 +120,10 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
         <Link
           href="/consumer/scan"
           aria-label="Scan QR"
+          aria-current={scanActive ? "page" : undefined}
           className={cn(
             "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",
-            pathname.startsWith("/consumer/scan") && "ring-2 ring-brand/40"
+            scanActive && "ring-2 ring-brand/40"
           )}
         >
           <ScanIcon />

@@ -34,7 +34,10 @@ export default async function ListingDetailPage({
   ]);
 
   return (
-    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title={listing.name} backHref={`/farms/${farmId}/sales/market`} />
       <ListingDetail
         listing={listing}

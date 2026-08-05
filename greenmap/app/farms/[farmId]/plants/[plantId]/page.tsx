@@ -83,12 +83,16 @@ export default async function PlantDetailPage({
           : "neutral";
 
   return (
-    <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title="Plant Detail" backHref={`/farms/${farmId}/field`} />
 
       <div className="px-6 pt-2">
-        {/* Header */}
-        <h1 className="text-[28px] font-bold leading-tight">{p.name}</h1>
+        {/* Header. The page <h1> is TopNav's "Plant Detail"; the plant is the
+            subject inside it, and the card labels below are its sections. */}
+        <h2 className="text-[28px] font-bold leading-tight">{p.name}</h2>
         <p className="mt-0.5 text-[14px] text-secondary">
           {p.type}
           {zone ? ` · ${zone.name}` : ""}
@@ -97,9 +101,9 @@ export default async function PlantDetailPage({
 
         {/* Health score (live / passive-decayed) */}
         <Card className="mt-5 text-center">
-          <p className="text-[13px] uppercase tracking-wide text-secondary">
+          <h3 className="text-[13px] uppercase tracking-wide text-secondary">
             Health Score
-          </p>
+          </h3>
           <p className={`mt-1 text-[48px] font-bold leading-none ${display.textClass}`}>
             {liveScore === null ? "—" : `${liveScore}%`}
           </p>
@@ -118,17 +122,17 @@ export default async function PlantDetailPage({
 
         {/* 7-day trend */}
         <Card className="mt-4">
-          <p className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
+          <h3 className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
             7-Day Trend
-          </p>
+          </h3>
           <HealthTrendChart points={points} />
         </Card>
 
         {/* Manual status */}
         <Card className="mt-4">
-          <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-secondary">
+          <h3 className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-secondary">
             Set Status
-          </p>
+          </h3>
           <ManualStatusControl plantId={p.id} current={p.manual_status} />
           <p className="mt-2 text-[12px] text-secondary">
             Your read on the plant — factored into the health score (15%).
@@ -156,9 +160,9 @@ export default async function PlantDetailPage({
         </Card>
 
         {/* Quick actions (functional — log + recalculate) */}
-        <p className="mb-2 mt-6 text-[13px] font-semibold uppercase tracking-wide text-secondary">
+        <h3 className="mb-2 mt-6 text-[13px] font-semibold uppercase tracking-wide text-secondary">
           Quick Actions
-        </p>
+        </h3>
         <PlantQuickActions
           plant={p}
           scanHref={`/farms/${farmId}/plants/${plantId}/scan`}
@@ -166,9 +170,9 @@ export default async function PlantDetailPage({
 
         {/* Activity */}
         <div className="mb-2 mt-6 flex items-center justify-between">
-          <p className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
+          <h3 className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
             Activity
-          </p>
+          </h3>
           {recentLogs.length > 0 && (
             <Link
               href={`/farms/${farmId}/plants/${plantId}/activity`}

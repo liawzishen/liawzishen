@@ -10,11 +10,17 @@ const SAMPLE_QR = "/passport/00000000-0000-4000-8000-0000deadbeef";
 
 export default function ConsumerScanPage() {
   return (
-    <main className="desktop-breakout px-6 pb-12 pt-2 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main
+      id="main-content"
+      className="desktop-breakout px-6 pb-12 pt-2 lg:mx-auto lg:w-full lg:max-w-[720px]"
+    >
       <TopNav title="Scan Passport" backHref="/consumer" />
 
-      {/* Camera viewfinder mock */}
-      <div className="mx-auto mt-4 flex aspect-square max-w-[320px] items-center justify-center rounded-card bg-label/90">
+      {/* Camera viewfinder mock — purely decorative, nothing to announce */}
+      <div
+        aria-hidden="true"
+        className="mx-auto mt-4 flex aspect-square max-w-[320px] items-center justify-center rounded-card bg-label/90"
+      >
         <div className="relative grid h-48 w-48 place-items-center">
           <span className="text-[52px]">📷</span>
           {/* corner brackets */}
@@ -25,9 +31,10 @@ export default function ConsumerScanPage() {
         </div>
       </div>
 
-      <h1 className="mt-6 text-center text-[20px] font-bold">
+      {/* TopNav's "Scan Passport" is the page <h1>; this is its instruction. */}
+      <h2 className="mt-6 text-center text-[20px] font-bold">
         Point at a GreenMap QR code
-      </h1>
+      </h2>
       <p className="mx-auto mt-1.5 max-w-[320px] text-center text-[14px] leading-relaxed text-secondary">
         Scan the code on any verified produce to see where it was grown, its AI
         health checks, and its full harvest journey.

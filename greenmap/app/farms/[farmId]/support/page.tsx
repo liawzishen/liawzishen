@@ -70,14 +70,14 @@ export default async function SellerSupportPage({
   const closed = refunds.filter((x) => x.status !== "pending");
 
   return (
-    <main className="pb-16">
+    <main id="main-content" className="pb-16">
       <TopNav title="Customer Service" backHref={`/farms/${farmId}/sales`} />
 
       <div className="px-5 pt-2">
         {!ready && (
           <p className="mb-4 rounded-input bg-warning/12 px-3 py-2.5 text-[13px] text-secondary">
-            ⚠️ Customer service isn&apos;t available right now — check back
-            soon.
+            <span aria-hidden>⚠️</span> Customer service isn&apos;t available
+            right now — check back soon.
             {process.env.NODE_ENV === "development" && (
               <span className="mt-1 block text-[12px] opacity-80">
                 Dev: run{" "}
@@ -111,7 +111,7 @@ export default async function SellerSupportPage({
             <h2 className="mb-2 mt-2 text-[13px] font-semibold uppercase tracking-wide text-secondary">
               Refund &amp; return requests
               {pending.length > 0 && (
-                <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] text-warning">
+                <span className="ml-2 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] text-warning-ink">
                   {pending.length} pending
                 </span>
               )}
@@ -172,9 +172,20 @@ export default async function SellerSupportPage({
               {feedback.map((fb) => (
                 <div key={fb.id} className="rounded-card p-4 glass">
                   <div className="flex items-center justify-between">
-                    <span className="text-[15px] text-warning">
-                      {"★".repeat(fb.rating)}
-                      <span className="text-tertiary">{"★".repeat(5 - fb.rating)}</span>
+                    {/* The glyphs are the whole rating: read aloud they were
+                        five identical stars regardless of the score, so the
+                        number is given as the label and the stars hidden. */}
+                    <span
+                      className="text-[15px] text-warning-ink"
+                      role="img"
+                      aria-label={`${fb.rating} out of 5 stars`}
+                    >
+                      <span aria-hidden>
+                        {"★".repeat(fb.rating)}
+                        <span className="text-tertiary">
+                          {"★".repeat(5 - fb.rating)}
+                        </span>
+                      </span>
                     </span>
                     <span className="text-[12px] text-secondary">Order #{fb.order_ref}</span>
                   </div>
@@ -189,16 +200,22 @@ export default async function SellerSupportPage({
   );
 }
 
+/*
+ * The pill is a 10% tint of the status hue with the label written in the SAME
+ * hue — which put the amber label at roughly 1.7:1 on its own tint. Each entry
+ * now carries the bright hue as the FILL and a darkened ink for the LABEL
+ * (the same warning/critical/brand-dark inks the design tokens define).
+ */
 function StatusPill({ status }: { status: RefundRequest["status"] }) {
   const map = {
-    pending: { t: "Pending", c: "#F59E0B" },
-    approved: { t: "Approved", c: "#0DB074" },
-    rejected: { t: "Rejected", c: "#EF4444" },
+    pending: { t: "Pending", fill: "#F59E0B", ink: "#8a4b00" },
+    approved: { t: "Approved", fill: "#0DB074", ink: "#31572c" },
+    rejected: { t: "Rejected", fill: "#EF4444", ink: "#a4160d" },
   }[status];
   return (
     <span
       className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-      style={{ backgroundColor: `${map.c}1A`, color: map.c }}
+      style={{ backgroundColor: `${map.fill}1A`, color: map.ink }}
     >
       {map.t}
     </span>

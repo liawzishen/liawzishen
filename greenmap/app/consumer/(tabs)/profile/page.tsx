@@ -41,7 +41,10 @@ export default async function ConsumerProfilePage() {
   ];
 
   return (
-    <main className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10">
+    <main
+      id="main-content"
+      className="px-5 pb-8 pt-12 lg:mx-auto lg:w-full lg:max-w-[720px] lg:px-8 lg:pt-10"
+    >
       <div className="flex items-center gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           Profile
@@ -51,7 +54,10 @@ export default async function ConsumerProfilePage() {
 
       {/* Identity */}
       <div className="mt-3 flex items-center gap-4 rounded-card p-4 glass">
-        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-gradient-brand text-[22px] font-bold text-white">
+        <span
+          aria-hidden="true"
+          className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-gradient-brand text-[22px] font-bold text-white"
+        >
           {initials || "🙂"}
         </span>
         <div className="min-w-0">
@@ -67,7 +73,8 @@ export default async function ConsumerProfilePage() {
       <div className="mt-4 grid grid-cols-3 gap-3">
         {stats.map((s) => (
           <div key={s.label} className="rounded-card p-3 text-center glass">
-            <p className="text-[16px] font-bold leading-none text-brand">{s.value}</p>
+            {/* brand-dark: plain brand measures 4.46:1 on a glass card. */}
+            <p className="text-[16px] font-bold leading-none text-brand-dark">{s.value}</p>
             <p className="mt-1.5 text-[11px] leading-tight text-secondary">{s.label}</p>
           </div>
         ))}
@@ -83,7 +90,10 @@ export default async function ConsumerProfilePage() {
             key={f.name}
             className={`flex items-center gap-3 p-4 ${i > 0 ? "hairline-t" : ""}`}
           >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-input bg-fill text-[18px]">
+            <span
+              aria-hidden="true"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-input bg-fill text-[18px]"
+            >
               {f.emoji}
             </span>
             <div className="min-w-0 flex-1">
@@ -111,9 +121,13 @@ export default async function ConsumerProfilePage() {
           }`;
           const inner = (
             <>
-              <span className="text-[18px]">{s.icon}</span>
+              <span aria-hidden="true" className="text-[18px]">
+                {s.icon}
+              </span>
               <span className="flex-1 text-[14px] font-medium">{s.label}</span>
-              <span className="text-tertiary">›</span>
+              <span aria-hidden="true" className="text-tertiary">
+                ›
+              </span>
             </>
           );
           return s.href ? (

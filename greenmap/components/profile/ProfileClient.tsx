@@ -424,7 +424,7 @@ export function ProfileClient(props: Props) {
           {error && (
             <p
               role="alert"
-              className="mt-4 rounded-input bg-critical/10 p-3 text-[14px] text-critical"
+              className="mt-4 rounded-input bg-critical/10 p-3 text-[14px] text-critical-ink"
             >
               {error}
             </p>

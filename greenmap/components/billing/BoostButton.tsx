@@ -30,7 +30,7 @@ export function BoostButton({
   if (activeMs > 0) {
     const daysLeft = Math.max(1, Math.ceil(activeMs / 86_400_000));
     return (
-      <span className="shrink-0 rounded-full bg-warning/15 px-3 py-1.5 text-[12px] font-semibold text-warning">
+      <span className="shrink-0 rounded-full bg-warning/15 px-3 py-1.5 text-[12px] font-semibold text-warning-ink">
         ⚡ Promoted · {daysLeft}d left
       </span>
     );
@@ -43,7 +43,7 @@ export function BoostButton({
       <button
         type="button"
         onClick={() => setPickerOpen(true)}
-        className="shrink-0 rounded-full bg-warning/15 px-3.5 py-2 text-[13px] font-semibold text-warning transition active:scale-95"
+        className="shrink-0 rounded-full bg-warning/15 px-3.5 py-2 text-[13px] font-semibold text-warning-ink transition active:scale-95"
       >
         ⚡ Boost
       </button>
