@@ -51,12 +51,22 @@ function Chart({ points, color }: { points: FarmHealthPoint[]; color: string }) 
   // Label at most ~5 dates so the axis never crowds.
   const step = Math.max(1, Math.ceil(points.length / 5));
 
+  // The label has to carry the reading, not just name the chart — "14-day
+  // farm average health trend" told a screen-reader user nothing about
+  // whether the farm is improving.
+  const first = Math.round(points[0].avg);
+  const last = Math.round(points[points.length - 1].avg);
+  const delta = last - first;
+  const direction =
+    delta > 0 ? `up ${delta}` : delta < 0 ? `down ${Math.abs(delta)}` : "unchanged";
+  const summary = `14-day farm average health trend: ${first} to ${last} out of 100, ${direction}.`;
+
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
       className="mt-2 w-full text-secondary"
       role="img"
-      aria-label="14-day farm average health trend"
+      aria-label={summary}
     >
       {[70, 40].map((g) => (
         <line

@@ -30,10 +30,25 @@ export function HealthTrendChart({
   const area = `${line} L${x(points.length - 1).toFixed(1)},${(H - pad).toFixed(1)} L${x(0).toFixed(1)},${(H - pad).toFixed(1)} Z`;
 
   const last = points[points.length - 1].score;
+  const first = points[0].score;
   const color = healthDisplay(last).color;
 
+  /*
+   * role="img" was already here, but the label only named the chart — a
+   * screen-reader user was told "7-day health trend" and nothing about the
+   * trend itself. The alternative text for a graph has to carry the
+   * reading, so it states where the score started, where it is now, which
+   * way it moved, and which health band that lands in.
+   */
+  const delta = last - first;
+  const direction =
+    delta > 0 ? `up ${delta}` : delta < 0 ? `down ${Math.abs(delta)}` : "unchanged";
+  const summary =
+    `7-day health trend: ${first} to ${last} out of 100, ${direction}. ` +
+    `Currently ${healthDisplay(last).label}.`;
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label="7-day health trend">
+    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img" aria-label={summary}>
       {[70, 40].map((g) => (
         <line
           key={g}
