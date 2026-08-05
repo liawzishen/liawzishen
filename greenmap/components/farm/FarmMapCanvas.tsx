@@ -12,6 +12,7 @@ import {
 } from "react-konva";
 import type Konva from "konva";
 import { PlantMarker } from "./PlantMarker";
+import { healthDisplay } from "@/lib/health/display";
 import type { Farm, FarmPanorama, Plant } from "@/types/database";
 
 interface Props {
@@ -217,6 +218,56 @@ export function FarmMapCanvas({
 
   return (
     <div ref={containerRef} className="relative h-full w-full overflow-hidden">
+      {/*
+        Keyboard / assistive-tech twin of the canvas.
+
+        Konva paints markers into a <canvas>. They have no DOM node, so they
+        cannot be focused, named or activated by keyboard — every plant on
+        the map was unreachable without a pointer. The canvas itself cannot
+        be fixed (you cannot tab "into" a bitmap), so the accessible route
+        is a parallel list of real buttons that call exactly the same
+        handlers the shapes do.
+
+        It is sr-only until focus enters, then it becomes a visible panel —
+        a purely sr-only list would send a sighted keyboard user's focus
+        somewhere they cannot see. Same pattern as the 360 tour.
+      */}
+      <div className="sr-only z-20 focus-within:not-sr-only focus-within:absolute focus-within:inset-x-2 focus-within:bottom-2 focus-within:max-h-[55%] focus-within:overflow-auto focus-within:rounded-card focus-within:p-2 focus-within:glass-strong">
+        <ul aria-label={`Plants on the ${farm.name} map`}>
+          {plants.map((plant) => {
+            const health = healthDisplay(plant.health_score);
+            return (
+              <li key={plant.id}>
+                <button
+                  type="button"
+                  onClick={() => onMarkerClick(plant)}
+                  aria-current={selectedId === plant.id ? "true" : undefined}
+                  className="w-full rounded-input px-2 py-1.5 text-left text-[14px] focus-visible:bg-fill"
+                >
+                  {plant.name} — {health.label}
+                  {highlightIds?.includes(plant.id) ? " (needs care)" : ""}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        {(panoramas ?? []).length > 0 && onPanoramaClick && (
+          <ul aria-label="360° photo spots on this map">
+            {(panoramas ?? []).map((pano, i) => (
+              <li key={pano.id}>
+                <button
+                  type="button"
+                  onClick={() => onPanoramaClick(pano)}
+                  className="w-full rounded-input px-2 py-1.5 text-left text-[14px] focus-visible:bg-fill"
+                >
+                  Open 360° photo spot {i + 1}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {ready && (
       <Stage
         ref={stageRef}

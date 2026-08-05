@@ -5,10 +5,16 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { ManualStatus } from "@/types/database";
 
-const OPTS: { value: ManualStatus; label: string; color: string }[] = [
-  { value: "healthy", label: "Healthy", color: "#0DB074" },
-  { value: "attention", label: "Attention", color: "#F59E0B" },
-  { value: "critical", label: "Critical", color: "#EF4444" },
+/*
+ * The selected option is a solid fill with a white label, so the fill must
+ * carry the 4.5:1 — the previous hexes put white at 2.81:1 (green),
+ * 2.15:1 (amber) and 3.76:1 (red). These are the app's ink tokens, which
+ * clear 5.2:1, 6.8:1 and 7.8:1 respectively.
+ */
+const OPTS: { value: ManualStatus; label: string; activeClass: string }[] = [
+  { value: "healthy", label: "Healthy", activeClass: "bg-brand text-white" },
+  { value: "attention", label: "Attention", activeClass: "bg-warning-ink text-white" },
+  { value: "critical", label: "Critical", activeClass: "bg-critical-ink text-white" },
 ];
 
 /**
@@ -59,19 +65,28 @@ export function ManualStatusControl({
   }
 
   return (
-    <div className="grid grid-cols-3 gap-2">
+    // One status out of three — a radiogroup. Previously three plain
+    // buttons: the group had no name, and which one was chosen was carried
+    // entirely by a colour swap that nothing could report.
+    <div
+      role="radiogroup"
+      aria-label="Plant health status"
+      aria-busy={saving || undefined}
+      className="grid grid-cols-3 gap-2"
+    >
       {OPTS.map((o) => {
         const active = status === o.value;
         return (
           <button
             key={o.value}
             type="button"
+            role="radio"
+            aria-checked={active}
             onClick={() => choose(o.value)}
             disabled={saving}
             className={`rounded-input py-2.5 text-[13px] font-semibold transition disabled:opacity-70 ${
-              active ? "text-white" : "bg-fill text-secondary"
+              active ? o.activeClass : "bg-fill text-secondary"
             }`}
-            style={active ? { backgroundColor: o.color } : undefined}
           >
             {o.label}
           </button>
