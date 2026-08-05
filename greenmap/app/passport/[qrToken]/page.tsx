@@ -24,7 +24,7 @@ function fmtDate(s: string): string {
 
 function NotFoundView() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+    <main id="main-content" className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
       <div className="text-[44px]" aria-hidden>🔍</div>
       <h1 className="mt-2 text-[20px] font-bold">Passport not found</h1>
       <p className="mt-1.5 text-[15px] text-secondary">
@@ -90,7 +90,7 @@ export default async function PublicPassportPage({
   const isOwner = !!user && farm.user_id === user.id;
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[440px] flex-col px-5 pb-12 pt-10">
+    <main id="main-content" className="mx-auto flex min-h-dvh max-w-[440px] flex-col px-5 pb-12 pt-10">
       {/*
         This screen is the app's print target — it is what a grower hands a
         buyer on paper. Navigation and sharing affordances are `print-hide`d

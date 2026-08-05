@@ -49,7 +49,7 @@ export function SalesDashboard({
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
 
   return (
-    <main className="px-5 pb-6 pt-12 lg:mx-auto lg:w-full lg:max-w-[1100px] lg:px-8 lg:pt-10">
+    <main id="main-content" className="px-5 pb-6 pt-12 lg:mx-auto lg:w-full lg:max-w-[1100px] lg:px-8 lg:pt-10">
       <div className="flex items-center gap-2">
         <p className="text-[12px] font-semibold uppercase tracking-widest text-secondary">
           Selling

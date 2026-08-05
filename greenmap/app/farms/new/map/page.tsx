@@ -137,7 +137,7 @@ export default function SetupMapPage() {
     backgroundType === "upload" ? Boolean(backgroundUrl) : true;
 
   return (
-    <main className="desktop-breakout pb-28 lg:mx-auto lg:w-full lg:max-w-[720px]">
+    <main id="main-content" className="desktop-breakout pb-28 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="Set Up Farm" backHref="/farms/new/profile" />
       <StepDots step={2} />
 

@@ -42,7 +42,7 @@ const heroMarkers = [
 
 export default function LandingPage() {
   return (
-    <main className="desktop-breakout pb-10 lg:pb-16">
+    <main id="main-content" className="desktop-breakout pb-10 lg:pb-16">
       <div className="lg:mx-auto lg:w-full lg:max-w-[1200px] lg:px-8">
         <header className="flex items-center justify-between px-6 pt-5 lg:px-0 lg:pt-8">
           <span className="font-rustic text-[17px] font-bold text-[#5c3a21] lg:text-[20px]">
