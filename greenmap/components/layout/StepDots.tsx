@@ -1,7 +1,11 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 /** Wizard progress (Steps 1–3 of farm setup). */
 export function StepDots({ step }: { step: 1 | 2 | 3 }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center justify-center gap-2 py-3">
       {/*
@@ -10,7 +14,7 @@ export function StepDots({ step }: { step: 1 | 2 | 3 }) {
         colour. Real text carries it instead; `sr-only` is position:absolute,
         so it stays out of flow and the dots don't shift or gain a gap.
       */}
-      <span className="sr-only">{`Step ${step} of 3`}</span>
+      <span className="sr-only">{t.common.stepOf(step, 3)}</span>
       {[1, 2, 3].map((n) => (
         <span
           key={n}

@@ -25,6 +25,7 @@ export const en = {
     market: "Market",
     orders: "Orders",
     scan: "AI Scan",
+    scanQr: "Scan QR",
   },
   home: {
     hi: (name: string) => `Hi, ${name} 👋`,
@@ -201,6 +202,9 @@ export const en = {
     seeAll: "See all",
     back: "Back",
     loading: "Loading…",
+    skipToContent: "Skip to content",
+    /** Wizard progress, announced for screen readers (StepDots). */
+    stepOf: (n: number, total: number) => `Step ${n} of ${total}`,
   },
 };
 
@@ -216,6 +220,7 @@ export const ms: Dict = {
     market: "Pasar",
     orders: "Pesanan",
     scan: "Imbas AI",
+    scanQr: "Imbas QR",
   },
   home: {
     hi: (name: string) => `Hai, ${name} 👋`,
@@ -390,6 +395,8 @@ export const ms: Dict = {
     seeAll: "Lihat semua",
     back: "Kembali",
     loading: "Memuatkan…",
+    skipToContent: "Langkau ke kandungan",
+    stepOf: (n: number, total: number) => `Langkah ${n} daripada ${total}`,
   },
 };
 

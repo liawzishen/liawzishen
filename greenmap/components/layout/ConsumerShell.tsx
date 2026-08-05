@@ -106,7 +106,7 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
 
       <SideRail
         tabs={tabs}
-        fab={{ href: "/consumer/scan", label: "Scan QR", icon: <ScanIcon /> }}
+        fab={{ href: "/consumer/scan", label: t.tabs.scanQr, icon: <ScanIcon /> }}
       />
 
       <nav
@@ -119,7 +119,7 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
         {/* Centre Scan FAB — the signature consumer action */}
         <Link
           href="/consumer/scan"
-          aria-label="Scan QR"
+          aria-label={t.tabs.scanQr}
           aria-current={scanActive ? "page" : undefined}
           className={cn(
             "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",

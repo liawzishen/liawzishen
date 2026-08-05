@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
+import { DICTS } from "@/lib/i18n/dictionaries";
 import { getLang } from "@/lib/i18n/server";
 import "./globals.css";
 
@@ -51,7 +52,7 @@ export default async function RootLayout({
           navigation. Pages expose the target as id="main-content".
         */}
         <a href="#main-content" className="skip-link">
-          Skip to content
+          {DICTS[lang].common.skipToContent}
         </a>
 
         {/*
