@@ -31,22 +31,30 @@ export function AddPanoramaSheet({
   const [error, setError] = useState<string | null>(null);
   const [spot, setSpot] = useState<{ x: number; y: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  // The latest pick — an earlier file's slow decode must not warn about it.
+  const pickedRef = useRef<File | null>(null);
 
   function pickFile(f: File | null) {
     setWarn(null);
     setError(null);
     if (!f) return;
     if (f.size > MAX_BYTES) {
+      // Don't leave an earlier pick armed (Save enabled) behind the error.
+      pickedRef.current = null;
+      setFile(null);
       setError(t.tour.photoTooBig);
       return;
     }
+    pickedRef.current = f;
     const url = URL.createObjectURL(f);
     const img = new Image();
     img.onload = () => {
+      URL.revokeObjectURL(url);
+      if (pickedRef.current !== f) return;
       const ratio = img.naturalWidth / img.naturalHeight;
       if (Math.abs(ratio - 2) > 0.2) setWarn(t.tour.notPanorama);
-      URL.revokeObjectURL(url);
     };
+    img.onerror = () => URL.revokeObjectURL(url);
     img.src = url;
     setFile(f);
   }
@@ -54,9 +62,16 @@ export function AddPanoramaSheet({
   async function save() {
     if (!file || !spot || busy) return;
     setBusy(true);
-    const ok = await onSave({ file, position_x: spot.x, position_y: spot.y });
-    setBusy(false);
-    if (!ok) setError(t.tour.loadFailed);
+    setError(null);
+    let ok = false;
+    try {
+      ok = await onSave({ file, position_x: spot.x, position_y: spot.y });
+    } catch (err) {
+      console.warn("[tour] panorama save failed:", err);
+    } finally {
+      setBusy(false);
+    }
+    if (!ok) setError(t.tour.uploadFailed);
   }
 
   const hasBg =
@@ -75,7 +90,10 @@ export function AddPanoramaSheet({
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className="hidden"
-          onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+          onChange={(e) => {
+            pickFile(e.target.files?.[0] ?? null);
+            e.target.value = ""; // re-picking the same file must fire again
+          }}
         />
         <button
           type="button"
@@ -111,11 +129,14 @@ export function AddPanoramaSheet({
               }}
             >
               {hasBg && (
+                // object-fill, not cover: the 2D Konva map stretches the
+                // background to the canvas, so the tapped fraction must map
+                // onto the same stretched image or badges land elsewhere.
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={farm.background_url!}
                   alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
+                  className="absolute inset-0 h-full w-full object-fill"
                   draggable={false}
                 />
               )}

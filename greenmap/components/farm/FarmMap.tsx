@@ -146,10 +146,8 @@ export function FarmMap({
         <button
           type="button"
           onClick={() => {
-            setMode((m) => {
-              if (m === "3d") setTourStartId(null);
-              return m === "2d" ? "3d" : "2d";
-            });
+            if (mode === "3d") setTourStartId(null);
+            setMode(mode === "2d" ? "3d" : "2d");
             setPlacing(false);
             setSelectedPlant(null);
           }}
@@ -211,6 +209,9 @@ export function FarmMap({
             const created = await pano.addPanorama(input);
             if (created) {
               setAddingPano(false);
+              // Show the new photo right away — it still needs its
+              // direction set and plants tagged.
+              setTourStartId(created.id);
               setMode("3d");
             }
             return created !== null;

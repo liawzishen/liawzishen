@@ -54,38 +54,48 @@ export function FarmTour({
   startId: string | null;
 }) {
   const { t } = useI18n();
-  const [currentId, setCurrentId] = useState<string | null>(null);
+  // Seeded from the 2D badge tap (startId); hops overwrite it. A null or
+  // unknown id falls back to the first panorama (derived below, so there's
+  // no empty-state flash while an effect catches up).
+  const [currentId, setCurrentId] = useState<string | null>(startId);
   const [photoError, setPhotoError] = useState(false);
   const [fading, setFading] = useState(false);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hopSeq = useRef(0);
   const [tagMode, setTagMode] = useState<"off" | "aim" | "pick">("off");
   const [pendingSpot, setPendingSpot] = useState<{
     yaw: number;
     pitch: number;
   } | null>(null);
 
-  // Enter the requested panorama (2D badge tap) or the first one.
+  // Follow later startId changes (e.g. jump to a just-uploaded panorama);
+  // this supersedes any hop still waiting on its photo.
   useEffect(() => {
-    if (currentId) return;
-    if (startId && panoramas.some((p) => p.id === startId)) {
-      setCurrentId(startId);
-    } else if (panoramas.length > 0) {
-      setCurrentId(panoramas[0].id);
-    }
-  }, [panoramas, currentId, startId]);
+    if (!startId) return;
+    hopSeq.current++;
+    setCurrentId(startId);
+  }, [startId]);
 
-  const current = panoramas.find((p) => p.id === currentId) ?? null;
+  const current =
+    panoramas.find((p) => p.id === currentId) ?? panoramas[0] ?? null;
 
-  // Preload the target photo, then fade → swap → unfade. ~250 ms total.
+  // Preload the target photo, fade, then swap. The fade lifts when the new
+  // sphere's texture is ready (PanoramaSphere onLoaded/onLoadError), so the
+  // swap never shows an empty sphere. A newer tap supersedes an older hop
+  // still waiting on its photo.
   const hopTo = useCallback((target: FarmPanorama) => {
+    const seq = ++hopSeq.current;
     const img = new Image();
+    img.crossOrigin = "anonymous"; // same request mode as THREE.TextureLoader
     img.src = target.image_url;
     const go = () => {
+      if (seq !== hopSeq.current) return;
       setFading(true);
+      if (fadeTimer.current) clearTimeout(fadeTimer.current);
       fadeTimer.current = setTimeout(() => {
+        if (seq !== hopSeq.current) return;
         setPhotoError(false);
         setCurrentId(target.id);
-        setFading(false);
       }, 125);
     };
     if (img.complete) go();
@@ -101,16 +111,22 @@ export function FarmTour({
     };
   }, []);
 
-  // Prefetch neighbours' photos into the browser cache for instant hops.
+  // Prefetch other spots' photos into the browser cache for instant hops.
+  // Keyed on the URL list, not the panoramas array, so heading-slider edits
+  // (which replace the array on every input event) don't re-run it.
+  const prefetchKey = panoramas
+    .filter((p) => p.id !== current?.id)
+    .slice(0, 4)
+    .map((p) => p.image_url)
+    .join("\n");
   useEffect(() => {
-    panoramas
-      .filter((p) => p.id !== currentId)
-      .slice(0, 4)
-      .forEach((p) => {
-        const img = new Image();
-        img.src = p.image_url;
-      });
-  }, [currentId, panoramas]);
+    if (!prefetchKey) return;
+    for (const url of prefetchKey.split("\n")) {
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // same request mode as THREE.TextureLoader
+      img.src = url;
+    }
+  }, [prefetchKey]);
 
   if (loading) {
     return (
@@ -129,12 +145,19 @@ export function FarmTour({
       <Canvas
         dpr={[1, 1.75]}
         camera={{ fov: 75, position: [0, 0, 0], near: 0.1, far: 120 }}
+        // Without this, a vertical drag on touch pans the page and the
+        // browser fires pointercancel, killing LookControls' pitch drag.
+        style={{ touchAction: "none" }}
         onPointerMissed={() => onBackgroundClick?.()}
       >
         <PanoramaSphere
           key={current.id}
           pano={current}
-          onLoadError={() => setPhotoError(true)}
+          onLoaded={() => setFading(false)}
+          onLoadError={() => {
+            setPhotoError(true);
+            setFading(false);
+          }}
         >
           {tagMode === "aim" && (
             <mesh
