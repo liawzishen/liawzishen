@@ -88,6 +88,9 @@ export function usePanoramas(farmId: string) {
         .single();
       if (error || !data) {
         console.warn("[tour] insert failed:", error?.message);
+        // Every upload gets a fresh path, so a failed save would otherwise
+        // leave an unreachable photo in the bucket on each retry.
+        await supabase.storage.from("farm-panoramas").remove([path]);
         return null;
       }
       setPanoramas((prev) => [...prev, data as FarmPanorama]);

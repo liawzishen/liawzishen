@@ -58,8 +58,14 @@ export function FarmTour({
   // unknown id falls back to the first panorama (derived below, so there's
   // no empty-state flash while an effect catches up).
   const [currentId, setCurrentId] = useState<string | null>(startId);
-  const [photoError, setPhotoError] = useState(false);
-  const [fading, setFading] = useState(false);
+  // The latest texture result, keyed by panorama id so a hop or jump never
+  // inherits the previous photo's state (and a retry can clear a failure).
+  const [photo, setPhoto] = useState<{ id: string; failed: boolean } | null>(
+    null
+  );
+  // From a hop-circle tap until the swap; the dim then holds until the new
+  // texture is ready, so a slow phone gets feedback at once, never a blank.
+  const [hopping, setHopping] = useState(false);
   const fadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hopSeq = useRef(0);
   const [tagMode, setTagMode] = useState<"off" | "aim" | "pick">("off");
@@ -68,35 +74,45 @@ export function FarmTour({
     pitch: number;
   } | null>(null);
 
+  // Abandon any hop in flight: its pending swap and its dim.
+  const cancelHop = useCallback(() => {
+    hopSeq.current++;
+    if (fadeTimer.current) clearTimeout(fadeTimer.current);
+    setHopping(false);
+  }, []);
+
   // Follow later startId changes (e.g. jump to a just-uploaded panorama);
   // this supersedes any hop still waiting on its photo.
   useEffect(() => {
     if (!startId) return;
-    hopSeq.current++;
+    cancelHop();
     setCurrentId(startId);
-  }, [startId]);
+  }, [startId, cancelHop]);
 
   const current =
     panoramas.find((p) => p.id === currentId) ?? panoramas[0] ?? null;
+  const photoSettled = current !== null && photo?.id === current.id;
+  const photoError = photoSettled && photo.failed;
+  const photoLoading = current !== null && !photoSettled;
 
-  // Preload the target photo, fade, then swap. The fade lifts when the new
-  // sphere's texture is ready (PanoramaSphere onLoaded/onLoadError), so the
-  // swap never shows an empty sphere. A newer tap supersedes an older hop
-  // still waiting on its photo.
+  // Dim at once, preload the target photo, then swap once the dim has had
+  // ~125 ms to land. The dim lifts when the new sphere's texture is ready.
+  // A newer tap supersedes an older hop still waiting on its photo.
   const hopTo = useCallback((target: FarmPanorama) => {
     const seq = ++hopSeq.current;
+    const tappedAt = Date.now();
+    setHopping(true);
     const img = new Image();
     img.crossOrigin = "anonymous"; // same request mode as THREE.TextureLoader
     img.src = target.image_url;
     const go = () => {
       if (seq !== hopSeq.current) return;
-      setFading(true);
       if (fadeTimer.current) clearTimeout(fadeTimer.current);
       fadeTimer.current = setTimeout(() => {
         if (seq !== hopSeq.current) return;
-        setPhotoError(false);
         setCurrentId(target.id);
-      }, 125);
+        setHopping(false);
+      }, Math.max(0, 125 - (Date.now() - tappedAt)));
     };
     if (img.complete) go();
     else {
@@ -105,11 +121,7 @@ export function FarmTour({
     }
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (fadeTimer.current) clearTimeout(fadeTimer.current);
-    };
-  }, []);
+  useEffect(() => cancelHop, [cancelHop]);
 
   // Prefetch other spots' photos into the browser cache for instant hops.
   // Keyed on the URL list, not the panoramas array, so heading-slider edits
@@ -153,11 +165,8 @@ export function FarmTour({
         <PanoramaSphere
           key={current.id}
           pano={current}
-          onLoaded={() => setFading(false)}
-          onLoadError={() => {
-            setPhotoError(true);
-            setFading(false);
-          }}
+          onLoaded={() => setPhoto({ id: current.id, failed: false })}
+          onLoadError={() => setPhoto({ id: current.id, failed: true })}
         >
           {tagMode === "aim" && (
             <mesh
@@ -207,11 +216,18 @@ export function FarmTour({
       <div
         aria-hidden
         className={`pointer-events-none absolute inset-0 z-20 bg-black transition-opacity duration-150 ${
-          fading ? "opacity-70" : "opacity-0"
+          hopping || photoLoading ? "opacity-70" : "opacity-0"
         }`}
       />
-      <div className="pointer-events-none absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full bg-label/80 px-4 py-1.5 text-[12px] font-medium text-white">
-        {photoError ? t.tour.loadFailed : t.tour.hint}
+      <div
+        role="status"
+        className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full bg-label/80 px-4 py-1.5 text-[12px] font-medium text-white"
+      >
+        {photoError
+          ? t.tour.loadFailed
+          : hopping || photoLoading
+            ? t.tour.loading
+            : t.tour.hint}
       </div>
       <button
         type="button"
