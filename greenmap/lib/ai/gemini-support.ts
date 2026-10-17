@@ -1,4 +1,5 @@
-const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+// `||`, not `??`: .env.example ships an empty `GEMINI_MODEL=`, which `??` keeps.
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
 /** What the customer's message is about. */
 export type SupportIntent =

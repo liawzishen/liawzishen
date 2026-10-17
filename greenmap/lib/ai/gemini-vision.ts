@@ -1,4 +1,5 @@
-const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
+// `||`, not `??`: .env.example ships an empty `GEMINI_MODEL=`, which `??` keeps.
+const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 
 function endpoint(key: string): string {
   return `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
