@@ -2,6 +2,9 @@
 
 AI-powered farm management and harvest transparency for Malaysian smallholder farmers.
 
+> **This is the developer guide** (setup, environment, structure, conventions).
+> New here? Read the product introduction first: [`../README.md`](../README.md).
+
 Growers map their farm from a bird's-eye view, track every plant's health with AI scans,
 and generate a **Harvest Passport** — a QR code consumers scan to see the full growing journey.
 
@@ -202,10 +205,10 @@ lib/  supabase/{client,server,admin,middleware} · ai/{gemini-vision,gemini-text
 middleware.ts                            route protection + role-based redirects
 types/  database.ts · index.ts
 docs/   00_BUILD_PLAN · 01_CODE_CONCEPT · 02_PROTOTYPE_MAPPING · 03_BACKEND_TRUTH · 08_DEMO
-supabase/migrations/  0001_init … 0008_seller_support
+supabase/migrations/  0001_init … 0009_panoramas
 # ../docs/superpowers/specs/ (repo root, one level up) — design specs for
 # later features, e.g. the 2026-07-06 map-dashboard/weather spec
-scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts · smoke-test.mjs · test-tasks-data.sql · README.md
+scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts · seed-panoramas.ts · fetch-demo-panos.mjs · smoke-test.mjs · test-tasks-data.sql · README.md
 ```
 
 ## Conventions
