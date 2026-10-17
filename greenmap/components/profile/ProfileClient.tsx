@@ -34,7 +34,7 @@ type Props = {
   planSlot?: React.ReactNode;
 };
 
-const AVATAR_BUCKET = "farm-backgrounds"; // public; reused via an avatars/ prefix
+const AVATAR_BUCKET = "farm-backgrounds"; // public; avatars live in <userId>/avatar-*.jpg
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -174,10 +174,11 @@ export function ProfileClient(props: Props) {
     try {
       let avatar_url = props.avatarUrl;
       if (avatarBlob) {
-        const path = `avatars/${props.userId}-${Date.now()}.jpg`;
+        // Under the user's own folder: storage writes are owner-scoped (0010).
+        const path = `${props.userId}/avatar-${Date.now()}.jpg`;
         const { error: upErr } = await supabase.storage
           .from(AVATAR_BUCKET)
-          .upload(path, avatarBlob, { contentType: "image/jpeg", upsert: true });
+          .upload(path, avatarBlob, { contentType: "image/jpeg" });
         if (upErr) throw new Error(`Avatar upload failed: ${upErr.message}`);
         avatar_url = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path)
           .data.publicUrl;

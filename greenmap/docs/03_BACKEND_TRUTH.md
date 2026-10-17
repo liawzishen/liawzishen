@@ -106,20 +106,35 @@ Recalculation **writes** only on: water log, fertilize log, scan saved, manual_s
 
 ## 5. RLS Policies
 
-| Table | Policy |
+Current state after migration `0010_security_hardening.sql` (it supersedes the 0003 table policies for these tables):
+
+| Table | Client (browser / user session) can… |
 |---|---|
-| profiles | SELECT/UPDATE own row (`auth.uid() = id`) |
-| farms | ALL where `auth.uid() = user_id` |
-| zones, plants | ALL where `farm_id IN (own farms)` |
-| growth_logs, ai_analyses, health_score_history | ALL where `plant_id IN (plants of own farms)` |
-| harvest_passports | ALL for owner (via farm_id) **+ public SELECT** (safe: `qr_token` is unguessable; page fetches by exact token) |
+| profiles | SELECT own row; UPDATE `name` only (0005 column grant) |
+| farms | SELECT/UPDATE/DELETE own; INSERT only if `profiles.role = 'grower'`. A trigger rejects a name already used by another owner (case/space-insensitive), because seller access in 0008 is keyed on farm name |
+| zones | ALL where `farm_id IN (own farms)` |
+| plants | SELECT/DELETE own; INSERT `farm_id, zone_id, name, type, expected_harvest_date, position_x, position_y, manual_status`; UPDATE the same minus `farm_id`, active plants only. `health_score`, `lifecycle_status`, `plant_date` are server-only. `zone_id` must be on the same farm |
+| growth_logs | SELECT own; INSERT `plant_id, event_type, note, photo_url, metadata` for `planted/water/fertilize/note` on active plants (`created_at` is always `now()`); no UPDATE/DELETE |
+| ai_analyses, health_score_history, harvest_passports | SELECT own only — written exclusively by the service role. **No public SELECT on passports**: the QR page reads one exact `qr_token` with the service role |
+| refund_requests | Buyer: INSERT `pending`, DELETE own `pending`. Seller (owns a farm with that name, and is not the buyer): UPDATE `status` of `pending` rows to approved/rejected — once |
+| support_messages | Customer: INSERT own rows as `customer` only. Seller: INSERT `seller` rows only into a `seller` thread the customer opened with that farm (`private.customer_opened_seller_thread`). Seller auto-replies and AI answers are written by the server |
+| ai_scan_usage, payments, listing_boosts | SELECT only (all writes via the service role) |
 
-Writes performed by API routes use the **service role key** (bypasses RLS) — that key exists only in server env. [D3] tightening (Phase 2, optional): revoke client INSERT on `ai_analyses`, `health_score_history`, `harvest_passports` so calculated tables are server-write-only.
+Writes performed by API routes use the **service role key** (bypasses RLS) — that key exists only in server env. `/api/ai/save-scan` only saves a result carried by the HMAC-signed `scanToken` that `/api/ai/scan` issued (`lib/ai/scan-token.ts`).
 
-## 6. Storage — 3 Public Buckets
+## 6. Storage — 4 Public Buckets
 
-`farm-backgrounds` (uploaded aerials) · `plant-scans` (AI scan photos) · `growth-photos` (timeline photos).
-Public because images must render on the public QR page. Client compresses to ≤1MB before upload. Path convention: `{farmId}/...` or `{plantId}/{timestamp}.jpg`.
+`farm-backgrounds` (uploaded aerials, satellite images, avatars) · `plant-scans` (AI scan photos) · `growth-photos` (timeline photos, no writer yet) · `farm-panoramas` (360° tour, 0009).
+Public because images must render on the public QR page — public URLs are served without any SELECT policy. Since 0010, writes and SELECT (needed for `remove()`/upsert) are owner-only by the first path folder:
+
+| Bucket | Path | Owner check |
+|---|---|---|
+| farm-backgrounds | `{userId}/{file}` (avatars: `{userId}/avatar-{ts}.jpg`) | folder = `auth.uid()` |
+| plant-scans | `{plantId}/{timestamp}.jpg` | folder ∈ own plants |
+| farm-panoramas | `{farmId}/{file}` | folder ∈ own farms |
+| growth-photos | — | no client writes |
+
+All buckets accept only `image/jpeg`, `image/png`, `image/webp`; size limit 10 MB (12 MB for panoramas). Nobody can list a bucket's objects except their own.
 
 ## 7. API Routes **[D3 — 5 routes, supersedes the older 4-route set]**
 

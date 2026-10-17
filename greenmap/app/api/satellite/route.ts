@@ -94,14 +94,18 @@ export async function POST(req: Request) {
       );
     }
     const bytes = await imgRes.arrayBuffer();
-    const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
+    // Normalised: the bucket only accepts image/jpeg|png|webp (0010), and
+    // providers may send variants like "image/jpg" or add parameters.
+    const isPng = (imgRes.headers.get("content-type") ?? "").includes("png");
+    const contentType = isPng ? "image/png" : "image/jpeg";
 
-    // 3. Store it in the public bucket (key-free, permanent URL).
-    const ext = contentType.includes("png") ? "png" : "jpg";
+    // 3. Store it in the public bucket (key-free, permanent URL), under the
+    //    user's own folder (storage writes are owner-scoped).
+    const ext = isPng ? "png" : "jpg";
     const path = `${user.id}/satellite-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from("farm-backgrounds")
-      .upload(path, bytes, { contentType, upsert: true });
+      .upload(path, bytes, { contentType });
     if (upErr) {
       return NextResponse.json(
         { error: `Could not save the image: ${upErr.message}` },

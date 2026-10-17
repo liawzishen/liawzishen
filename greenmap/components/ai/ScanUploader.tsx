@@ -52,7 +52,8 @@ export function ScanUploader({
   const [blocked, setBlocked] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // Signed by /api/ai/scan; save-scan stores only what it carries.
+  const [scanToken, setScanToken] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +67,7 @@ export function ScanUploader({
       setBlob(compressed);
       setPreviewUrl(URL.createObjectURL(compressed));
       setResult(null);
-      setImageUrl(null);
+      setScanToken(null);
       setPhase("preview");
     } catch {
       setError("Could not read that image. Try another photo (JPG or PNG works best).");
@@ -77,7 +78,7 @@ export function ScanUploader({
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setBlob(null);
-    setImageUrl(null);
+    setScanToken(null);
     setResult(null);
     setError(null);
     setPhase("idle");
@@ -93,7 +94,7 @@ export function ScanUploader({
     const path = `${plantId}/${Date.now()}.jpg`;
     const { error: upErr } = await supabase.storage
       .from("plant-scans")
-      .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+      .upload(path, blob, { contentType: "image/jpeg" });
     if (upErr) {
       setError(`Upload failed: ${upErr.message}`);
       setPhase("preview");
@@ -102,7 +103,6 @@ export function ScanUploader({
     const {
       data: { publicUrl },
     } = supabase.storage.from("plant-scans").getPublicUrl(path);
-    setImageUrl(publicUrl);
 
     try {
       const res = await fetch("/api/ai/scan", {
@@ -120,6 +120,7 @@ export function ScanUploader({
       }
       if (!res.ok || !data?.result) throw new Error(data?.error ?? "Scan failed");
       if (data.scansLeft !== undefined) setLeft(data.scansLeft);
+      setScanToken(typeof data.scanToken === "string" ? data.scanToken : null);
       setResult(data.result as ScanResult);
       setPhase("result");
     } catch (e) {
@@ -129,14 +130,19 @@ export function ScanUploader({
   }
 
   async function save() {
-    if (!result || result.error || !imageUrl) return;
+    if (!result || result.error) return;
+    if (!scanToken) {
+      setError("This scan can't be saved. Please scan the leaf again.");
+      return;
+    }
     setPhase("saving");
     setError(null);
     try {
       const res = await fetch("/api/ai/save-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plantId, imageUrl, result }),
+        // The server saves what the signed token carries, not a client copy.
+        body: JSON.stringify({ plantId, scanToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Save failed");

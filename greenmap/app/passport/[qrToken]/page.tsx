@@ -64,7 +64,9 @@ export default async function PublicPassportPage({
   ]);
   const plant = plantRow as Plant | null;
   const farm = farmRow as Farm | null;
-  if (!plant || !farm) return <NotFoundView />;
+  // The plant must really belong to the passport's farm, so a passport row
+  // can never publish another grower's plant and logs.
+  if (!plant || !farm || plant.farm_id !== farm.id) return <NotFoundView />;
 
   const { data: grower } = await admin
     .from("profiles")

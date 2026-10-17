@@ -51,9 +51,9 @@ export function AddPlantModal({
         expected_harvest_date: harvestDate || null,
         position_x: position.x,
         position_y: position.y,
-        health_score: null, // grey "New" until first scoring event (D4)
-        manual_status: "attention",
-        lifecycle_status: "active",
+        // health_score (NULL = grey "New", D4), manual_status and
+        // lifecycle_status use their DB defaults; clients may not write the
+        // calculated/server-controlled columns (migration 0010).
       })
       .select()
       .single();

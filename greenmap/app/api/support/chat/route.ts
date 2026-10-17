@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   geminiSupportTriage,
   mockSupportTriage,
@@ -81,7 +82,10 @@ export async function POST(req: Request) {
     intent?: string | null;
   }) => {
     try {
-      const { error } = await supabase.from("support_messages").insert({
+      // Customers may only post as themselves (RLS, 0010); the simulated
+      // seller reply and the AI answer are written by the server.
+      const db = row.sender === "customer" ? supabase : createAdminClient();
+      const { error } = await db.from("support_messages").insert({
         user_id: user.id,
         thread,
         order_ref: orderRef,

@@ -205,7 +205,7 @@ lib/  supabase/{client,server,admin,middleware} · ai/{gemini-vision,gemini-text
 middleware.ts                            route protection + role-based redirects
 types/  database.ts · index.ts
 docs/   00_BUILD_PLAN · 01_CODE_CONCEPT · 02_PROTOTYPE_MAPPING · 03_BACKEND_TRUTH · 08_DEMO
-supabase/migrations/  0001_init … 0009_panoramas
+supabase/migrations/  0001_init … 0010_security_hardening
 # ../docs/superpowers/specs/ (repo root, one level up) — design specs for
 # later features, e.g. the 2026-07-06 map-dashboard/weather spec
 scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts · seed-panoramas.ts · fetch-demo-panos.mjs · smoke-test.mjs · test-tasks-data.sql · README.md
@@ -216,7 +216,7 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **Theme tokens live only in `app/globals.css`** (`@theme`). Never hardcode colours in components.
   The rustic auth tokens are additive and only apply inside `.auth-rustic` — every other screen stays on the Liquid Glass tokens.
 - Tab pages render `<AppShell>`; pushed sub-pages render `<TopNav>` — never both.
-- Calculated values (health score, scan results, passports) are written **server-side only**, via the API routes — never trusted from the client.
+- Calculated values (health score, scan results, passports) are written **server-side only**, via the API routes — never trusted from the client. Since migration `0010` the database enforces it too: clients have no write grants on those columns and tables, and `/api/ai/save-scan` only accepts the signed `scanToken` from `/api/ai/scan`.
 - The health score is the deterministic **40/25/20/15** formula in `lib/health/calculate.ts` (one pure function shared by server writes and client display). Decay: watering −10/day, fertilizer −8/day; AI default 50; manual healthy/attention/critical = 100/50/0.
 - `growth_logs.event_type` uses exactly six strings — `planted`, `water`, `fertilize`, `ai_scan`, `note`, `harvested` (see `docs/03_BACKEND_TRUTH.md` §3).
 - Weather (`lib/weather/fetch.ts`) always degrades to a deterministic sample dataset on any network/parse failure — the Map tab and Home advisory must never break on stage. A farm's GPS pin (if set) beats geocoding its state name for forecast accuracy.
@@ -232,6 +232,8 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **Weather shows "sample data"** → Open-Meteo needs no key, so this means the request failed or the network is unavailable — it's the designed fallback, not a bug. Reload once you're back online.
 - **Farm GPS pin doesn't save** → migration `0006_farm_coordinates.sql` hasn't been run yet (see Database setup below); the farm still saves fine without it, just without the exact-forecast pin.
 - **3D mode says "360° storage isn't set up yet"** → migration `0009_panoramas.sql` hasn't been run (Supabase → SQL Editor). Run it, then `npm run seed:panoramas` for the demo farm's sample tour.
+- **"A farm called … already exists"** → since `0010`, a farm name can't copy another owner's farm (seller support is matched by farm name). Pick a different name.
+- **Saving a scan says "can't be verified"** → the scan is over 24 hours old, or `SUPABASE_SERVICE_ROLE_KEY` is missing on the server. Add the key and scan again.
 - **`npm install` version error on `@supabase/ssr`** → run `npm install @supabase/ssr@latest`.
 - **Stuck in a redirect loop** → clear site cookies for `localhost:3000` and log in again.
 
@@ -246,7 +248,7 @@ Import the repo → add the same env vars in Project Settings (set `NEXT_PUBLIC_
 The schema, RLS, storage and seed live in `supabase/` and `scripts/`.
 Full instructions: **[`scripts/README.md`](./scripts/README.md)**. In short:
 
-1. Run the 9 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor).
+1. Run the 10 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor).
 2. Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Settings → API → service_role).
 3. `npm run db:seed` → demo grower `ahmad@greenmap.demo` / `Demo1234!`, farm *Ladang Hijau*, ~30 plants, backdated logs, a 7-day trend, saved AI analyses, and one harvested plant with a fixed passport at `/passport/00000000-0000-4000-8000-0000deadbeef`.
 

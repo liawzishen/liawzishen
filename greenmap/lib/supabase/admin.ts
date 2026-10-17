@@ -4,9 +4,14 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * Service-role client — BYPASSES Row Level Security.
  *
  * Server-only. Used from Phase 2/5 onward by:
- *   - scripts/seed-demo.ts
- *   - /api/health/recalculate, /api/ai/save-scan, /api/passports/generate
+ *   - the seed scripts in scripts/
+ *   - /api/health/recalculate, /api/ai/scan, /api/ai/save-scan,
+ *     /api/passports/generate, /api/tasks/*, /api/payments,
+ *     /api/support/chat (seller auto-reply + AI answer rows)
  *   - the public /passport/[qrToken] page (fetch by token)
+ *
+ * Since migration 0010 it is the ONLY way to write calculated trust data
+ * (health scores, AI analyses, score history, passports).
  *
  * Never import this from a Client Component.
  */

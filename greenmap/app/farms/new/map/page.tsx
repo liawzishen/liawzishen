@@ -86,13 +86,19 @@ export default function SetupMapPage() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    if (!user) {
+      setUploadError("Your session expired. Please log in again.");
+      setUploading(false);
+      return;
+    }
 
+    // Under the user's own folder: storage writes are owner-scoped (0010).
     const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${user?.id ?? "anon"}/${Date.now()}.${ext}`;
+    const path = `${user.id}/${Date.now()}.${ext}`;
 
     const { error } = await supabase.storage
       .from("farm-backgrounds")
-      .upload(path, file, { upsert: true });
+      .upload(path, file);
 
     if (error) {
       setUploadError(error.message);
