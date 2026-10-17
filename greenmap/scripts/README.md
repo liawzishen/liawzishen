@@ -11,7 +11,7 @@
 > and recreates the demo grower's farms — never run it against a backend
 > holding data you care about.
 
-Run the eight migrations **in order** in the Supabase SQL editor, then seed demo data.
+Run the nine migrations **in order** in the Supabase SQL editor, then seed demo data.
 
 ## 1. Run the migrations
 
@@ -25,8 +25,9 @@ Supabase Dashboard → **SQL Editor** → **New query**. Paste each file's conte
 6. `supabase/migrations/0006_farm_coordinates.sql` — optional `latitude`/`longitude` on `farms`, for exact-location weather on the Map tab
 7. `supabase/migrations/0007_support.sql` — customer service: refund requests, order feedback, support chat (customer-side RLS; refunds can only be created `pending`)
 8. `supabase/migrations/0008_seller_support.sql` — seller side: farm-ownership RLS so growers approve/reject refunds and reply to customers, plus `listing_stock` (in/out-of-stock)
+9. `supabase/migrations/0009_panoramas.sql` — 360° farm tour: `farm_panoramas` + `panorama_plant_tags` and the `farm-panoramas` storage bucket (then `npm run seed:panoramas` for the demo farm's sample tour)
 
-Each file is **re-runnable** — running it twice is safe. `0006`–`0008` are additive — the app works without them (the affected panels show a friendly "run migration X" notice instead of breaking).
+Each file is **re-runnable** — running it twice is safe. `0006`–`0009` are additive — the app works without them (the affected panels show a friendly "run migration X" notice instead of breaking).
 
 > Prefer the CLI? With the Supabase CLI linked to your project, `supabase db push` applies everything in `supabase/migrations/` automatically.
 

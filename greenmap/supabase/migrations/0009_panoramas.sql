@@ -52,24 +52,54 @@ insert into storage.buckets (id, name, public)
 values ('farm-panoramas', 'farm-panoramas', true)
 on conflict (id) do nothing;
 
--- Recreate the shared storage policies with the new bucket included
--- (0004 created them with a 3-bucket list; the lists below are the full set).
+-- Public read: the shared read policy gains the new bucket
+-- (0004 created it with a 3-bucket list; the list below is the full set).
 drop policy if exists "greenmap_public_read" on storage.objects;
 create policy "greenmap_public_read" on storage.objects
   for select
   using (bucket_id in ('farm-backgrounds', 'plant-scans', 'growth-photos', 'farm-panoramas'));
 
+-- Writes: the shared bucket-wide policies stay on 0004's 3 buckets (restated
+-- here so re-running this file over an earlier version that added
+-- farm-panoramas to them takes it back out). Panorama objects live at
+-- <farm_id>/<file>, so writes are scoped to that farm's owner — otherwise any
+-- signed-in account (consumers included) could overwrite or delete every
+-- farm's tour photos.
 drop policy if exists "greenmap_auth_insert" on storage.objects;
 create policy "greenmap_auth_insert" on storage.objects
   for insert to authenticated
-  with check (bucket_id in ('farm-backgrounds', 'plant-scans', 'growth-photos', 'farm-panoramas'));
+  with check (bucket_id in ('farm-backgrounds', 'plant-scans', 'growth-photos'));
 
 drop policy if exists "greenmap_auth_update" on storage.objects;
 create policy "greenmap_auth_update" on storage.objects
   for update to authenticated
-  using (bucket_id in ('farm-backgrounds', 'plant-scans', 'growth-photos', 'farm-panoramas'));
+  using (bucket_id in ('farm-backgrounds', 'plant-scans', 'growth-photos'));
 
 drop policy if exists "greenmap_auth_delete" on storage.objects;
 create policy "greenmap_auth_delete" on storage.objects
   for delete to authenticated
-  using (bucket_id in ('farm-backgrounds', 'plant-scans', 'growth-photos', 'farm-panoramas'));
+  using (bucket_id in ('farm-backgrounds', 'plant-scans', 'growth-photos'));
+
+drop policy if exists "panoramas_storage_insert_own" on storage.objects;
+create policy "panoramas_storage_insert_own" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'farm-panoramas'
+    and (storage.foldername(name))[1] in (
+      select id::text from public.farms where user_id = auth.uid()));
+
+drop policy if exists "panoramas_storage_update_own" on storage.objects;
+create policy "panoramas_storage_update_own" on storage.objects
+  for update to authenticated
+  using (
+    bucket_id = 'farm-panoramas'
+    and (storage.foldername(name))[1] in (
+      select id::text from public.farms where user_id = auth.uid()));
+
+drop policy if exists "panoramas_storage_delete_own" on storage.objects;
+create policy "panoramas_storage_delete_own" on storage.objects
+  for delete to authenticated
+  using (
+    bucket_id = 'farm-panoramas'
+    and (storage.foldername(name))[1] in (
+      select id::text from public.farms where user_id = auth.uid()));

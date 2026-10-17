@@ -49,7 +49,11 @@ const PANOS = [
 
 async function main() {
   // 1. demo user → farm
-  const { data: userList, error: uErr } = await admin.auth.admin.listUsers();
+  // listUsers is paginated (default 50/page); match the other seeds' 200.
+  const { data: userList, error: uErr } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
   if (uErr) throw uErr;
   const user = userList.users.find((u) => u.email === DEMO_EMAIL);
   if (!user)
@@ -64,7 +68,11 @@ async function main() {
   if (fErr || !farm) throw new Error("Demo farm not found — run npm run db:seed first");
 
   // 2. wipe + insert panoramas (tags cascade)
-  await admin.from("farm_panoramas").delete().eq("farm_id", farm.id);
+  const { error: dErr } = await admin
+    .from("farm_panoramas")
+    .delete()
+    .eq("farm_id", farm.id);
+  if (dErr) throw dErr; // otherwise a re-run silently duplicates the tour
   const { data: created, error: iErr } = await admin
     .from("farm_panoramas")
     .insert(

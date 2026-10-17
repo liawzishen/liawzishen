@@ -27,6 +27,7 @@ export function PanoramaSphere({
 
   useEffect(() => {
     let disposed = false;
+    let loaded: THREE.Texture | null = null;
     const loader = new THREE.TextureLoader();
     loader.load(
       pano.image_url,
@@ -36,6 +37,7 @@ export function PanoramaSphere({
           return;
         }
         tex.colorSpace = THREE.SRGBColorSpace;
+        loaded = tex;
         setTexture(tex);
         onLoaded?.();
       },
@@ -46,10 +48,11 @@ export function PanoramaSphere({
     );
     return () => {
       disposed = true;
-      setTexture((prev) => {
-        prev?.dispose();
-        return null;
-      });
+      // Dispose directly: a state updater queued from an unmounting
+      // component (every hop remounts via key) isn't guaranteed to run,
+      // which would leak a full-size GPU texture per hop.
+      loaded?.dispose();
+      setTexture(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pano.image_url]);

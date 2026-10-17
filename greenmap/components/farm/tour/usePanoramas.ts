@@ -1,8 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { FarmPanorama, PanoramaPlantTag } from "@/types/database";
+
+/** Heading-slider writes wait for the drag to settle (one write per drag). */
+const HEADING_SAVE_DELAY_MS = 400;
 
 /**
  * Single data-access layer for the 360° tour. Owned by FarmMap so both the
@@ -14,6 +17,9 @@ export function usePanoramas(farmId: string) {
   const [tags, setTags] = useState<PanoramaPlantTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const headingTimers = useRef(
+    new Map<string, ReturnType<typeof setTimeout>>()
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +62,10 @@ export function usePanoramas(farmId: string) {
     async (input: { file: File; position_x: number; position_y: number }) => {
       const supabase = createClient();
       const ext = input.file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const path = `${farmId}/${crypto.randomUUID()}.${ext}`;
+      // Not crypto.randomUUID(): it only exists in secure contexts, so it
+      // throws when the app is opened over plain-http LAN (phone testing).
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      const path = `${farmId}/${id}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("farm-panoramas")
         .upload(path, input.file, { contentType: input.file.type });
@@ -79,6 +88,9 @@ export function usePanoramas(farmId: string) {
         .single();
       if (error || !data) {
         console.warn("[tour] insert failed:", error?.message);
+        // Every upload gets a fresh path, so a failed save would otherwise
+        // leave an unreachable photo in the bucket on each retry.
+        await supabase.storage.from("farm-panoramas").remove([path]);
         return null;
       }
       setPanoramas((prev) => [...prev, data as FarmPanorama]);
@@ -88,15 +100,27 @@ export function usePanoramas(farmId: string) {
   );
 
   const updateHeading = useCallback(async (id: string, heading_deg: number) => {
+    // Optimistic: the photo rotates immediately while the slider drags.
     setPanoramas((prev) =>
       prev.map((p) => (p.id === id ? { ...p, heading_deg } : p))
     );
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("farm_panoramas")
-      .update({ heading_deg })
-      .eq("id", id);
-    if (error) console.warn("[tour] heading update failed:", error.message);
+    // Persist once the slider settles. Writing on every input event floods
+    // the API and lets out-of-order responses leave a stale heading stored.
+    const timers = headingTimers.current;
+    const pending = timers.get(id);
+    if (pending) clearTimeout(pending);
+    timers.set(
+      id,
+      setTimeout(async () => {
+        timers.delete(id);
+        const supabase = createClient();
+        const { error } = await supabase
+          .from("farm_panoramas")
+          .update({ heading_deg })
+          .eq("id", id);
+        if (error) console.warn("[tour] heading update failed:", error.message);
+      }, HEADING_SAVE_DELAY_MS)
+    );
   }, []);
 
   const addTag = useCallback(
