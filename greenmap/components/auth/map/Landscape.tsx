@@ -6,9 +6,9 @@ import type { CSSProperties } from "react";
  * Coded + animated: a blue-sky gradient, drifting CSS clouds, and stylized
  * terraced-hill bands with a winding path — all hand-built so it themes and
  * animates. On top of the coded hills sits a `background-image` layer pointed
- * at `/landscape-hills.png`: while that file is absent nothing renders there
- * (no broken-image icon) and the coded bands show; drop a painterly PNG in
- * `public/` and it upgrades in place — no code change.
+ * at `/landscape.webp`: if that file is missing nothing renders there (no
+ * broken-image icon) and the coded bands show. The painting ships as WebP
+ * (about 95 KB; the original PNG was 1.8 MB) — keep it compressed.
  *
  * The right edge feathers into the parchment so the illustration "meets the
  * blank margin of the map" rather than ending on a hard line.
@@ -97,7 +97,7 @@ export function Landscape({ className = "" }: { className?: string }) {
       <div
         className="absolute inset-0 bg-no-repeat"
         style={{
-          backgroundImage: "url('/landscape.png')",
+          backgroundImage: "url('/landscape.webp')",
           backgroundSize: "cover",
           // Panel is portrait, image is 4:3 → cover crops the sides. Anchor
           // left so the cottage + nearest terraces stay in frame.

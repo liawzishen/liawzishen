@@ -26,6 +26,8 @@ export function FarmCard({
           <img
             src={farm.background_url}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (

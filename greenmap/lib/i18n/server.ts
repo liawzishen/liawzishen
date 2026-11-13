@@ -1,7 +1,5 @@
 import { cookies } from "next/headers";
-import { DICTS, isLang, type Dict, type Lang } from "./dictionaries";
-
-export const LANG_COOKIE = "greenmap-lang";
+import { DICTS, LANG_COOKIE, isLang, type Dict, type Lang } from "./dictionaries";
 
 /** Current UI language for Server Components / route handlers (cookie). */
 export async function getLang(): Promise<Lang> {

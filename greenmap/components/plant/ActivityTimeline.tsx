@@ -136,6 +136,8 @@ function ActivityDetail({
             <img
               src={analysis.image_url}
               alt="Scan photo"
+              loading="lazy"
+              decoding="async"
               className="aspect-square w-full rounded-card object-cover"
             />
           )}

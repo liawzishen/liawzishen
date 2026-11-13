@@ -11,6 +11,9 @@
  */
 
 export type Lang = "en" | "ms";
+
+/** Cookie that stores the chosen language (read on the server, set in the browser). */
+export const LANG_COOKIE = "greenmap-lang";
 export const LANGS: { value: Lang; label: string }[] = [
   { value: "en", label: "English" },
   { value: "ms", label: "Bahasa Melayu" },

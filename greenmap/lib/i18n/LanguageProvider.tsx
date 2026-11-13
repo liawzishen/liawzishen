@@ -1,8 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
-import { DICTS, type Dict, type Lang } from "./dictionaries";
+import { DICTS, LANG_COOKIE, type Dict, type Lang } from "./dictionaries";
 
 /**
  * Client side of the cookie-based locale. The root layout (server) reads the
@@ -27,16 +34,21 @@ export function LanguageProvider({
   const router = useRouter();
   const [lang, setLangState] = useState<Lang>(initialLang);
 
-  function setLang(next: Lang) {
-    setLangState(next);
-    document.cookie = `greenmap-lang=${next}; path=/; max-age=31536000; samesite=lax`;
-    router.refresh(); // re-render server components in the new language
-  }
+  const setLang = useCallback(
+    (next: Lang) => {
+      setLangState(next);
+      document.cookie = `${LANG_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
+      router.refresh(); // re-render server components in the new language
+    },
+    [router]
+  );
+
+  // Memoised so the ~50 client components reading this context re-render only
+  // when the language changes, not on every render of the root layout.
+  const value = useMemo(() => ({ lang, t: DICTS[lang], setLang }), [lang, setLang]);
 
   return (
-    <LanguageContext.Provider value={{ lang, t: DICTS[lang], setLang }}>
-      {children}
-    </LanguageContext.Provider>
+    <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
   );
 }
 
