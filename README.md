@@ -145,12 +145,13 @@ Please also note:
 | Database, login, files | Supabase: Postgres with Row Level Security, Auth, Storage |
 | 2D farm map | Konva + react-konva |
 | 360° tour | three.js + @react-three/fiber, loaded only when you open 3D |
-| AI | Google Gemini over REST (default model `gemini-2.0-flash`) |
+| AI | Google Gemini over REST (default model `gemini-3.6-flash`) |
 | Weather / satellite | Open-Meteo (free, no key) / MapTiler, with Esri World Imagery as a backup |
+| Code quality | ESLint, TypeScript strict mode, Vitest unit tests, GitHub Actions CI |
 
 ## Run it locally
 
-You need Node 18.18+ (Node 20 LTS recommended) and a free [Supabase](https://supabase.com) project.
+You need Node 22.12 or newer and a free [Supabase](https://supabase.com) project.
 
 ```bash
 cd greenmap
@@ -169,6 +170,15 @@ Optional keys: `GEMINI_API_KEY` (real AI) and `MAPTILER_API_KEY` (satellite maps
 
 Full guide (environment variables, troubleshooting, deploy to Vercel): [greenmap/README.md](greenmap/README.md) and [greenmap/scripts/README.md](greenmap/scripts/README.md).
 
+### Check your changes
+
+Run this inside `greenmap/` before you push. GitHub Actions runs the same checks on every pull request.
+
+```bash
+npm run check   # lint + type-check + unit tests
+npm run build   # production build
+```
+
 ## Repository layout
 
 ```
@@ -180,6 +190,7 @@ Full guide (environment variables, troubleshooting, deploy to Vercel): [greenmap
 │   ├── supabase/migrations/    9 SQL migrations (0001–0009)
 │   ├── scripts/                Seed scripts and smoke test
 │   └── docs/                   Build plan, code concept, backend reference, demo script
+├── .github/workflows/          CI: lint, type-check, unit tests and build
 ├── skills-updated/             AI advisor notes: business model, data/AI logic, architecture
 ├── docs/superpowers/           Design specs and plans for newer features
 ├── greenmap-interactive.html   Early interactive prototype (single HTML file)

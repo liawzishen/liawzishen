@@ -15,7 +15,7 @@ and generate a **Harvest Passport** — a QR code consumers scan to see the full
 
 ## Build status
 
-All eight build phases are **complete and type-clean** (`npx tsc --noEmit` → 0 errors).
+All eight build phases are **complete**. `npm run check` (lint, type-check, unit tests) passes with 0 errors and 0 warnings.
 
 | Phase | Scope | Status |
 |---|---|---|
@@ -79,7 +79,7 @@ Map canvas: **Konva** / `react-konva`. Design system: iOS-native light theme —
 
 ## Quick start
 
-**Requirements:** Node 18.18+ (Node 20 LTS recommended) and a free [Supabase](https://supabase.com) account.
+**Requirements:** Node 22.12 or newer (`.nvmrc` pins Node 22) and a free [Supabase](https://supabase.com) account.
 
 ```bash
 # 1. Install dependencies (includes konva + react-konva)
@@ -133,12 +133,27 @@ Developer Program — without that account it stays a friendly disabled state.
 | `NEXT_PUBLIC_APP_URL` | public | absolute QR / passport links |
 | `SUPABASE_SERVICE_ROLE_KEY` | **server only** | seed scripts + API routes (recalculate, save-scan, passports, tasks) |
 | `GEMINI_API_KEY` | **server only** | live Gemini Vision/Text. **Absent → a clearly-labelled mock result**, so the scan flow still demos |
-| `GEMINI_MODEL` | server only | optional model override (default `gemini-2.0-flash`) |
+| `GEMINI_MODEL` | server only | optional model override (default `gemini-3.6-flash`) |
 | `MAPTILER_API_KEY` | **server only** | optional live satellite search in farm setup (`/api/satellite`). Without it, "Satellite" falls back to the smart background |
 
 No key is needed for weather — the Map tab and Home advisory call the public Open-Meteo API directly from the server, and fall back to a labelled sample dataset if the network is unavailable.
 
 Never commit `.env.local`; never expose the server-only keys in the browser.
+
+## Quality checks
+
+| Command | What it does |
+|---|---|
+| `npm run lint` | ESLint (Next.js + TypeScript rules). Warnings fail the run. |
+| `npm run typecheck` | `tsc --noEmit` in strict mode. |
+| `npm test` | Vitest unit tests for the pure logic in `lib/` (`*.test.ts` next to each module). |
+| `npm run test:watch` | The same tests, re-run on every save. |
+| `npm run check` | Lint + type-check + tests. Run it before every push. |
+| `npm run test:smoke` | Checks a real Supabase project: connection, demo login and data reads. |
+
+GitHub Actions (`../.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test` and `build` on every pull request and on every push to `main`.
+
+The unit tests cover the rules that must never drift: the health-score formula, AI reply parsing, passport badges, plan limits, marketplace ranking, password rules and the storage-URL check. They need no database and no network.
 
 ## What works today (smoke test)
 
@@ -199,9 +214,11 @@ components/
   plant/ (HealthTrendChart, ActivityTimeline, SuggestionCard, ManualStatusControl, PlantQuickActions)
   ui/ (Button, Card, Badge, Input, Select, Modal/BottomSheet, SegmentedControl, EmptyState, Skeleton)
 
-lib/  supabase/{client,server,admin,middleware} · ai/{gemini-vision,gemini-text,gemini-support,validate}
+lib/  supabase/{client,server,admin,middleware,chunked} · api/http (shared route helpers)
+      ai/{gemini,gemini-vision,gemini-text,gemini-support,validate} · storage/public-url
       health/{calculate,live,recalculate,display} · passport/aggregate · billing/{plans,usage}
-      weather/{fetch,advice} · marketplace/rank · auth/password · farm/fetch · utils
+      weather/{fetch,advice} · marketplace/rank · auth/password · farm/{fetch,ownership} · date · utils
+      **/*.test.ts                       unit tests, next to the module they test
 middleware.ts                            route protection + role-based redirects
 types/  database.ts · index.ts
 docs/   00_BUILD_PLAN · 01_CODE_CONCEPT · 02_PROTOTYPE_MAPPING · 03_BACKEND_TRUTH · 08_DEMO
@@ -221,6 +238,11 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - `growth_logs.event_type` uses exactly six strings — `planted`, `water`, `fertilize`, `ai_scan`, `note`, `harvested` (see `docs/03_BACKEND_TRUTH.md` §3).
 - Weather (`lib/weather/fetch.ts`) always degrades to a deterministic sample dataset on any network/parse failure — the Map tab and Home advisory must never break on stage. A farm's GPS pin (if set) beats geocoding its state name for forecast accuracy.
 - Desktop layouts escape the mobile 430px app frame via `.desktop-breakout` (per-page marker) or `.shell-breakout` (set by the tab shells) in `globals.css` (`@media (min-width: 1024px)`) — the same escape-hatch pattern the auth breakout uses, just media-query-gated instead of unconditional.
+- **Every API route uses `lib/api/http.ts`**: `getSessionUser()` first, then `readJsonObject()`, then `jsonError()` / `serverError()` for replies. Database and upstream error text is logged on the server and never sent to the browser.
+- **The server only downloads images from our own storage.** A browser-supplied image URL must pass `publicStorageUrl()` (`lib/storage/public-url.ts`) before any `fetch` — this blocks server-side request forgery.
+- **All Gemini calls go through `lib/ai/gemini.ts`** (one model setting, one timeout, API key in a header). Never call the Gemini REST API directly from a route.
+- **"Today" means today in Malaysia.** Servers run in UTC, so use `localDateISO()` / `APP_TIME_ZONE` from `lib/date.ts` for date comparisons and server-rendered dates, never `new Date().toISOString().slice(0, 10)`.
+- **Long id lists go through `selectInChunks()`** (`lib/supabase/chunked.ts`), because `.in()` filters travel in the URL.
 - **Press feedback is universal** — `.pressable` / `.pressable-glow` in `globals.css` give every button and tappable card a darken-on-press + springy release (Tailwind v4 preflight zeroes `-webkit-tap-highlight-color`, so this is what restores the "it registered my tap" cue). Reuse these utilities; never add per-component `:active` styles.
 - **The Map tab has a 2D⇄3D toggle.** `FarmMap.tsx` holds a `mode` state and lazy-loads `components/farm/tour/` (client-only three.js, `next/dynamic` with `ssr: false`, async chunk so the field's first load stays unchanged). The 3D mode is a Matterport-style **360° photo tour**: farmers shoot 360° photos with their phone's panorama mode, upload them onto spots on the 2D map, then drag to look around, tap white floor circles to hop between spots, and tap plant pins to open the *same* `PlantBottomSheet` as 2D. The 2D map doubles as the floor-plan view via tappable 360° badges. Data: `farm_panoramas` + `panorama_plant_tags` (migration `0009`) + the `farm-panoramas` bucket. All labels go through the EN/BM dictionary `tour` namespace.
 
@@ -229,6 +251,7 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **"Missing Supabase env vars"** → copy `.env.example` to `.env.local`, fill both `NEXT_PUBLIC_*` values, restart `npm run dev`.
 - **Register shows "check your email"** → email confirmation is still ON in Supabase (see Quick start step 4).
 - **AI scan returns a "sample"/mock result** → no `GEMINI_API_KEY` set (expected). Add a free key from https://aistudio.google.com/apikey for live scans.
+- **AI scan says "The AI service didn't respond"** → the key is wrong, or the model is not available to it. The server log shows Google's exact error. Set `GEMINI_MODEL` to a model your key can use.
 - **Weather shows "sample data"** → Open-Meteo needs no key, so this means the request failed or the network is unavailable — it's the designed fallback, not a bug. Reload once you're back online.
 - **Farm GPS pin doesn't save** → migration `0006_farm_coordinates.sql` hasn't been run yet (see Database setup below); the farm still saves fine without it, just without the exact-forecast pin.
 - **3D mode says "360° storage isn't set up yet"** → migration `0009_panoramas.sql` hasn't been run (Supabase → SQL Editor). Run it, then `npm run seed:panoramas` for the demo farm's sample tour.

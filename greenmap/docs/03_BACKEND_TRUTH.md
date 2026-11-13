@@ -133,6 +133,14 @@ Public because images must render on the public QR page. Client compresses to �
 | `POST /api/mapbox/satellite` *(optional stretch)* | address → static image URL (token server-side). Demo uses a pre-captured asset in `public/demo/` — zero stage dependency | — |
 
 Everything else (farms, zones, plants, water/fertilize/note logs, reads) = client → Supabase direct under RLS.
+
+**Rules every route follows** (helpers in `lib/api/http.ts`):
+- Sign-in is checked first (`401` when signed out), then the JSON body is parsed and validated.
+- `imageUrl` in `/api/ai/scan` and `/api/ai/save-scan` must be a file in this project's `plant-scans` bucket (`lib/storage/public-url.ts`). The server downloads that image, so any other URL is rejected with `400`. Images over 8 MB or with a non-image content type are not analysed.
+- Free-text inputs are length-capped (chat message 2,000 characters; diagnosis 400; each recommendation 200). Batch routes accept at most 1,000 plant ids.
+- Database and upstream errors are logged on the server. The browser only gets a short, safe message.
+- A scan reply with an unknown severity is treated as a failed analysis, never as "healthy".
+- Harvest dates use the Malaysian calendar day (`lib/date.ts`), not the server's UTC day.
 *Change vs the locked architecture:* scan saving and passport generation move from client-direct writes to server routes, because `ai_sub_score`, badge booleans, and passport aggregates are **calculated, trust-bearing records** — and the Mapbox route becomes optional since the demo never calls it live.
 
 ## 8. Environment Variables
