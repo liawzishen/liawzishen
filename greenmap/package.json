@@ -2,10 +2,18 @@
   "name": "greenmap",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run lint && npm run typecheck && npm run test",
     "db:seed": "tsx scripts/seed-demo.ts",
     "seed:billing": "tsx scripts/seed-billing.ts",
     "seed:consumer": "tsx scripts/seed-consumer.ts",
@@ -26,14 +34,18 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.185.1",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.19",
     "sharp": "^0.35.3",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^5.1.0"
   }
 }

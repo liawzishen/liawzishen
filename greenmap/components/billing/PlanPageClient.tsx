@@ -41,11 +41,9 @@ const fmtDate = (iso: string) =>
   });
 
 export function PlanPageClient({
-  farmId,
   allowance,
   payments,
 }: {
-  farmId: string;
   allowance: ScanAllowance;
   payments: PaymentRow[];
 }) {

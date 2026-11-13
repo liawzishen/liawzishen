@@ -37,7 +37,7 @@ export default async function PlanPage({
   return (
     <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="My Plan" backHref={`/farms/${farmId}/profile`} />
-      <PlanPageClient farmId={farmId} allowance={allowance} payments={payments} />
+      <PlanPageClient allowance={allowance} payments={payments} />
     </main>
   );
 }
