@@ -29,8 +29,10 @@ export function subScoreForSeverity(sev: Severity): number {
   return SEVERITY_SUBSCORE[sev] ?? 50;
 }
 
-function coerceSeverity(v: unknown): Severity {
-  return SEVERITIES.includes(v as Severity) ? (v as Severity) : "none";
+/** A valid severity ("Mild" and " SEVERE " are accepted), or null. */
+function readSeverity(v: unknown): Severity | null {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return SEVERITIES.includes(s as Severity) ? (s as Severity) : null;
 }
 
 function clampConfidence(v: unknown): number {
@@ -38,9 +40,23 @@ function clampConfidence(v: unknown): number {
   return Number.isFinite(n) ? Math.min(100, Math.max(0, Math.round(n))) : 0;
 }
 
+/**
+ * Length caps. Scan text is stored and shown on the public passport, and the
+ * save route receives it from the browser, so it must not be unbounded.
+ */
+const MAX_DIAGNOSIS_LENGTH = 400;
+const MAX_RECOMMENDATION_LENGTH = 200;
+
+function coerceDiagnosis(v: unknown, fallback: string): string {
+  const text = typeof v === "string" ? v.trim() : "";
+  return text ? text.slice(0, MAX_DIAGNOSIS_LENGTH) : fallback;
+}
+
 function coerceRecs(v: unknown): string[] {
   const recs = Array.isArray(v)
-    ? v.filter((r): r is string => typeof r === "string" && r.trim().length > 0).map((r) => r.trim())
+    ? v
+        .filter((r): r is string => typeof r === "string" && r.trim().length > 0)
+        .map((r) => r.trim().slice(0, MAX_RECOMMENDATION_LENGTH))
     : [];
   return recs.length > 0 ? recs.slice(0, 4) : ["Monitor the plant and re-scan in a few days."];
 }
@@ -57,14 +73,17 @@ function extractJson(raw: string): string {
 
 /** Parse a raw Gemini reply into a trusted ScanResult. Throws if unparseable. */
 export function parseScanResult(raw: string): ScanResult {
-  const obj = JSON.parse(extractJson(raw)) as Record<string, unknown>;
-  const severity = coerceSeverity(obj.severity);
-  const diagnosis =
-    typeof obj.diagnosis === "string" && obj.diagnosis.trim()
-      ? obj.diagnosis.trim()
-      : "No clear diagnosis from the photo.";
+  const parsed: unknown = JSON.parse(extractJson(raw));
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Scan reply is not a JSON object");
+  }
+  const obj = parsed as Record<string, unknown>;
+  // An unknown severity must fail (→ retry → honest error). Guessing "none"
+  // here would show a sick plant as healthy.
+  const severity = readSeverity(obj.severity);
+  if (!severity) throw new Error("Scan reply has no valid severity");
   return {
-    diagnosis,
+    diagnosis: coerceDiagnosis(obj.diagnosis, "No clear diagnosis from the photo."),
     severity,
     confidence: clampConfidence(obj.confidence),
     ai_sub_score: subScoreForSeverity(severity),
@@ -74,14 +93,13 @@ export function parseScanResult(raw: string): ScanResult {
 
 /** Re-sanitise a client-supplied result before saving (don't trust the wire). */
 export function sanitizeResult(input: unknown): ScanResult {
-  const obj = (input ?? {}) as Record<string, unknown>;
-  const severity = coerceSeverity(obj.severity);
-  const diagnosis =
-    typeof obj.diagnosis === "string" && obj.diagnosis.trim()
-      ? obj.diagnosis.trim()
-      : "No diagnosis.";
+  const obj = (input !== null && typeof input === "object" ? input : {}) as Record<
+    string,
+    unknown
+  >;
+  const severity = readSeverity(obj.severity) ?? "none";
   return {
-    diagnosis,
+    diagnosis: coerceDiagnosis(obj.diagnosis, "No diagnosis."),
     severity,
     confidence: clampConfidence(obj.confidence),
     ai_sub_score: subScoreForSeverity(severity), // recomputed, never trusted

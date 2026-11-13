@@ -1,9 +1,4 @@
-// `||`, not `??`: .env.example ships an empty `GEMINI_MODEL=`, which `??` keeps.
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
-
-function endpoint(key: string): string {
-  return `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`;
-}
+import { geminiGenerate } from "./gemini";
 
 function prompt(cropType: string, strict: boolean): string {
   const base = `You are an expert plant pathologist. Analyse this photo of a ${cropType || "crop"} leaf/plant and reply with ONLY a JSON object in exactly this shape:
@@ -29,28 +24,11 @@ export async function geminiVision(
   input: VisionInput,
   opts: { strict?: boolean } = {}
 ): Promise<string> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY not set");
-
-  const res = await fetch(endpoint(key), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          parts: [
-            { text: prompt(input.cropType, opts.strict ?? false) },
-            { inline_data: { mime_type: input.mimeType, data: input.imageBase64 } },
-          ],
-        },
-      ],
-      generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
-    }),
-  });
-
-  if (!res.ok) throw new Error(`Gemini Vision ${res.status}: ${await res.text()}`);
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== "string") throw new Error("Gemini returned no text");
-  return text;
+  return geminiGenerate(
+    [
+      { text: prompt(input.cropType, opts.strict ?? false) },
+      { inline_data: { mime_type: input.mimeType, data: input.imageBase64 } },
+    ],
+    { temperature: 0.2, json: true }
+  );
 }

@@ -1,5 +1,4 @@
-// `||`, not `??`: .env.example ships an empty `GEMINI_MODEL=`, which `??` keeps.
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+import { geminiGenerate } from "./gemini";
 
 /** What the customer's message is about. */
 export type SupportIntent =
@@ -50,9 +49,6 @@ const ACTIONS: SuggestedAction[] = ["refund", "return", "contact_seller", "none"
 export async function geminiSupportTriage(
   ctx: SupportContext
 ): Promise<SupportReply> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY not set");
-
   const prompt = `You are the GreenMap customer-service admin assistant for a Malaysian fresh-produce marketplace. A shopper needs help.
 
 RULES:
@@ -73,30 +69,14 @@ Conversation so far:
 ${ctx.history.map((h) => `${h.role}: ${h.text}`).join("\n") || "(none)"}
 Shopper: ${ctx.message}`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${key}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 256,
-          responseMimeType: "application/json",
-        },
-      }),
-    }
-  );
-
-  if (!res.ok) throw new Error(`Gemini Text ${res.status}`);
-  const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== "string" || !text.trim())
-    throw new Error("Gemini returned no text");
+  const text = await geminiGenerate([{ text: prompt }], {
+    temperature: 0.4,
+    maxOutputTokens: 1024,
+    json: true,
+  });
 
   // Defensive parse — strip any stray code fences, validate the enums.
-  const cleaned = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+  const cleaned = text.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   const parsed = JSON.parse(cleaned) as Partial<SupportReply>;
   const intent = INTENTS.includes(parsed.intent as SupportIntent)
     ? (parsed.intent as SupportIntent)
