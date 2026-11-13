@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sanitizeResult } from "@/lib/ai/validate";
 import { recalculatePlantScore } from "@/lib/health/recalculate";
+import { isPublicStorageUrl } from "@/lib/storage/public-url";
+import {
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  serverError,
+  unauthorized,
+} from "@/lib/api/http";
+
+const SCOPE = "/api/ai/save-scan";
 
 /**
  * POST /api/ai/save-scan  { plantId, imageUrl, result }
@@ -11,36 +21,26 @@ import { recalculatePlantScore } from "@/lib/health/recalculate";
  * inserts ai_analyses + an ai_scan log, then recalculates the score.
  */
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  let body: { plantId?: string; imageUrl?: string; result?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+
   const { plantId, imageUrl, result } = body;
-  if (!plantId || !imageUrl || !result) {
-    return NextResponse.json(
-      { error: "plantId, imageUrl and result are required" },
-      { status: 400 }
-    );
+  if (typeof plantId !== "string" || !plantId || !imageUrl || !result) {
+    return jsonError("plantId, imageUrl and result are required", 400);
+  }
+  // Only photos from our own scan bucket may be attached to a plant record.
+  if (!isPublicStorageUrl(imageUrl, "plant-scans")) {
+    return jsonError("imageUrl must be a photo uploaded to GreenMap", 400);
   }
 
   if (
     typeof result === "object" &&
     (result as Record<string, unknown>).error === true
   ) {
-    return NextResponse.json(
-      { error: "This scan couldn't be analysed, so it can't be saved." },
-      { status: 400 }
-    );
+    return jsonError("This scan couldn't be analysed, so it can't be saved.", 400);
   }
 
   const { data: plant } = await supabase
@@ -48,9 +48,7 @@ export async function POST(req: Request) {
     .select("id")
     .eq("id", plantId)
     .single();
-  if (!plant) {
-    return NextResponse.json({ error: "Plant not found" }, { status: 404 });
-  }
+  if (!plant) return jsonError("Plant not found", 404);
 
   const clean = sanitizeResult(result);
   const admin = createAdminClient();
@@ -64,9 +62,7 @@ export async function POST(req: Request) {
     ai_sub_score: clean.ai_sub_score,
     recommendations: clean.recommendations,
   });
-  if (aErr) {
-    return NextResponse.json({ error: aErr.message }, { status: 500 });
-  }
+  if (aErr) return serverError(SCOPE, aErr, "Could not save the scan. Please try again.");
 
   const { error: lErr } = await admin.from("growth_logs").insert({
     plant_id: plantId,
@@ -78,17 +74,12 @@ export async function POST(req: Request) {
       confidence: clean.confidence,
     },
   });
-  if (lErr) {
-    return NextResponse.json({ error: lErr.message }, { status: 500 });
-  }
+  if (lErr) return serverError(SCOPE, lErr, "Could not save the scan. Please try again.");
 
   try {
     const score = await recalculatePlantScore(admin, plantId);
     return NextResponse.json({ score });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Recalculation failed" },
-      { status: 500 }
-    );
+    return serverError(SCOPE, e, "The scan was saved, but the health score could not be updated.");
   }
 }

@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recalculatePlantScore } from "@/lib/health/recalculate";
+import {
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  serverError,
+  unauthorized,
+} from "@/lib/api/http";
 
 /**
  * POST /api/health/recalculate  { plantId }
@@ -9,39 +16,30 @@ import { recalculatePlantScore } from "@/lib/health/recalculate";
  * snapshot via the shared recalculatePlantScore() helper.
  */
 export async function POST(req: Request) {
-  let plantId: string | undefined;
-  try {
-    plantId = (await req.json())?.plantId;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  if (!plantId) {
-    return NextResponse.json({ error: "plantId is required" }, { status: 400 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+  const plantId = typeof body.plantId === "string" ? body.plantId : "";
+  if (!plantId) return jsonError("plantId is required", 400);
+
+  // Ownership: RLS only returns the caller's own plants.
   const { data: plant } = await supabase
     .from("plants")
     .select("id")
     .eq("id", plantId)
     .single();
-  if (!plant) {
-    return NextResponse.json({ error: "Plant not found" }, { status: 404 });
-  }
+  if (!plant) return jsonError("Plant not found", 404);
 
   try {
     const score = await recalculatePlantScore(createAdminClient(), plantId);
     return NextResponse.json({ score });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Recalculation failed" },
-      { status: 500 }
+    return serverError(
+      "/api/health/recalculate",
+      e,
+      "Could not update the health score. Please try again."
     );
   }
 }

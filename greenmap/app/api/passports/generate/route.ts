@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { aggregatePassport } from "@/lib/passport/aggregate";
+import { localDateISO } from "@/lib/date";
+import {
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  serverError,
+  unauthorized,
+} from "@/lib/api/http";
 import type { Plant } from "@/types/database";
+
+const SCOPE = "/api/passports/generate";
+
+/** Postgres unique-violation: another request created the passport first. */
+const UNIQUE_VIOLATION = "23505";
 
 /**
  * POST /api/passports/generate  { plantId }
@@ -13,42 +26,38 @@ import type { Plant } from "@/types/database";
  * plant is already harvested. The passport is never recalculated afterwards.
  */
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  let plantId: string | undefined;
-  try {
-    plantId = (await req.json())?.plantId;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  if (!plantId) {
-    return NextResponse.json({ error: "plantId is required" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+  const plantId = typeof body.plantId === "string" ? body.plantId : "";
+  if (!plantId) return jsonError("plantId is required", 400);
 
   const { data: plant } = await supabase
     .from("plants")
     .select("*")
     .eq("id", plantId)
     .single();
-  if (!plant) {
-    return NextResponse.json({ error: "Plant not found" }, { status: 404 });
-  }
+  if (!plant) return jsonError("Plant not found", 404);
   const p = plant as Plant;
 
-  // Already harvested → return the existing passport (idempotent).
-  const { data: existing } = await supabase
-    .from("harvest_passports")
-    .select("qr_token")
-    .eq("plant_id", plantId)
-    .maybeSingle();
-  if (existing?.qr_token) {
-    return NextResponse.json({ qr_token: existing.qr_token, alreadyHarvested: true });
+  const admin = createAdminClient();
+  const existingToken = async (): Promise<string | null> => {
+    const { data } = await admin
+      .from("harvest_passports")
+      .select("qr_token")
+      .eq("plant_id", plantId)
+      .maybeSingle();
+    return (data?.qr_token as string | undefined) ?? null;
+  };
+
+  // Already harvested → return the existing passport (idempotent). The plant
+  // status is set again in case an earlier request stopped half-way.
+  const already = await existingToken();
+  if (already) {
+    if (p.lifecycle_status !== "harvested") await markHarvested(admin, plantId);
+    return NextResponse.json({ qr_token: already, alreadyHarvested: true });
   }
 
   const [{ data: logs }, { count: scanCount }, { data: history }] =
@@ -64,7 +73,7 @@ export async function POST(req: Request) {
   const scores = (history ?? []).map((h) => (h as { score: number }).score);
   if (scores.length === 0 && p.health_score !== null) scores.push(p.health_score);
 
-  const harvestDate = new Date().toISOString().slice(0, 10);
+  const harvestDate = localDateISO();
   const agg = aggregatePassport({
     plantDate: p.plant_date,
     harvestDate,
@@ -74,8 +83,6 @@ export async function POST(req: Request) {
   });
 
   const qr_token = crypto.randomUUID();
-  const admin = createAdminClient();
-
   const { error: pErr } = await admin.from("harvest_passports").insert({
     plant_id: plantId,
     farm_id: p.farm_id,
@@ -90,16 +97,36 @@ export async function POST(req: Request) {
     qr_token,
   });
   if (pErr) {
-    return NextResponse.json({ error: pErr.message }, { status: 500 });
+    // Double tap / two tabs: the other request won the race. Same outcome.
+    if (pErr.code === UNIQUE_VIOLATION) {
+      const winner = await existingToken();
+      if (winner) {
+        return NextResponse.json({ qr_token: winner, alreadyHarvested: true });
+      }
+    }
+    return serverError(SCOPE, pErr, "Could not create the passport. Please try again.");
   }
 
-  await admin.from("growth_logs").insert({
+  const { error: logErr } = await admin.from("growth_logs").insert({
     plant_id: plantId,
     event_type: "harvested",
     note: "Harvested",
     metadata: {},
   });
-  await admin.from("plants").update({ lifecycle_status: "harvested" }).eq("id", plantId);
+  // The passport exists and is valid; a missing timeline row is not fatal.
+  if (logErr) console.error(`[${SCOPE}] harvested log failed:`, logErr);
+  await markHarvested(admin, plantId);
 
   return NextResponse.json({ qr_token });
+}
+
+async function markHarvested(
+  admin: ReturnType<typeof createAdminClient>,
+  plantId: string
+) {
+  const { error } = await admin
+    .from("plants")
+    .update({ lifecycle_status: "harvested" })
+    .eq("id", plantId);
+  if (error) console.error(`[${SCOPE}] lifecycle update failed:`, error);
 }

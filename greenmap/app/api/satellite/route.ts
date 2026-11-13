@@ -1,5 +1,21 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import {
+  cleanText,
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  unauthorized,
+} from "@/lib/api/http";
+
+const SCOPE = "/api/satellite";
+
+/** Map services must answer quickly or the wizard falls back. */
+const UPSTREAM_TIMEOUT_MS = 10_000;
+const MAX_QUERY_LENGTH = 200;
+
+const upstream = (url: string) =>
+  fetch(url, { cache: "no-store", signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
 
 /**
  * POST /api/satellite  { query: string }
@@ -12,46 +28,27 @@ import { createClient } from "@/lib/supabase/server";
 export async function POST(req: Request) {
   const key = process.env.MAPTILER_API_KEY;
   if (!key) {
-    return NextResponse.json(
-      {
-        error:
-          "Satellite search isn't configured. Add MAPTILER_API_KEY to your environment.",
-      },
-      { status: 503 }
+    return jsonError(
+      "Satellite search isn't configured. Add MAPTILER_API_KEY to your environment.",
+      503
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  let query: string | undefined;
-  try {
-    query = (await req.json())?.query;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  query = query?.trim();
-  if (!query) {
-    return NextResponse.json(
-      { error: "An address or place is required." },
-      { status: 400 }
-    );
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+  const query = cleanText(body.query, MAX_QUERY_LENGTH);
+  if (!query) return jsonError("An address or place is required.", 400);
 
   try {
     // 1. Geocode the address → [lng, lat]. Bias to Malaysia for relevance.
     const geoUrl =
       `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json` +
       `?key=${key}&limit=1&country=my`;
-    const geoRes = await fetch(geoUrl);
-    if (!geoRes.ok) {
-      return NextResponse.json({ error: "Geocoding failed." }, { status: 502 });
-    }
+    const geoRes = await upstream(geoUrl);
+    if (!geoRes.ok) return jsonError("Geocoding failed.", 502);
     const geo = (await geoRes.json()) as {
       features?: {
         center: [number, number];
@@ -61,10 +58,7 @@ export async function POST(req: Request) {
     };
     const feature = geo.features?.[0];
     if (!feature) {
-      return NextResponse.json(
-        { error: "No matching place found. Try a more specific address." },
-        { status: 404 }
-      );
+      return jsonError("No matching place found. Try a more specific address.", 404);
     }
     const [lng, lat] = feature.center;
 
@@ -74,7 +68,7 @@ export async function POST(req: Request) {
     const mtUrl =
       `https://api.maptiler.com/maps/satellite/static/` +
       `${lng},${lat},16/640x360@2x.jpg?key=${key}`;
-    let imgRes = await fetch(mtUrl);
+    let imgRes = await upstream(mtUrl);
     if (!imgRes.ok) {
       const dLat = 0.0025;
       const dLng = (dLat * (640 / 360)) / Math.cos((lat * Math.PI) / 180);
@@ -82,16 +76,12 @@ export async function POST(req: Request) {
         `https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export` +
         `?bbox=${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}` +
         `&bboxSR=4326&imageSR=3857&size=1280,720&format=jpg&f=image`;
-      imgRes = await fetch(esriUrl);
+      imgRes = await upstream(esriUrl);
     }
     if (!imgRes.ok) {
       const detail = await imgRes.text().catch(() => "");
-      return NextResponse.json(
-        {
-          error: `Satellite image request failed (${imgRes.status}). ${detail.slice(0, 160)}`,
-        },
-        { status: 502 }
-      );
+      console.error(`[${SCOPE}] image request failed (${imgRes.status}):`, detail.slice(0, 300));
+      return jsonError("Could not load a satellite image for that place.", 502);
     }
     const bytes = await imgRes.arrayBuffer();
     const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
@@ -103,10 +93,8 @@ export async function POST(req: Request) {
       .from("farm-backgrounds")
       .upload(path, bytes, { contentType, upsert: true });
     if (upErr) {
-      return NextResponse.json(
-        { error: `Could not save the image: ${upErr.message}` },
-        { status: 500 }
-      );
+      console.error(`[${SCOPE}] upload failed:`, upErr);
+      return jsonError("Could not save the image. Please try again.", 500);
     }
     const {
       data: { publicUrl },
@@ -117,10 +105,8 @@ export async function POST(req: Request) {
       place_name: feature.place_name ?? feature.text ?? query,
       center: [lng, lat],
     });
-  } catch {
-    return NextResponse.json(
-      { error: "Could not reach the map service. Please try again." },
-      { status: 502 }
-    );
+  } catch (e) {
+    console.error(`[${SCOPE}] map service unreachable:`, e);
+    return jsonError("Could not reach the map service. Please try again.", 502);
   }
 }

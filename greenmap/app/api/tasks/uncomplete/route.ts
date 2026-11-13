@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recalculateManyPlantScores } from "@/lib/health/recalculate";
+import { ownedPlantIds } from "@/lib/farm/ownership";
+import { ID_FILTER_CHUNK } from "@/lib/supabase/chunked";
+import { chunk } from "@/lib/utils";
+import {
+  cleanIdList,
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  serverError,
+  unauthorized,
+} from "@/lib/api/http";
+
+const SCOPE = "/api/tasks/uncomplete";
+
+/** Upper bound for one batch (undoing "Water All" on a very large farm). */
+const MAX_PLANTS_PER_REQUEST = 1000;
 
 /**
  * POST /api/tasks/uncomplete  { action: "water" | "fertilize", plantIds: string[] }
@@ -11,57 +27,48 @@ import { recalculateManyPlantScores } from "@/lib/health/recalculate";
  * the score. Powers the "uncheck" in the Completed Today tray.
  */
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  let body: { action?: string; plantIds?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+
   const action = body.action;
   if (action !== "water" && action !== "fertilize") {
-    return NextResponse.json({ error: "action must be water or fertilize" }, { status: 400 });
+    return jsonError("action must be water or fertilize", 400);
   }
-  const plantIds = Array.isArray(body.plantIds)
-    ? body.plantIds.filter((x): x is string => typeof x === "string")
-    : [];
-  if (plantIds.length === 0) {
-    return NextResponse.json({ error: "plantIds required" }, { status: 400 });
+  if (Array.isArray(body.plantIds) && body.plantIds.length > MAX_PLANTS_PER_REQUEST) {
+    return jsonError(`At most ${MAX_PLANTS_PER_REQUEST} plants per request`, 400);
   }
+  const plantIds = cleanIdList(body.plantIds, MAX_PLANTS_PER_REQUEST);
+  if (plantIds.length === 0) return jsonError("plantIds required", 400);
 
-  const { data: owned } = await supabase
-    .from("plants")
-    .select("id")
-    .in("id", plantIds);
-  const ownedIds = (owned ?? []).map((r) => (r as { id: string }).id);
-  if (ownedIds.length === 0) {
-    return NextResponse.json({ error: "No matching plants" }, { status: 404 });
-  }
+  const ownedIds = await ownedPlantIds(supabase, plantIds);
+  if (ownedIds.length === 0) return jsonError("No matching plants", 404);
 
   const admin = createAdminClient();
-  const { data: logs } = await admin
-    .from("growth_logs")
-    .select("id, plant_id, created_at")
-    .in("plant_id", ownedIds)
-    .eq("event_type", action)
-    .order("created_at", { ascending: false });
 
+  // Newest matching log per plant — the one the complete action just created.
   const latestId = new Map<string, string>();
-  for (const l of logs ?? []) {
-    if (!latestId.has(l.plant_id)) latestId.set(l.plant_id, l.id);
+  for (const ids of chunk(ownedIds, ID_FILTER_CHUNK)) {
+    const { data: logs, error } = await admin
+      .from("growth_logs")
+      .select("id, plant_id, created_at")
+      .in("plant_id", ids)
+      .eq("event_type", action)
+      .order("created_at", { ascending: false });
+    if (error) {
+      return serverError(SCOPE, error, "Could not undo the task. Please try again.");
+    }
+    for (const l of logs ?? []) {
+      if (!latestId.has(l.plant_id)) latestId.set(l.plant_id, l.id);
+    }
   }
-  const ids = [...latestId.values()];
-  if (ids.length > 0) {
+
+  for (const ids of chunk([...latestId.values()], ID_FILTER_CHUNK)) {
     const { error } = await admin.from("growth_logs").delete().in("id", ids);
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return serverError(SCOPE, error, "Could not undo the task. Please try again.");
     }
   }
 

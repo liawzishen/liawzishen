@@ -142,6 +142,8 @@ export function SupportChat({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type a message…"
+            aria-label="Message"
+            maxLength={2000}
             className="h-11 flex-1 rounded-full bg-white/80 px-4 text-[15px] outline-none ring-1 ring-tertiary/40 focus:ring-brand"
           />
           <button

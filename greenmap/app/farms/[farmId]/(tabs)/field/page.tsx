@@ -17,6 +17,7 @@ import {
   getUserAndFarms,
 } from "@/lib/farm/fetch";
 import { getFarmWeather } from "@/lib/weather/fetch";
+import { localDateISO } from "@/lib/date";
 import { getDict } from "@/lib/i18n/server";
 
 /**
@@ -50,7 +51,7 @@ export default async function FarmFieldPage({
   ]);
 
   const active = plants.filter((p) => p.lifecycle_status === "active");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
   const inBand = (lo: number, hi: number) =>
     active.filter(
       (p) =>

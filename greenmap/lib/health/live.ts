@@ -1,8 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { selectInChunks } from "@/lib/supabase/chunked";
 import { liveDisplayScore } from "./calculate";
 import type { Plant } from "@/types/database";
 
 type ServerClient = Awaited<ReturnType<typeof createClient>>;
+
+type CareLogRow = { plant_id: string; event_type: string; created_at: string };
+type ScanRow = { plant_id: string; ai_sub_score: number; created_at: string };
 
 export type LiveHealth = {
   /** plant id → live display score (null = "New", per D4). */
@@ -22,7 +26,7 @@ export type LiveHealth = {
  * Uses the same pure formula the server writes with (lib/health/calculate.ts),
  * so the map and the plant detail page always agree. Plants whose stored score
  * is still null stay null ("New", per D4 — we never invent a number for them).
- * Batched: two queries total regardless of how many plants there are.
+ * Batched: two queries per 100 plants, never one per plant.
  */
 export async function liveHealthForPlants(
   supabase: ServerClient,
@@ -34,21 +38,28 @@ export async function liveHealthForPlants(
   if (plants.length === 0) return { scores, lastWater, lastFertilize };
   const ids = plants.map((p) => p.id);
 
-  const [{ data: logs }, { data: scans }] = await Promise.all([
-    supabase
-      .from("growth_logs")
-      .select("plant_id, event_type, created_at")
-      .in("plant_id", ids)
-      .in("event_type", ["water", "fertilize"])
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("ai_analyses")
-      .select("plant_id, ai_sub_score, created_at")
-      .in("plant_id", ids)
-      .order("created_at", { ascending: false }),
+  // Chunked by plant id (see selectInChunks). Each plant sits in exactly one
+  // chunk and every chunk is newest-first, so "first row seen" below is still
+  // that plant's most recent event.
+  const [logs, scans] = await Promise.all([
+    selectInChunks<CareLogRow>(ids, (part) =>
+      supabase
+        .from("growth_logs")
+        .select("plant_id, event_type, created_at")
+        .in("plant_id", part)
+        .in("event_type", ["water", "fertilize"])
+        .order("created_at", { ascending: false })
+    ),
+    selectInChunks<ScanRow>(ids, (part) =>
+      supabase
+        .from("ai_analyses")
+        .select("plant_id, ai_sub_score, created_at")
+        .in("plant_id", part)
+        .order("created_at", { ascending: false })
+    ),
   ]);
 
-  for (const l of logs ?? []) {
+  for (const l of logs) {
     if (l.event_type === "water" && !lastWater.has(l.plant_id)) {
       lastWater.set(l.plant_id, l.created_at);
     } else if (l.event_type === "fertilize" && !lastFertilize.has(l.plant_id)) {
@@ -57,7 +68,7 @@ export async function liveHealthForPlants(
   }
 
   const lastAi = new Map<string, number>();
-  for (const s of scans ?? []) {
+  for (const s of scans) {
     if (!lastAi.has(s.plant_id)) lastAi.set(s.plant_id, s.ai_sub_score);
   }
 

@@ -8,13 +8,21 @@ import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
 import { TodaysTasks, type TaskItem } from "@/components/home/TodaysTasks";
 import { getFarmWeather, weatherEmoji } from "@/lib/weather/fetch";
 import { wateringAdvice } from "@/lib/weather/advice";
+import { APP_TIME_ZONE, localDateISO } from "@/lib/date";
 import { getDict, getLang } from "@/lib/i18n/server";
+import { daysSince } from "@/lib/health/calculate";
+import { selectInChunks } from "@/lib/supabase/chunked";
 import type { EventType } from "@/types/database";
 
-function daysSince(dateStr: string): number {
-  const ms = Date.now() - new Date(dateStr).getTime();
-  return Math.max(0, Math.floor(ms / 86_400_000));
-}
+/** Rows shown in the Recent Activity feed. */
+const FEED_LIMIT = 20;
+
+type FeedRow = {
+  plant_id: string;
+  event_type: EventType;
+  note: string | null;
+  created_at: string;
+};
 
 function relative(dateStr: string): string {
   const m = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
@@ -58,21 +66,27 @@ export default async function FarmHomePage({
   const active = plants.filter((p) => p.lifecycle_status === "active");
   const activeIds = active.map((p) => p.id);
   const nameById = new Map(plants.map((p) => [p.id, p.name]));
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO();
 
   // Last water/fertilize per plant comes with the bundle (same data its live
   // health scores were computed from) — only the activity feed needs a query.
   // Weather is bounded by a timeout in getFarmWeather, so it can't hang Home.
   const supabase = await createClient();
-  const [{ data: feed }, weather] = await Promise.all([
-    supabase
-      .from("growth_logs")
-      .select("plant_id, event_type, note, created_at")
-      .in("plant_id", activeIds)
-      .order("created_at", { ascending: false })
-      .limit(20),
+  const [feedRows, weather] = await Promise.all([
+    selectInChunks<FeedRow>(activeIds, (part) =>
+      supabase
+        .from("growth_logs")
+        .select("plant_id, event_type, note, created_at")
+        .in("plant_id", part)
+        .order("created_at", { ascending: false })
+        .limit(FEED_LIMIT)
+    ),
     getFarmWeather(farm),
   ]);
+  // Each chunk is already newest-first; merge them into one newest-first feed.
+  const feedItems = feedRows
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .slice(0, FEED_LIMIT);
   const advice = wateringAdvice(weather.today);
 
   // Quick stats
@@ -105,13 +119,6 @@ export default async function FarmHomePage({
   }
   const totalTasks = harvest.length + water.length + fertilize.length;
 
-  const feedItems = (feed ?? []) as {
-    plant_id: string;
-    event_type: EventType;
-    note: string | null;
-    created_at: string;
-  }[];
-
   const stats = [
     { label: t.home.stats.plants, value: active.length, color: "#1E434A" },
     { label: t.home.stats.healthy, value: healthy, color: "#0DB074" },
@@ -127,6 +134,7 @@ export default async function FarmHomePage({
           weekday: "long",
           day: "numeric",
           month: "long",
+          timeZone: APP_TIME_ZONE,
         })}
       </p>
       <h1 className="mt-1 text-[28px] font-bold leading-tight">

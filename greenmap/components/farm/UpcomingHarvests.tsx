@@ -1,14 +1,7 @@
 import Link from "next/link";
 import { getDict } from "@/lib/i18n/server";
+import { daysUntilLocalDate } from "@/lib/date";
 import type { Plant } from "@/types/database";
-
-function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.round(
-    (new Date(`${dateStr}T00:00:00`).getTime() - today.getTime()) / 86400000
-  );
-}
 
 /**
  * Desktop dashboard card: active plants ordered by expected harvest date —
@@ -47,7 +40,7 @@ export async function UpcomingHarvests({
       ) : (
         <ul className="mt-2 max-h-[264px] overflow-y-auto pr-1 [scrollbar-width:thin]">
           {upcoming.map((p) => {
-            const d = daysUntil(p.expected_harvest_date!);
+            const d = daysUntilLocalDate(p.expected_harvest_date!);
             const ready = d <= 0;
             return (
               <li key={p.id} className="hairline-t first:border-t-0">

@@ -1,12 +1,40 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import {
   geminiSupportTriage,
   mockSupportTriage,
+  type SupportContext,
   type SupportTurn,
   type SupportReply,
 } from "@/lib/ai/gemini-support";
-import type { SupportMessage, SupportThread } from "@/types/database";
+import { hasGeminiKey } from "@/lib/ai/gemini";
+import {
+  cleanText,
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  unauthorized,
+} from "@/lib/api/http";
+import type { SupportMessage } from "@/types/database";
+
+/** Longest chat message accepted (it is stored and sent to the AI model). */
+const MAX_MESSAGE_LENGTH = 2000;
+
+/**
+ * The order summary comes from the browser and is placed in the AI prompt, so
+ * every field is reduced to a short single-line string / a real number.
+ */
+function cleanOrderContext(value: unknown): NonNullable<SupportContext["order"]> | null {
+  if (value === null || typeof value !== "object") return null;
+  const o = value as Record<string, unknown>;
+  const total = typeof o.total === "number" && Number.isFinite(o.total) ? o.total : 0;
+  return {
+    item: cleanText(o.item, 120),
+    farm: cleanText(o.farm, 120),
+    status: cleanText(o.status, 40),
+    total,
+  };
+}
 
 /**
  * POST /api/support/chat
@@ -22,37 +50,25 @@ import type { SupportMessage, SupportThread } from "@/types/database";
  * reply still comes back (persisted:false) so the chat works in-session.
  */
 export async function POST(req: Request) {
-  let body: {
-    thread?: SupportThread;
-    orderRef?: string | null;
-    sellerName?: string | null;
-    orderContext?: { item: string; farm: string; status: string; total: number } | null;
-    message?: string;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
+
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
 
   const thread = body.thread;
-  const message = (body.message ?? "").trim();
   if (thread !== "admin" && thread !== "seller") {
-    return NextResponse.json({ error: "thread must be 'admin' or 'seller'" }, { status: 400 });
+    return jsonError("thread must be 'admin' or 'seller'", 400);
   }
-  if (!message) {
-    return NextResponse.json({ error: "message is required" }, { status: 400 });
-  }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+  if (!message) return jsonError("message is required", 400);
+  if (message.length > MAX_MESSAGE_LENGTH) {
+    return jsonError(`message must be ${MAX_MESSAGE_LENGTH} characters or fewer`, 400);
   }
 
-  const orderRef = body.orderRef ?? null;
+  const orderRef = cleanText(body.orderRef, 64) || null;
+  const sellerName = cleanText(body.sellerName, 120) || null;
+  const orderContext = cleanOrderContext(body.orderContext);
 
   // Prior turns for context (best-effort; empty if the table isn't there yet).
   let history: SupportTurn[] = [];
@@ -62,11 +78,12 @@ export async function POST(req: Request) {
       .select("sender, body, created_at")
       .eq("user_id", user.id)
       .eq("thread", thread)
-      .order("created_at", { ascending: true })
+      // Newest 12, then flipped back to chat order below.
+      .order("created_at", { ascending: false })
       .limit(12);
     q = orderRef ? q.eq("order_ref", orderRef) : q.is("order_ref", null);
     const { data } = await q;
-    history = (data ?? []).map((r) => ({
+    history = (data ?? []).reverse().map((r) => ({
       role: (r as Pick<SupportMessage, "sender">).sender === "customer" ? "customer" : "ai",
       text: (r as Pick<SupportMessage, "body">).body,
     }));
@@ -85,7 +102,7 @@ export async function POST(req: Request) {
         user_id: user.id,
         thread,
         order_ref: orderRef,
-        seller_name: body.sellerName ?? null,
+        seller_name: sellerName,
         sender: row.sender,
         body: row.body,
         intent: row.intent ?? null,
@@ -100,19 +117,17 @@ export async function POST(req: Request) {
 
   // Generate the reply.
   if (thread === "seller") {
-    const reply = sellerAutoReply(message, body.orderContext ?? null);
+    const reply = sellerAutoReply(message, orderContext);
     await insert({ sender: "seller", body: reply });
     return NextResponse.json({ sender: "seller", reply, persisted });
   }
 
   let triage: SupportReply;
   try {
-    triage = await geminiSupportTriage({
-      message,
-      order: body.orderContext ?? null,
-      history,
-    });
-  } catch {
+    triage = await geminiSupportTriage({ message, order: orderContext, history });
+  } catch (e) {
+    // No key is the expected demo path; anything else is worth a log line.
+    if (hasGeminiKey()) console.error("[/api/support/chat] Gemini failed:", e);
     triage = mockSupportTriage(message);
   }
   await insert({ sender: "ai", body: triage.reply, intent: triage.intent });

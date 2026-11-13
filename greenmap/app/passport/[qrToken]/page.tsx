@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { HarvestPassportCard } from "@/components/passport/HarvestPassportCard";
 import { QrBlock } from "@/components/passport/QrBlock";
 import type { EventType, Farm, GrowthLog, HarvestPassport, Plant } from "@/types/database";
+import { APP_TIME_ZONE } from "@/lib/date";
 
 const EVENT_META: Record<EventType, { icon: string; label: string }> = {
   planted: { icon: "🌱", label: "Planted" },
@@ -14,11 +15,13 @@ const EVENT_META: Record<EventType, { icon: string; label: string }> = {
   harvested: { icon: "🧺", label: "Harvested" },
 };
 
+/** Dates on the public passport are shown in Malaysian time, not server (UTC) time. */
 function fmtDate(s: string): string {
   return new Date(s).toLocaleDateString("en-MY", {
     day: "numeric",
     month: "short",
     year: "numeric",
+    timeZone: APP_TIME_ZONE,
   });
 }
 

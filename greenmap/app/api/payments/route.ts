@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   PLANS,
@@ -12,6 +11,17 @@ import {
   type PlanId,
 } from "@/lib/billing/plans";
 import { getListing } from "@/components/sales/demo-listings";
+import {
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  serverError,
+  unauthorized,
+} from "@/lib/api/http";
+
+const SCOPE = "/api/payments";
+const FAILED = "Payment could not be completed. Please try again.";
 
 /**
  * POST /api/payments — the single place money "moves" (simulated).
@@ -21,37 +31,16 @@ import { getListing } from "@/components/sales/demo-listings";
  * PRODUCTION SWAP POINT: replace the simulated success with a real gateway
  * call (Revenue Monster / Stripe Malaysia) and keep everything else.
  */
-
-type Body = {
-  kind?: string;
-  method?: string;
-  tier?: string;
-  qty?: number;
-  listingId?: string;
-  package?: string;
-};
-
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const { user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  let body: Body;
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+
   const method = body.method;
   if (method !== "fpx" && method !== "tng") {
-    return NextResponse.json(
-      { error: "method must be 'fpx' or 'tng'" },
-      { status: 400 }
-    );
+    return jsonError("method must be 'fpx' or 'tng'", 400);
   }
 
   const admin = createAdminClient();
@@ -74,49 +63,48 @@ export async function POST(req: Request) {
   try {
     // ── plan change (upgrades charge; downgrades are free) ────────────────
     if (body.kind === "plan") {
-      if (!isPlanId(body.tier)) {
-        return NextResponse.json({ error: "Unknown tier" }, { status: 400 });
-      }
+      const tier = body.tier;
+      if (!isPlanId(tier)) return jsonError("Unknown tier", 400);
       const { data: profile, error: pErr } = await admin
         .from("profiles")
         .select("plan")
         .eq("id", user.id)
         .single();
-      if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 });
+      if (pErr) return serverError(SCOPE, pErr, FAILED);
 
       const current: PlanId = isPlanId(profile?.plan) ? profile.plan : "percuma";
-      if (current === body.tier) {
-        return NextResponse.json(
-          { error: "You are already on this plan" },
-          { status: 400 }
-        );
-      }
-      const isUpgrade = PLAN_ORDER.indexOf(body.tier) > PLAN_ORDER.indexOf(current);
-      const amount = isUpgrade ? PLANS[body.tier].priceRM : 0;
+      if (current === tier) return jsonError("You are already on this plan", 400);
+      const isUpgrade = PLAN_ORDER.indexOf(tier) > PLAN_ORDER.indexOf(current);
+      const amount = isUpgrade ? PLANS[tier].priceRM : 0;
 
       const { error: uErr } = await admin
         .from("profiles")
         .update({
-          plan: body.tier,
+          plan: tier,
           plan_renews_at:
-            body.tier === "percuma"
+            tier === "percuma"
               ? null
               : new Date(Date.now() + 30 * 86_400_000).toISOString(),
         })
         .eq("id", user.id);
-      if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 });
+      if (uErr) return serverError(SCOPE, uErr, FAILED);
 
-      await record("plan", amount, { from: current, to: body.tier });
-      return NextResponse.json({ ok: true, plan: body.tier });
+      await record("plan", amount, { from: current, to: tier });
+      return NextResponse.json({ ok: true, plan: tier });
     }
 
     // ── scan top-up ────────────────────────────────────────────────────────
     if (body.kind === "topup") {
       const qty = body.qty;
-      if (!Number.isInteger(qty) || !qty || qty < 1 || qty > TOPUP_MAX_QTY) {
-        return NextResponse.json(
-          { error: `qty must be an integer between 1 and ${TOPUP_MAX_QTY}` },
-          { status: 400 }
+      if (
+        typeof qty !== "number" ||
+        !Number.isInteger(qty) ||
+        qty < 1 ||
+        qty > TOPUP_MAX_QTY
+      ) {
+        return jsonError(
+          `qty must be an integer between 1 and ${TOPUP_MAX_QTY}`,
+          400
         );
       }
       const { data: profile, error: pErr } = await admin
@@ -124,14 +112,14 @@ export async function POST(req: Request) {
         .select("bonus_scans")
         .eq("id", user.id)
         .single();
-      if (pErr) return NextResponse.json({ error: pErr.message }, { status: 500 });
+      if (pErr) return serverError(SCOPE, pErr, FAILED);
 
       const bonus = Math.max(0, profile?.bonus_scans ?? 0) + qty;
       const { error: uErr } = await admin
         .from("profiles")
         .update({ bonus_scans: bonus })
         .eq("id", user.id);
-      if (uErr) return NextResponse.json({ error: uErr.message }, { status: 500 });
+      if (uErr) return serverError(SCOPE, uErr, FAILED);
 
       await record("topup", qty * TOPUP_PRICE_RM, { qty });
       return NextResponse.json({ ok: true, bonus });
@@ -139,56 +127,45 @@ export async function POST(req: Request) {
 
     // ── listing boost (advertisement) ─────────────────────────────────────
     if (body.kind === "boost") {
-      if (!body.listingId || !getListing(body.listingId)) {
-        return NextResponse.json({ error: "Unknown listing" }, { status: 404 });
+      const listingId = body.listingId;
+      if (typeof listingId !== "string" || !getListing(listingId)) {
+        return jsonError("Unknown listing", 404);
       }
-      if (!isBoostPackageId(body.package)) {
-        return NextResponse.json({ error: "Unknown boost package" }, { status: 400 });
+      const packageId = body.package;
+      if (!isBoostPackageId(packageId)) {
+        return jsonError("Unknown boost package", 400);
       }
       const { data: active, error: bErr } = await admin
         .from("listing_boosts")
         .select("id")
-        .eq("listing_id", body.listingId)
+        .eq("listing_id", listingId)
         .gt("expires_at", new Date().toISOString())
         .limit(1);
-      if (bErr) return NextResponse.json({ error: bErr.message }, { status: 500 });
+      if (bErr) return serverError(SCOPE, bErr, FAILED);
       if (active && active.length > 0) {
-        return NextResponse.json(
-          { error: "This listing is already promoted" },
-          { status: 409 }
-        );
+        return jsonError("This listing is already promoted", 409);
       }
 
-      const pkg = BOOST_PACKAGES[body.package];
+      const pkg = BOOST_PACKAGES[packageId];
       const expiresAt = new Date(Date.now() + pkg.days * 86_400_000).toISOString();
       const { error: iErr } = await admin.from("listing_boosts").insert({
         user_id: user.id,
-        listing_id: body.listingId,
+        listing_id: listingId,
         package: pkg.id,
         price_rm: pkg.priceRM,
         expires_at: expiresAt,
       });
-      if (iErr) return NextResponse.json({ error: iErr.message }, { status: 500 });
+      if (iErr) return serverError(SCOPE, iErr, FAILED);
 
-      await record("boost", pkg.priceRM, {
-        listingId: body.listingId,
-        package: pkg.id,
-      });
+      await record("boost", pkg.priceRM, { listingId, package: pkg.id });
       return NextResponse.json({
         ok: true,
-        boost: { listingId: body.listingId, package: pkg.id, expiresAt },
+        boost: { listingId, package: pkg.id, expiresAt },
       });
     }
 
-    return NextResponse.json(
-      { error: "kind must be 'plan', 'topup' or 'boost'" },
-      { status: 400 }
-    );
+    return jsonError("kind must be 'plan', 'topup' or 'boost'", 400);
   } catch (e) {
-    console.error("[/api/payments]", e);
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Payment failed" },
-      { status: 500 }
-    );
+    return serverError(SCOPE, e, FAILED);
   }
 }

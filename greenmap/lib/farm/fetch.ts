@@ -1,6 +1,8 @@
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { liveHealthForPlants, type LiveHealth } from "@/lib/health/live";
+import { selectInChunks } from "@/lib/supabase/chunked";
+import { localDateISO } from "@/lib/date";
 import type { Farm, Plant, Zone } from "@/types/database";
 
 /**
@@ -72,17 +74,20 @@ export async function getFarmAnalytics(plantIds: string[]): Promise<{
   const since = new Date();
   since.setDate(since.getDate() - 14);
 
-  const { data: history } = await supabase
-    .from("health_score_history")
-    .select("score, created_at")
-    .in("plant_id", plantIds)
-    .gte("created_at", since.toISOString())
-    .order("created_at", { ascending: true });
+  const history = await selectInChunks<{ score: number; created_at: string }>(
+    plantIds,
+    (part) =>
+      supabase
+        .from("health_score_history")
+        .select("score, created_at")
+        .in("plant_id", part)
+        .gte("created_at", since.toISOString())
+  );
 
   // Collapse snapshots into one average per calendar day.
   const byDay = new Map<string, { total: number; n: number }>();
-  for (const row of (history ?? []) as { score: number; created_at: string }[]) {
-    const date = row.created_at.slice(0, 10);
+  for (const row of history) {
+    const date = localDateISO(new Date(row.created_at)); // the farm's day, not UTC's
     const acc = byDay.get(date) ?? { total: 0, n: 0 };
     acc.total += row.score;
     acc.n += 1;

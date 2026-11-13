@@ -1,16 +1,30 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { hasGeminiKey } from "@/lib/ai/gemini";
 import { geminiSuggest } from "@/lib/ai/gemini-text";
 import { daysSince } from "@/lib/health/calculate";
+import {
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  unauthorized,
+} from "@/lib/api/http";
 
 /**
  * Keyless fallback tip. Tone follows the plant's health band so the advice
  * never contradicts the status shown beside it (a "Critical" plant getting a
  * cheery "keep it up!" read as a bug in user testing).
  */
-function mockSuggestion(cropType: string, healthScore: number | null): string {
+function mockSuggestion(
+  cropType: string,
+  healthScore: number | null,
+  reason: "no-key" | "ai-failed" = "no-key"
+): string {
   const crop = cropType || "your plant";
-  const demoNote = " (Demo tip — set GEMINI_API_KEY for tailored AI advice.)";
+  const demoNote =
+    reason === "no-key"
+      ? " (Demo tip — set GEMINI_API_KEY for tailored AI advice.)"
+      : " (General tip — tailored AI advice is unavailable right now.)";
   if (healthScore === null) {
     return `Welcome ${crop} to the farm! Water it well today and log the first care events to start its health record.${demoNote}`;
   }
@@ -29,35 +43,23 @@ function mockSuggestion(cropType: string, healthScore: number | null): string {
  * for 60 minutes; this route is never counted as a scan. Mock when no key.
  */
 export async function POST(req: Request) {
-  let plantId: string | undefined;
-  try {
-    plantId = (await req.json())?.plantId;
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
-  if (!plantId) {
-    return NextResponse.json({ error: "plantId is required" }, { status: 400 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+  const plantId = typeof body.plantId === "string" ? body.plantId : "";
+  if (!plantId) return jsonError("plantId is required", 400);
 
   const { data: plant } = await supabase
     .from("plants")
     .select("type, plant_date, health_score")
     .eq("id", plantId)
     .single();
-  if (!plant) {
-    return NextResponse.json({ error: "Plant not found" }, { status: 404 });
-  }
+  if (!plant) return jsonError("Plant not found", 404);
   const p = plant as { type: string; plant_date: string; health_score: number | null };
 
-  if (!process.env.GEMINI_API_KEY) {
+  if (!hasGeminiKey()) {
     return NextResponse.json({
       suggestion: mockSuggestion(p.type, p.health_score),
       mock: true,
@@ -100,9 +102,10 @@ export async function POST(req: Request) {
       healthScore: p.health_score,
     });
     return NextResponse.json({ suggestion });
-  } catch {
+  } catch (e) {
+    console.error("[/api/ai/suggest] Gemini failed:", e);
     return NextResponse.json({
-      suggestion: mockSuggestion(p.type, p.health_score),
+      suggestion: mockSuggestion(p.type, p.health_score, "ai-failed"),
     });
   }
 }

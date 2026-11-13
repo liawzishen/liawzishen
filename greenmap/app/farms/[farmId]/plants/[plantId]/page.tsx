@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TopNav } from "@/components/layout/TopNav";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { daysSince } from "@/lib/health/calculate";
 import { healthDisplay } from "@/lib/health/display";
 import { liveScoresForPlants } from "@/lib/health/live";
 import { HealthTrendChart } from "@/components/plant/HealthTrendChart";
@@ -12,11 +13,6 @@ import { ManualStatusControl } from "@/components/plant/ManualStatusControl";
 import { PlantQuickActions } from "@/components/plant/PlantQuickActions";
 import { SuggestionCard } from "@/components/plant/SuggestionCard";
 import type { AiAnalysis, GrowthLog, Plant, Zone } from "@/types/database";
-
-function daysSince(dateStr: string): number {
-  const ms = Date.now() - new Date(dateStr).getTime();
-  return Math.max(0, Math.floor(ms / 86_400_000));
-}
 
 export default async function PlantDetailPage({
   params,

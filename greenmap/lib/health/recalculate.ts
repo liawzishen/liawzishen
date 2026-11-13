@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { calculateHealthScore } from "./calculate";
+import { mapInBatches } from "@/lib/utils";
 import type { ManualStatus } from "@/types/database";
 
 type Admin = ReturnType<typeof createAdminClient>;
@@ -68,16 +69,22 @@ export async function recalculatePlantScore(
   return score;
 }
 
+/** Plants recalculated at the same time (each one runs about six queries). */
+const RECALC_CONCURRENCY = 25;
+
 /**
  * Recalculate many plants in parallel, best-effort — one plant failing never
  * blocks the rest. Powers the batch "Water All / Fertilize All" routes, where
  * recalculating dozens of plants one-by-one made the request scale linearly.
+ * Concurrency is bounded so a very large farm cannot flood the database.
  */
 export async function recalculateManyPlantScores(
   admin: Admin,
   plantIds: Iterable<string>
 ): Promise<void> {
-  await Promise.all(
-    [...plantIds].map((id) => recalculatePlantScore(admin, id).catch(() => {}))
+  await mapInBatches([...plantIds], RECALC_CONCURRENCY, (id) =>
+    recalculatePlantScore(admin, id).catch((e) => {
+      console.error(`[health] recalculation failed for plant ${id}:`, e);
+    })
   );
 }

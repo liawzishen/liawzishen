@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recalculateManyPlantScores } from "@/lib/health/recalculate";
+import { ownedPlantIds } from "@/lib/farm/ownership";
+import {
+  cleanIdList,
+  getSessionUser,
+  invalidJson,
+  jsonError,
+  readJsonObject,
+  serverError,
+  unauthorized,
+} from "@/lib/api/http";
+
+/** Upper bound for one batch ("Water All" on a very large farm). */
+const MAX_PLANTS_PER_REQUEST = 1000;
 
 /**
  * POST /api/tasks/complete  { action: "water" | "fertilize", plantIds: string[] }
@@ -11,40 +23,24 @@ import { recalculateManyPlantScores } from "@/lib/health/recalculate";
  * (one id) and the "Water All / Fertilize All" batch buttons (many ids).
  */
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  const { supabase, user } = await getSessionUser();
+  if (!user) return unauthorized();
 
-  let body: { action?: string; plantIds?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
-  }
+  const body = await readJsonObject(req);
+  if (!body) return invalidJson();
+
   const action = body.action;
   if (action !== "water" && action !== "fertilize") {
-    return NextResponse.json({ error: "action must be water or fertilize" }, { status: 400 });
+    return jsonError("action must be water or fertilize", 400);
   }
-  const plantIds = Array.isArray(body.plantIds)
-    ? body.plantIds.filter((x): x is string => typeof x === "string")
-    : [];
-  if (plantIds.length === 0) {
-    return NextResponse.json({ error: "plantIds required" }, { status: 400 });
+  if (Array.isArray(body.plantIds) && body.plantIds.length > MAX_PLANTS_PER_REQUEST) {
+    return jsonError(`At most ${MAX_PLANTS_PER_REQUEST} plants per request`, 400);
   }
+  const plantIds = cleanIdList(body.plantIds, MAX_PLANTS_PER_REQUEST);
+  if (plantIds.length === 0) return jsonError("plantIds required", 400);
 
-  // Ownership: RLS only returns the caller's own plants.
-  const { data: owned } = await supabase
-    .from("plants")
-    .select("id")
-    .in("id", plantIds);
-  const ownedIds = (owned ?? []).map((r) => (r as { id: string }).id);
-  if (ownedIds.length === 0) {
-    return NextResponse.json({ error: "No matching plants" }, { status: 404 });
-  }
+  const ownedIds = await ownedPlantIds(supabase, plantIds);
+  if (ownedIds.length === 0) return jsonError("No matching plants", 404);
 
   const admin = createAdminClient();
   // No note: the event_type already says "watered"/"fertilized", and feeds
@@ -57,7 +53,7 @@ export async function POST(req: Request) {
   }));
   const { error: insErr } = await admin.from("growth_logs").insert(rows);
   if (insErr) {
-    return NextResponse.json({ error: insErr.message }, { status: 500 });
+    return serverError("/api/tasks/complete", insErr, "Could not save the task. Please try again.");
   }
 
   // Best-effort and parallel; the logs are saved regardless.
