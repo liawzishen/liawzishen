@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
 import { SalesDashboard } from "@/components/sales/SalesDashboard";
 
 /**
@@ -13,34 +14,32 @@ export default async function SalesPage({
   const { farmId } = await params;
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+
+  // The three queries do not depend on each other, so they run together.
+  // Only the boosts need the user id, and they start the moment it is known.
+  const [boostRows, { data: farm }, { data: stockRows }] = await Promise.all([
+    getAuthUser().then(async (user) => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("listing_boosts")
+        .select("listing_id, expires_at")
+        .eq("user_id", user.id)
+        .gt("expires_at", new Date().toISOString());
+      return data ?? [];
+    }),
+    supabase.from("farms").select("name").eq("id", farmId).maybeSingle(),
+    // listing_stock may not exist yet → its error is ignored.
+    supabase.from("listing_stock").select("listing_id, in_stock"),
+  ]);
 
   const boosts: Record<string, string> = {};
-  if (user) {
-    const { data } = await supabase
-      .from("listing_boosts")
-      .select("listing_id, expires_at")
-      .eq("user_id", user.id)
-      .gt("expires_at", new Date().toISOString());
-    for (const b of data ?? []) {
-      if (!boosts[b.listing_id] || boosts[b.listing_id] < b.expires_at) {
-        boosts[b.listing_id] = b.expires_at;
-      }
+  for (const b of boostRows) {
+    if (!boosts[b.listing_id] || boosts[b.listing_id] < b.expires_at) {
+      boosts[b.listing_id] = b.expires_at;
     }
   }
 
-  // Farm name + stock levels (listing_stock may not exist yet → ignore errors).
-  const { data: farm } = await supabase
-    .from("farms")
-    .select("name")
-    .eq("id", farmId)
-    .maybeSingle();
   const stock: Record<string, boolean> = {};
-  const { data: stockRows } = await supabase
-    .from("listing_stock")
-    .select("listing_id, in_stock");
   for (const s of stockRows ?? []) {
     stock[s.listing_id as string] = s.in_stock as boolean;
   }

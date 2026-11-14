@@ -1,5 +1,6 @@
 import { Link } from "@/components/ui/Link";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
+import { displayName } from "@/lib/auth/claims";
 import { Badge } from "@/components/ui/Badge";
 import { LISTINGS } from "@/components/sales/demo-listings";
 import { CONSUMER } from "@/components/consumer/demo-consumer";
@@ -11,11 +12,7 @@ import { rankListings } from "@/lib/marketplace/rank";
  * (reusing the marketplace ranking engine), and their trust impact stats.
  */
 export default async function ConsumerHomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const name = (user?.user_metadata?.name as string | undefined) ?? "there";
+  const name = displayName(await getAuthUser(), "there");
 
   // Top 3 ranked listings as a "Fresh near you" teaser (ranker is pure).
   const now = Date.now();

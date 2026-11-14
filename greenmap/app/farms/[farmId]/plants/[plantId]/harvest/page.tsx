@@ -11,22 +11,25 @@ export default async function HarvestPassportPage({
   const { farmId, plantId } = await params;
   const supabase = await createClient();
 
-  const { data: plant } = await supabase
-    .from("plants")
-    .select("id, name, lifecycle_status")
-    .eq("id", plantId)
-    .single();
+  // Both are keyed by the plant id, so they run in one round trip.
+  const [{ data: plant }, { data: pass }] = await Promise.all([
+    supabase
+      .from("plants")
+      .select("id, name, lifecycle_status")
+      .eq("id", plantId)
+      .single(),
+    supabase
+      .from("harvest_passports")
+      .select("qr_token")
+      .eq("plant_id", plantId)
+      .maybeSingle(),
+  ]);
   if (!plant) notFound();
   const p = plant as { id: string; name: string; lifecycle_status: string };
 
   // Already harvested → jump straight to its passport.
-  if (p.lifecycle_status === "harvested") {
-    const { data: pass } = await supabase
-      .from("harvest_passports")
-      .select("qr_token")
-      .eq("plant_id", plantId)
-      .maybeSingle();
-    if (pass?.qr_token) redirect(`/passport/${pass.qr_token}`);
+  if (p.lifecycle_status === "harvested" && pass?.qr_token) {
+    redirect(`/passport/${pass.qr_token}`);
   }
 
   return (

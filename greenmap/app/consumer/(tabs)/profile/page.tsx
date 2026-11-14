@@ -1,5 +1,6 @@
 import { Link } from "@/components/ui/Link";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
+import { displayName } from "@/lib/auth/claims";
 import { Badge } from "@/components/ui/Badge";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { LanguageSetting } from "@/components/profile/LanguageSetting";
@@ -14,11 +15,8 @@ import {
  * favourite farms, settings rows, and sign out. Simulated data.
  */
 export default async function ConsumerProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const name = (user?.user_metadata?.name as string | undefined) ?? "Member";
+  const user = await getAuthUser();
+  const name = displayName(user, "Member");
   const email = user?.email ?? "";
   const initials = name
     .split(" ")

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
 import { TopNav } from "@/components/layout/TopNav";
 import { getScanAllowance } from "@/lib/billing/usage";
 import {
@@ -18,10 +19,7 @@ export default async function PlanPage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
   if (!user) redirect("/auth");
 
   const [allowance, paymentsRes] = await Promise.all([

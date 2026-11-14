@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
 import { TopNav } from "@/components/layout/TopNav";
 import { Button } from "@/components/ui/Button";
 import { ScanUploader } from "@/components/ai/ScanUploader";
@@ -13,13 +14,14 @@ export default async function PlantScanPage({
 }) {
   const { farmId, plantId } = await params;
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
+  // The plant does not wait for the user check; the allowance starts as soon
+  // as the user id is known.
   const [{ data: plant }, allowance] = await Promise.all([
     supabase.from("plants").select("name, type").eq("id", plantId).single(),
-    user ? getScanAllowance(supabase, user.id) : Promise.resolve(null),
+    getAuthUser().then((user) =>
+      user ? getScanAllowance(supabase, user.id) : null
+    ),
   ]);
   if (!plant) notFound();
   const p = plant as { name: string; type: string };

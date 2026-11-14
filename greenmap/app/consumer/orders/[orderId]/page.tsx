@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
 import { TopNav } from "@/components/layout/TopNav";
 import { OrderSupport } from "@/components/consumer/OrderSupport";
 import { getOrder, STATUS_META } from "@/components/consumer/demo-consumer";
@@ -20,10 +21,7 @@ export default async function OrderDetailPage({
   const order = getOrder(orderId);
   if (!order) notFound();
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
 
   let refund: RefundRequest | null = null;
   let feedback: OrderFeedback | null = null;

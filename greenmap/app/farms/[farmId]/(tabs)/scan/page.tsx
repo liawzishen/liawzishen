@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { getFarmBundle } from "@/lib/farm/fetch";
 import { healthDisplay, type HealthBand } from "@/lib/health/display";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
 import { getScanAllowance, type ScanAllowance } from "@/lib/billing/usage";
 
 const BADGE_TONE: Record<HealthBand, "brand" | "warning" | "critical" | "neutral"> = {
@@ -30,10 +31,7 @@ export default async function ScanPickerPage({
   const [bundle, allowance] = await Promise.all([
     getFarmBundle(farmId),
     (async (): Promise<ScanAllowance | null> => {
-      const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
       return user ? getScanAllowance(supabase, user.id) : null;
     })(),
   ]);

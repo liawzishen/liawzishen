@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
 import { TopNav } from "@/components/layout/TopNav";
 import { SupportChat } from "@/components/consumer/SupportChat";
 import { getOrder, STATUS_META } from "@/components/consumer/demo-consumer";
@@ -32,10 +33,7 @@ export default async function SupportChatPage({
       }
     : null;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
 
   let initialMessages: { sender: SupportMessage["sender"]; body: string }[] = [];
   if (user) {

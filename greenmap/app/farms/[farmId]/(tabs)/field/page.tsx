@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { FarmMap } from "@/components/farm/FarmMap";
 import { KpiStrip } from "@/components/farm/KpiStrip";
@@ -11,14 +12,47 @@ import {
 } from "@/components/farm/WeatherCharts";
 import { WeatherStrip } from "@/components/farm/WeatherStrip";
 import { WeatherToday } from "@/components/farm/WeatherToday";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
-  getFarmAnalytics,
   getFarmBundle,
+  getFarmHealthTrend,
   getUserAndFarms,
+  getWeatherForFarm,
+  preload,
 } from "@/lib/farm/fetch";
-import { getFarmWeather } from "@/lib/weather/fetch";
 import { localDateISO } from "@/lib/date";
 import { getDict } from "@/lib/i18n/server";
+
+/*
+ * Streamed sections. Each is an async Server Component inside <Suspense>, so
+ * the header, KPIs and the map are sent as soon as the farm data is ready;
+ * the forecast (Open-Meteo) and the trend chart arrive after, each behind a
+ * skeleton of the same size. All three share per-request cached loaders.
+ */
+
+/** Mobile only — compact daily weather. */
+async function MobileWeather({ farmId }: { farmId: string }) {
+  const weather = await getWeatherForFarm(farmId);
+  return weather ? <WeatherStrip weather={weather} /> : null;
+}
+
+/** Desktop only — the weather panel (today + two charts). */
+async function DesktopWeather({ farmId }: { farmId: string }) {
+  const weather = await getWeatherForFarm(farmId);
+  if (!weather) return null;
+  return (
+    <>
+      <WeatherToday weather={weather} />
+      <TemperatureChart days={weather.days} />
+      <MoistureRainChart days={weather.days} />
+    </>
+  );
+}
+
+/** Desktop only — 14-day farm health trend. */
+async function HealthTrend({ farmId }: { farmId: string }) {
+  return <FarmHealthTrend points={await getFarmHealthTrend(farmId)} />;
+}
 
 /**
  * Map tab — the farm's interactive map. Responsive (2026-07-06 map-page
@@ -28,9 +62,9 @@ import { getDict } from "@/lib/i18n/server";
  * analysis grid (farm health trend, needs-care, upcoming harvests) on the
  * left, a sticky weather panel on the right.
  *
- * Weather (Open-Meteo) is fetched server-side. Every request is bounded by a
- * timeout in `getFarmWeather`, so a slow or unreachable forecast falls back
- * to sample data within a few seconds instead of hanging the page.
+ * Weather (Open-Meteo) is fetched server-side and streamed (see the
+ * sections above). Every request is also bounded by a timeout in
+ * `getFarmWeather`, so an unreachable forecast becomes sample data.
  */
 export default async function FarmFieldPage({
   params,
@@ -38,17 +72,15 @@ export default async function FarmFieldPage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const [bundle, { farms }] = await Promise.all([
+  // Started now, read later by the streamed sections (see above).
+  preload(getWeatherForFarm(farmId), getFarmHealthTrend(farmId));
+  const [bundle, { farms }, t] = await Promise.all([
     getFarmBundle(farmId),
     getUserAndFarms(),
+    getDict(),
   ]);
   if (!bundle) notFound();
   const { farm, zones, plants } = bundle;
-  const [weather, analytics, t] = await Promise.all([
-    getFarmWeather(farm),
-    getFarmAnalytics(plants.map((p) => p.id)),
-    getDict(),
-  ]);
 
   const active = plants.filter((p) => p.lifecycle_status === "active");
   const today = localDateISO();
@@ -88,7 +120,9 @@ export default async function FarmFieldPage({
 
           {/* Mobile only — compact daily weather */}
           <div className="mt-4 lg:hidden">
-            <WeatherStrip weather={weather} />
+            <Suspense fallback={<Skeleton className="h-[74px] w-full" />}>
+              <MobileWeather farmId={farmId} />
+            </Suspense>
           </div>
 
           <div className="mt-4">
@@ -105,7 +139,11 @@ export default async function FarmFieldPage({
               this tab owns "how is the farm doing".) */}
           <div className="mt-4 hidden gap-4 lg:grid lg:grid-cols-2">
             <div className="lg:col-span-2">
-              <FarmHealthTrend points={analytics.healthTrend} />
+              <Suspense
+                fallback={<Skeleton className="h-[250px] w-full rounded-card" />}
+              >
+                <HealthTrend farmId={farmId} />
+              </Suspense>
             </div>
             <NeedsCareList plants={plants} farmId={farmId} />
             <UpcomingHarvests plants={plants} farmId={farmId} />
@@ -117,9 +155,17 @@ export default async function FarmFieldPage({
           className="hidden lg:sticky lg:top-6 lg:flex lg:max-h-[calc(100dvh-48px)] lg:flex-col lg:gap-4 lg:overflow-y-auto lg:pr-1 lg:[scrollbar-width:thin]"
           aria-label="Farm weather panel"
         >
-          <WeatherToday weather={weather} />
-          <TemperatureChart days={weather.days} />
-          <MoistureRainChart days={weather.days} />
+          <Suspense
+            fallback={
+              <>
+                <Skeleton className="h-[260px] w-full rounded-card" />
+                <Skeleton className="h-[194px] w-full rounded-card" />
+                <Skeleton className="h-[194px] w-full rounded-card" />
+              </>
+            }
+          >
+            <DesktopWeather farmId={farmId} />
+          </Suspense>
         </aside>
       </div>
     </main>

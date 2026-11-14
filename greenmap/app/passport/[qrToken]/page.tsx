@@ -1,6 +1,6 @@
 import { Link } from "@/components/ui/Link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
 import { HarvestPassportCard } from "@/components/passport/HarvestPassportCard";
 import { QrBlock } from "@/components/passport/QrBlock";
 import type { EventType, Farm, GrowthLog, HarvestPassport, Plant } from "@/types/database";
@@ -48,26 +48,34 @@ export default async function PublicPassportPage({
 
   // Is a logged-in grower viewing this (e.g. straight after harvesting)? If so,
   // give them a way back into the app; consumers get an "Open GreenMap" link.
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: passportRow } = await admin
-    .from("harvest_passports")
-    .select("*")
-    .eq("qr_token", qrToken)
-    .maybeSingle();
+  // This page is opened from a QR code, often on mobile data, so the queries
+  // run in as few round trips as possible: the passport (with the visitor
+  // check alongside), then plant + farm + story together, then the grower.
+  const [user, { data: passportRow }] = await Promise.all([
+    getAuthUser(),
+    admin
+      .from("harvest_passports")
+      .select("*")
+      .eq("qr_token", qrToken)
+      .maybeSingle(),
+  ]);
   if (!passportRow) return <NotFoundView />;
   const passport = passportRow as HarvestPassport;
 
-  const [{ data: plantRow }, { data: farmRow }] = await Promise.all([
-    admin.from("plants").select("*").eq("id", passport.plant_id).maybeSingle(),
-    admin.from("farms").select("*").eq("id", passport.farm_id).maybeSingle(),
-  ]);
+  const [{ data: plantRow }, { data: farmRow }, { data: logs }] =
+    await Promise.all([
+      admin.from("plants").select("*").eq("id", passport.plant_id).maybeSingle(),
+      admin.from("farms").select("*").eq("id", passport.farm_id).maybeSingle(),
+      admin
+        .from("growth_logs")
+        .select("*")
+        .eq("plant_id", passport.plant_id)
+        .order("created_at", { ascending: true }),
+    ]);
   const plant = plantRow as Plant | null;
   const farm = farmRow as Farm | null;
   if (!plant || !farm) return <NotFoundView />;
+  const story = (logs ?? []) as GrowthLog[];
 
   const { data: grower } = await admin
     .from("profiles")
@@ -75,13 +83,6 @@ export default async function PublicPassportPage({
     .eq("id", farm.user_id)
     .maybeSingle();
   const g = grower as { name: string; is_verified: boolean } | null;
-
-  const { data: logs } = await admin
-    .from("growth_logs")
-    .select("*")
-    .eq("plant_id", plant.id)
-    .order("created_at", { ascending: true });
-  const story = (logs ?? []) as GrowthLog[];
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const url = `${appUrl}/passport/${qrToken}`;

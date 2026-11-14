@@ -13,14 +13,9 @@ export default async function PlantActivityPage({
   const { farmId, plantId } = await params;
   const supabase = await createClient();
 
-  const { data: plant } = await supabase
-    .from("plants")
-    .select("name")
-    .eq("id", plantId)
-    .single();
-  if (!plant) notFound();
-
-  const [{ data: logs }, { data: analyses }] = await Promise.all([
+  // All three are keyed by the plant id, so they run in one round trip.
+  const [{ data: plant }, { data: logs }, { data: analyses }] = await Promise.all([
+    supabase.from("plants").select("name").eq("id", plantId).single(),
     supabase
       .from("growth_logs")
       .select("*")
@@ -32,6 +27,7 @@ export default async function PlantActivityPage({
       .eq("plant_id", plantId)
       .order("created_at", { ascending: false }),
   ]);
+  if (!plant) notFound();
   const all = (logs ?? []) as GrowthLog[];
   const analysisRows = (analyses ?? []) as AiAnalysis[];
 

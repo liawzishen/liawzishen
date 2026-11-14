@@ -88,10 +88,30 @@ export async function liveHealthForPlants(
   return { scores, lastWater, lastFertilize };
 }
 
-/** Score-only view of liveHealthForPlants, for callers that don't need care data. */
-export async function liveScoresForPlants(
+/**
+ * The most recent water and fertilize log of ONE plant. Two `limit(1)`
+ * queries — the plant page needs only the newest of each, not every care log
+ * the plant ever had. Feed the result to `liveDisplayScore` (same formula
+ * the map uses, so the two always agree).
+ */
+export async function lastCareForPlant(
   supabase: ServerClient,
-  plants: Plant[]
-): Promise<Map<string, number | null>> {
-  return (await liveHealthForPlants(supabase, plants)).scores;
+  plantId: string
+): Promise<{ lastWaterAt: string | null; lastFertilizeAt: string | null }> {
+  const latest = async (eventType: "water" | "fertilize") => {
+    const { data } = await supabase
+      .from("growth_logs")
+      .select("created_at")
+      .eq("plant_id", plantId)
+      .eq("event_type", eventType)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const row = (data ?? [])[0] as { created_at: string } | undefined;
+    return row?.created_at ?? null;
+  };
+  const [lastWaterAt, lastFertilizeAt] = await Promise.all([
+    latest("water"),
+    latest("fertilize"),
+  ]);
+  return { lastWaterAt, lastFertilizeAt };
 }

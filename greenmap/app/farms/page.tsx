@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/user";
+import { displayName } from "@/lib/auth/claims";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SignOutButton } from "@/components/auth/SignOutButton";
@@ -8,17 +10,14 @@ import type { Farm } from "@/types/database";
 
 export default async function FarmSelectorPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const name =
-    (user?.user_metadata?.name as string | undefined) ?? user?.email ?? "Grower";
 
-  // Fetch this user's farms (RLS limits the rows to their own).
-  const { data: farms } = await supabase
-    .from("farms")
-    .select("*")
-    .order("created_at", { ascending: false });
+  // The user check and the farm list run together.
+  // (RLS limits the rows to this user's own farms.)
+  const [user, { data: farms }] = await Promise.all([
+    getAuthUser(),
+    supabase.from("farms").select("*").order("created_at", { ascending: false }),
+  ]);
+  const name = displayName(user, user?.email ?? "Grower");
 
   const farmList = (farms ?? []) as Farm[];
 

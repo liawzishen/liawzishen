@@ -1,28 +1,29 @@
+import { Suspense } from "react";
 import { Link } from "@/components/ui/Link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { getFarmBundle, getUserAndFarms } from "@/lib/farm/fetch";
+import {
+  getFarmActivity,
+  getFarmBundle,
+  getUserAndFarms,
+  getWeatherForFarm,
+  preload,
+} from "@/lib/farm/fetch";
+import { displayName } from "@/lib/auth/claims";
 import { FarmSwitcher } from "@/components/farm/FarmSwitcher";
 import { TodaysTasks, type TaskItem } from "@/components/home/TodaysTasks";
-import { getFarmWeather, weatherEmoji } from "@/lib/weather/fetch";
-import { wateringAdvice } from "@/lib/weather/advice";
+import {
+  WeatherAdvisory,
+  WeatherAdvisorySkeleton,
+} from "@/components/home/WeatherAdvisory";
 import { APP_TIME_ZONE, localDateISO } from "@/lib/date";
 import { getDict, getLang } from "@/lib/i18n/server";
 import { daysSince } from "@/lib/health/calculate";
-import { selectInChunks } from "@/lib/supabase/chunked";
 import type { EventType } from "@/types/database";
 
 /** Rows shown in the Recent Activity feed. */
 const FEED_LIMIT = 20;
-
-type FeedRow = {
-  plant_id: string;
-  event_type: EventType;
-  note: string | null;
-  created_at: string;
-};
 
 function relative(dateStr: string): string {
   const m = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
@@ -49,8 +50,15 @@ export default async function FarmHomePage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const [bundle, { user, farms }, t, lang] = await Promise.all([
+  // One Promise.all, two waves of round trips: the farm + its plants, then
+  // everything keyed by plant id (live health scores and the activity feed
+  // run side by side). The last water/fertilize per plant comes with the
+  // bundle. Weather is NOT awaited here — <WeatherAdvisory> streams it in, so
+  // a slow forecast never delays the page. It is only started early.
+  preload(getWeatherForFarm(farmId));
+  const [bundle, feedItems, { user, farms }, t, lang] = await Promise.all([
     getFarmBundle(farmId),
+    getFarmActivity(farmId, FEED_LIMIT),
     getUserAndFarms(),
     getDict(),
     getLang(),
@@ -58,36 +66,11 @@ export default async function FarmHomePage({
   if (!bundle) notFound();
   const { farm, plants, care } = bundle;
   const dateLocale = lang === "ms" ? "ms-MY" : "en-MY";
-
-  const meta = (user?.user_metadata ?? {}) as Record<string, unknown>;
-  const farmerName =
-    typeof meta.name === "string" && meta.name.trim() ? meta.name : "there";
+  const farmerName = displayName(user, "there");
 
   const active = plants.filter((p) => p.lifecycle_status === "active");
-  const activeIds = active.map((p) => p.id);
   const nameById = new Map(plants.map((p) => [p.id, p.name]));
   const today = localDateISO();
-
-  // Last water/fertilize per plant comes with the bundle (same data its live
-  // health scores were computed from) — only the activity feed needs a query.
-  // Weather is bounded by a timeout in getFarmWeather, so it can't hang Home.
-  const supabase = await createClient();
-  const [feedRows, weather] = await Promise.all([
-    selectInChunks<FeedRow>(activeIds, (part) =>
-      supabase
-        .from("growth_logs")
-        .select("plant_id, event_type, note, created_at")
-        .in("plant_id", part)
-        .order("created_at", { ascending: false })
-        .limit(FEED_LIMIT)
-    ),
-    getFarmWeather(farm),
-  ]);
-  // Each chunk is already newest-first; merge them into one newest-first feed.
-  const feedItems = feedRows
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-    .slice(0, FEED_LIMIT);
-  const advice = wateringAdvice(weather.today);
 
   // Quick stats
   const healthy = active.filter(
@@ -172,42 +155,11 @@ export default async function FarmHomePage({
         ))}
       </div>
 
-      {/* Today's weather advisory — one glance before the task list */}
-      <Link
-        href={`/farms/${farmId}/field`}
-        className="pressable mt-4 flex items-center gap-2.5 rounded-card px-3.5 py-3 glass"
-        style={{ boxShadow: `inset 3px 0 0 ${advice.color}` }}
-      >
-        <span className="text-[18px] leading-none" aria-hidden>
-          {advice.icon}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span
-            className="block truncate text-[13px] font-bold"
-            style={{ color: advice.color }}
-          >
-            {t.advice[advice.level].title}
-            {weather.source === "fallback" ? ` · ${t.home.sampleData}` : ""}
-          </span>
-          <span className="block truncate text-[12px] text-secondary">
-            {weather.today.tempMax !== null
-              ? `${Math.round(weather.today.tempMax)}°C`
-              : "—"}{" "}
-            ·{" "}
-            {weather.today.rainProb !== null
-              ? `${Math.round(weather.today.rainProb)}% ${t.home.rain}`
-              : "—"}{" "}
-            ·{" "}
-            {weather.today.soilMoisture !== null
-              ? `${t.home.soil} ${Math.round(weather.today.soilMoisture * 100)}%`
-              : `${t.home.soil} —`}{" "}
-            {weatherEmoji(weather.today.weatherCode)}
-          </span>
-        </span>
-        <span className="shrink-0 text-[12px] font-semibold text-brand">
-          {t.home.forecast} ›
-        </span>
-      </Link>
+      {/* Today's weather advisory — one glance before the task list.
+          Streamed: the skeleton holds its place until the forecast arrives. */}
+      <Suspense fallback={<WeatherAdvisorySkeleton />}>
+        <WeatherAdvisory farmId={farmId} />
+      </Suspense>
 
       {/* Today's tasks */}
       <div className="mb-2 mt-7 flex items-center justify-between">

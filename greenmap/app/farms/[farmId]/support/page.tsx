@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { TopNav } from "@/components/layout/TopNav";
 import { RefundActions } from "@/components/seller/RefundActions";
 import { SellerThread } from "@/components/seller/SellerThread";
-import { getFarmBundle } from "@/lib/farm/fetch";
 import type {
   OrderFeedback,
   RefundRequest,
@@ -22,9 +21,6 @@ export default async function SellerSupportPage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const bundle = await getFarmBundle(farmId);
-  if (!bundle) notFound();
-
   const supabase = await createClient();
 
   let refunds: RefundRequest[] = [];
@@ -32,7 +28,10 @@ export default async function SellerSupportPage({
   let feedback: OrderFeedback[] = [];
   let ready = true;
 
-  const [r, m, f] = await Promise.all([
+  // The ownership check only needs the farm row (RLS returns it to its owner
+  // alone), and it runs together with the three inbox queries.
+  const [{ data: farm }, r, m, f] = await Promise.all([
+    supabase.from("farms").select("id").eq("id", farmId).maybeSingle(),
     supabase
       .from("refund_requests")
       .select("*")
@@ -47,6 +46,7 @@ export default async function SellerSupportPage({
       .select("*")
       .order("created_at", { ascending: false }),
   ]);
+  if (!farm) notFound();
   if (r.error || m.error || f.error) ready = false;
   refunds = (r.data as RefundRequest[]) ?? [];
   messages = (m.data as SupportMessage[]) ?? [];
