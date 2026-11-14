@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 import type { SupportSender, SupportThread } from "@/types/database";
 import type { SuggestedAction } from "@/lib/ai/gemini-support";
 

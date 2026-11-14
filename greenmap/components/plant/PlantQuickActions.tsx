@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 import { useRouter } from "next/navigation";
 import { LogModal, type LogType } from "@/components/farm/LogModal";
 import { useI18n } from "@/lib/i18n/LanguageProvider";

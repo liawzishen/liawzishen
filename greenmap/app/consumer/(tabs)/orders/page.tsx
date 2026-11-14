@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 import { Badge } from "@/components/ui/Badge";
 import { ORDERS, STATUS_META } from "@/components/consumer/demo-consumer";
 

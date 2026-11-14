@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 
 /** App-level error boundary — keeps any failure from becoming a dead end. */
 export default function Error({

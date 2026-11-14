@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 import { getDict } from "@/lib/i18n/server";
 import { daysUntilLocalDate } from "@/lib/date";
 import type { Plant } from "@/types/database";

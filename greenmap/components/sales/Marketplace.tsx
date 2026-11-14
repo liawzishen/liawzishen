@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 import { Badge } from "@/components/ui/Badge";
 import { LISTINGS } from "./demo-listings";
 import { rankListings, type RankReason } from "@/lib/marketplace/rank";

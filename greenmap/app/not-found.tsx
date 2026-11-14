@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 
 /** Friendly global 404. */
 export default function NotFound() {

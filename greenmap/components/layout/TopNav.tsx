@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 
 /** Pushed-page header (06 §9): ‹ Back left, centred title, no tab bar. */
 export function TopNav({

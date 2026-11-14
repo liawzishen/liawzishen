@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/components/ui/Link";
 import { healthDisplay } from "@/lib/health/display";
 import { getDict } from "@/lib/i18n/server";
 import type { Plant } from "@/types/database";
