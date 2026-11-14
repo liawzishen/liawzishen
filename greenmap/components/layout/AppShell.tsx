@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import { Link } from "@/components/ui/Link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { shouldSaveData, whenIdle } from "@/lib/network";
+import { preloadMapCanvas } from "@/components/farm/mapChunks";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import { SideRail, type RailTab } from "@/components/layout/SideRail";
+import { tabMatches, useHighlightedPath } from "@/components/layout/activeTab";
 
 /*
  * 5-tab grower shell (06 §9): Home · Map · Scan(FAB) · Sales · Profile.
@@ -76,9 +79,16 @@ export function AppShell({
   farmId: string;
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
   const { t } = useI18n();
   const base = `/farms/${farmId}`;
+
+  // The Map tab is the heart of the app. Fetch its canvas code while the
+  // browser is idle, so the map appears with the tab instead of after a
+  // "Loading map…" pause. Skipped when the farmer asked to save data.
+  useEffect(() => {
+    if (shouldSaveData()) return;
+    return whenIdle(preloadMapCanvas, 3000);
+  }, []);
 
   const tabs: RailTab[] = [
     { href: base, label: t.tabs.home, icon: <HomeIcon />, exact: true },
@@ -87,13 +97,20 @@ export function AppShell({
     { href: `${base}/profile`, label: t.tabs.profile, icon: <ProfileIcon />, exact: false },
   ];
 
+  const scanHref = `${base}/scan`;
+  // The tapped tab lights up at once, before its page has loaded.
+  const currentPath = useHighlightedPath([
+    ...tabs,
+    { href: scanHref, exact: false },
+  ]);
   const isActive = (tab: { href: string; exact: boolean }) =>
-    tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
+    tabMatches(currentPath, tab);
 
   const tabLink = (tab: (typeof tabs)[number]) => (
     <Link
       key={tab.href}
       href={tab.href}
+      prefetch={null} // always visible, tapped all the time → skeleton ready
       className={cn(
         "pressable flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
         isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
@@ -113,7 +130,8 @@ export function AppShell({
 
       <SideRail
         tabs={tabs}
-        fab={{ href: `${base}/scan`, label: "AI Scan", icon: <SparkleIcon /> }}
+        fab={{ href: scanHref, label: "AI Scan", icon: <SparkleIcon /> }}
+        currentPath={currentPath}
       />
 
       <nav
@@ -125,11 +143,12 @@ export function AppShell({
 
         {/* Centre Scan FAB — the signature action (06 §9) */}
         <Link
-          href={`${base}/scan`}
+          href={scanHref}
+          prefetch={null}
           aria-label="AI Scan"
           className={cn(
             "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",
-            pathname.startsWith(`${base}/scan`) && "ring-2 ring-brand/40"
+            currentPath.startsWith(scanHref) && "ring-2 ring-brand/40"
           )}
         >
           <SparkleIcon />

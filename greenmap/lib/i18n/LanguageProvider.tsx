@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshData } from "@/lib/router/refresh";
 import { DICTS, LANG_COOKIE, type Dict, type Lang } from "./dictionaries";
 
 /**
@@ -31,16 +31,18 @@ export function LanguageProvider({
   initialLang: Lang;
   children: ReactNode;
 }) {
-  const router = useRouter();
+  const refreshData = useRefreshData();
   const [lang, setLangState] = useState<Lang>(initialLang);
 
   const setLang = useCallback(
     (next: Lang) => {
       setLangState(next);
       document.cookie = `${LANG_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
-      router.refresh(); // re-render server components in the new language
+      // Re-render server components in the new language, and drop every
+      // kept page (they were rendered in the old one).
+      refreshData();
     },
-    [router]
+    [refreshData]
   );
 
   // Memoised so the ~50 client components reading this context re-render only

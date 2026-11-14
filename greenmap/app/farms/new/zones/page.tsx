@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { markDataChanged } from "@/lib/router/refresh";
 import { useFarmSetup } from "@/contexts/farm-setup-context";
 import { createClient } from "@/lib/supabase/client";
 import { TopNav } from "@/components/layout/TopNav";
@@ -113,6 +114,7 @@ export default function SetupZonesPage() {
 
     // 3. Go to the new farm's dashboard.
     setup.reset();
+    markDataChanged(); // the farm switcher on kept pages must list the new farm
     router.push(`/farms/${farm.id}`);
   }
 

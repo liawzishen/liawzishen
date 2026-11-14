@@ -233,6 +233,16 @@
     animation: page-enter 0.28s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
 
+  /*
+    Loading skeletons (each loading.tsx marks its <main data-skeleton>).
+    A skeleton is feedback, so it appears at once — without the enter
+    animation, which would play twice in a row (skeleton, then real page).
+    Only the real page fades in.
+  */
+  main[data-skeleton] {
+    animation: none;
+  }
+
   @keyframes page-enter {
     from {
       opacity: 0;
@@ -433,4 +443,35 @@
   opacity: 1;
   transform: scale(1.6);
   transition-duration: 0.08s;
+}
+
+/*
+  Navigation progress bar (lib/router/progress.tsx). A thin bar at the top of
+  the screen while a tapped link is loading. `both` + the 0.15s delay keep it
+  at zero width at first, so a page that arrives quickly never shows it. It
+  creeps toward the end and is removed the moment the page lands.
+*/
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+  height: 3px;
+  pointer-events: none;
+}
+.nav-progress::before {
+  content: "";
+  display: block;
+  height: 100%;
+  background: var(--color-brand);
+  border-radius: 0 2px 2px 0;
+  transform-origin: left;
+  animation: nav-progress 2.5s cubic-bezier(0.1, 0.7, 0.2, 1) 0.15s both;
+}
+@keyframes nav-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
 }

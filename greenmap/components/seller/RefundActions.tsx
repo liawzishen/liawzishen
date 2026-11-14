@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { RefundStatus } from "@/types/database";
+import { useRefreshData } from "@/lib/router/refresh";
 
 /**
  * Grower approve/reject for a pending refund. Writes the new status via the
@@ -13,6 +14,7 @@ export function RefundActions({ refundId }: { refundId: string }) {
   const [status, setStatus] = useState<RefundStatus | null>(null);
   const [busy, setBusy] = useState<RefundStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const refreshData = useRefreshData();
 
   async function decide(next: "approved" | "rejected") {
     if (busy) return;
@@ -29,6 +31,7 @@ export function RefundActions({ refundId }: { refundId: string }) {
       return;
     }
     setStatus(next);
+    refreshData();
   }
 
   if (status) {

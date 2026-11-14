@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useRefreshData } from "@/lib/router/refresh";
 
 /**
  * In/out-of-stock switch for one of the grower's own listings. Upserts
@@ -19,6 +20,7 @@ export function StockToggle({
 }) {
   const [inStock, setInStock] = useState(initialInStock);
   const [busy, setBusy] = useState(false);
+  const refreshData = useRefreshData();
 
   async function toggle() {
     if (busy) return;
@@ -36,7 +38,11 @@ export function StockToggle({
       { onConflict: "listing_id" }
     );
     setBusy(false);
-    if (error) setInStock(!next); // revert on failure
+    if (error) {
+      setInStock(!next); // revert on failure
+      return;
+    }
+    refreshData(); // the marketplace pages show this stock level too
   }
 
   return (

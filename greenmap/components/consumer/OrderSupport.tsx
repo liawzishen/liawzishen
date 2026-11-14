@@ -13,6 +13,7 @@ import type {
   RefundKind,
   RefundRequest,
 } from "@/types/database";
+import { useRefreshData } from "@/lib/router/refresh";
 
 /**
  * Customer-service hub for one order (client). Opens refund/return requests
@@ -36,6 +37,7 @@ export function OrderSupport({
   const [refund, setRefund] = useState<RefundRequest | null>(existingRefund);
   const [feedback, setFeedback] = useState<OrderFeedback | null>(existingFeedback);
   const [sheet, setSheet] = useState<null | "refund" | "feedback">(null);
+  const refreshData = useRefreshData();
 
   return (
     <div className="mt-5 px-5">
@@ -147,6 +149,7 @@ export function OrderSupport({
           if (error) return { error: error.message };
           setRefund(data as RefundRequest);
           setSheet(null);
+          refreshData();
           return {};
         }}
       />
@@ -174,6 +177,7 @@ export function OrderSupport({
           if (error) return { error: error.message };
           setFeedback(data as OrderFeedback);
           setSheet(null);
+          refreshData();
           return {};
         }}
       />

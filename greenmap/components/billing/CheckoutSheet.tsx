@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshData } from "@/lib/router/refresh";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { formatRM, type BoostPackageId, type PlanId } from "@/lib/billing/plans";
@@ -36,7 +36,7 @@ export function CheckoutSheet({
   lines: Array<[string, string]>;
   payload: PaymentPayload;
 }) {
-  const router = useRouter();
+  const refreshData = useRefreshData();
   const [phase, setPhase] = useState<Phase>("method");
   const [method, setMethod] = useState<"fpx" | "tng">("fpx");
   const [bank, setBank] = useState(FPX_BANKS[0]);
@@ -71,7 +71,7 @@ export function CheckoutSheet({
 
   function done() {
     onClose();
-    router.refresh();
+    refreshData();
   }
 
   const close =

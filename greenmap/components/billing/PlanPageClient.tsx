@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshData } from "@/lib/router/refresh";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
@@ -47,7 +47,7 @@ export function PlanPageClient({
   allowance: ScanAllowance;
   payments: PaymentRow[];
 }) {
-  const router = useRouter();
+  const refreshData = useRefreshData();
   const [checkout, setCheckout] = useState<{
     title: string;
     amountRM: number;
@@ -82,7 +82,7 @@ export function PlanPageClient({
         const data = await res.json();
         window.alert(data?.error ?? "Could not switch plan");
       }
-      router.refresh();
+      refreshData();
     } finally {
       setSwitching(false);
     }

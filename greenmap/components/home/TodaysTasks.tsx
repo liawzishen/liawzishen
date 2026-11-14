@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Link } from "@/components/ui/Link";
-import { useRouter } from "next/navigation";
+import { useRefreshData } from "@/lib/router/refresh";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 export type TaskItem = { plantId: string; plantName: string; sub: string };
@@ -53,7 +53,7 @@ export function TodaysTasks({
   groups: TaskGroups;
   farmId: string;
 }) {
-  const router = useRouter();
+  const refreshData = useRefreshData();
   const { t } = useI18n();
   const [groups, setGroups] = useState<TaskGroups>(initial);
   const [completed, setCompleted] = useState<CompletedEntry[]>([]);
@@ -104,7 +104,7 @@ export function TodaysTasks({
     setCompleted((c) => [{ item, group, action }, ...c]);
     try {
       await send("complete", action, [item.plantId]);
-      router.refresh();
+      refreshData();
     } catch {
       setCompleted((c) => c.filter((e) => !(e.action === action && e.item.plantId === item.plantId)));
       setGroups((g) => ({ ...g, [group]: [item, ...g[group]] }));
@@ -119,7 +119,7 @@ export function TodaysTasks({
     setCompleted((c) => [...items.map((item) => ({ item, group, action })), ...c]);
     try {
       await send("complete", action, items.map((t) => t.plantId));
-      router.refresh();
+      refreshData();
     } catch {
       setGroups((g) => ({ ...g, [group]: items }));
       setCompleted((c) =>
@@ -137,7 +137,7 @@ export function TodaysTasks({
     setGroups((g) => ({ ...g, [entry.group]: [entry.item, ...g[entry.group]] }));
     try {
       await send("uncomplete", entry.action, [entry.item.plantId]);
-      router.refresh();
+      refreshData();
     } catch {
       setGroups((g) => ({
         ...g,

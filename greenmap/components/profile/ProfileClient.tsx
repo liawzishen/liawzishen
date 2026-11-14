@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshData } from "@/lib/router/refresh";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -101,7 +101,7 @@ function VerifiedTick() {
 }
 
 export function ProfileClient(props: Props) {
-  const router = useRouter();
+  const refreshData = useRefreshData();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [editing, setEditing] = useState(false);
@@ -194,6 +194,12 @@ export function ProfileClient(props: Props) {
       });
       if (updErr) throw new Error(updErr.message);
 
+      // Pages read the name and photo from the login token, which is only
+      // renewed about once an hour. Renew it now so they show the new
+      // details at once. If this fails the save itself is still done — the
+      // token renews by itself later.
+      await supabase.auth.refreshSession().catch(() => {});
+
       // Keep profiles.name in sync — the public Harvest Passport reads it.
       await supabase
         .from("profiles")
@@ -207,7 +213,7 @@ export function ProfileClient(props: Props) {
       setConfirm("");
       setEditing(false);
       setSuccess(true);
-      router.refresh();
+      refreshData();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save your changes.");
     } finally {

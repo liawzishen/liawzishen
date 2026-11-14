@@ -30,6 +30,13 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: process.cwd(),
   // Do not advertise the framework in an "X-Powered-By" header.
   poweredByHeader: false,
+  experimental: {
+    // Keep a visited page in the browser for 30 seconds, so going back to a
+    // tab is instant (no server trip, no skeleton). Every action that changes
+    // data must call `refreshData()` (lib/router/refresh.tsx), which drops
+    // the kept pages — otherwise they could show old data for up to 30 s.
+    staleTimes: { dynamic: 30 },
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

@@ -1,10 +1,10 @@
 "use client";
 
 import { Link } from "@/components/ui/Link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import { SideRail, type RailTab } from "@/components/layout/SideRail";
+import { tabMatches, useHighlightedPath } from "@/components/layout/activeTab";
 
 /*
  * Consumer tab shell — the buyer-side mirror of the grower AppShell.
@@ -64,7 +64,6 @@ function ScanIcon() {
 }
 
 export function ConsumerShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const { t } = useI18n();
 
   const tabs: RailTab[] = [
@@ -74,13 +73,20 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
     { href: "/consumer/profile", label: t.tabs.profile, icon: <ProfileIcon />, exact: false },
   ];
 
+  const scanHref = "/consumer/scan";
+  // The tapped tab lights up at once, before its page has loaded.
+  const currentPath = useHighlightedPath([
+    ...tabs,
+    { href: scanHref, exact: false },
+  ]);
   const isActive = (tab: { href: string; exact: boolean }) =>
-    tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
+    tabMatches(currentPath, tab);
 
   const tabLink = (tab: (typeof tabs)[number]) => (
     <Link
       key={tab.href}
       href={tab.href}
+      prefetch={null} // always visible, tapped all the time → skeleton ready
       className={cn(
         "pressable flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
         isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
@@ -99,7 +105,8 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
 
       <SideRail
         tabs={tabs}
-        fab={{ href: "/consumer/scan", label: "Scan QR", icon: <ScanIcon /> }}
+        fab={{ href: scanHref, label: "Scan QR", icon: <ScanIcon /> }}
+        currentPath={currentPath}
       />
 
       <nav
@@ -111,11 +118,12 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
 
         {/* Centre Scan FAB — the signature consumer action */}
         <Link
-          href="/consumer/scan"
+          href={scanHref}
+          prefetch={null}
           aria-label="Scan QR"
           className={cn(
             "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",
-            pathname.startsWith("/consumer/scan") && "ring-2 ring-brand/40"
+            currentPath.startsWith(scanHref) && "ring-2 ring-brand/40"
           )}
         >
           <ScanIcon />

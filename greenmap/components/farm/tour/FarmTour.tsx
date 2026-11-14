@@ -13,24 +13,11 @@ import { PlantTagPins } from "./PlantTagPins";
 import { TagEditor } from "./TagEditor";
 import { TOUR_FOV, nearestPanoramas, vecToSpherical } from "./geometry";
 import { fetchPanoBlob } from "./panoTexture";
+import { shouldSaveData } from "@/lib/network";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 
 /** How many neighbouring photos are fetched ahead for instant hops. */
 const PREFETCH_COUNT = 3;
-
-/** True when the visitor asked the browser to save data, or is on 2G. */
-function shouldSaveData(): boolean {
-  const connection = (
-    navigator as Navigator & {
-      connection?: { saveData?: boolean; effectiveType?: string };
-    }
-  ).connection;
-  return (
-    connection?.saveData === true ||
-    connection?.effectiveType === "slow-2g" ||
-    connection?.effectiveType === "2g"
-  );
-}
 
 /**
  * Matterport-style photo-sphere tour (2026-07-12 spec): stand inside a real

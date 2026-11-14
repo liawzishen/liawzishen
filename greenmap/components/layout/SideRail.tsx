@@ -1,8 +1,8 @@
 "use client";
 
 import { Link } from "@/components/ui/Link";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { tabMatches } from "@/components/layout/activeTab";
 
 export type RailTab = {
   href: string;
@@ -21,13 +21,14 @@ export type RailTab = {
 export function SideRail({
   tabs,
   fab,
+  currentPath,
 }: {
   tabs: RailTab[];
   fab: { href: string; label: string; icon: React.ReactNode };
+  /** The path to highlight (see useHighlightedPath). */
+  currentPath: string;
 }) {
-  const pathname = usePathname();
-  const isActive = (tab: RailTab) =>
-    tab.exact ? pathname === tab.href : pathname.startsWith(tab.href);
+  const isActive = (tab: RailTab) => tabMatches(currentPath, tab);
 
   return (
     <nav
@@ -42,6 +43,7 @@ export function SideRail({
           <Link
             key={tab.href}
             href={tab.href}
+            prefetch={null}
             className={cn(
               "pressable flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[14px] font-medium transition-colors",
               isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
@@ -54,9 +56,10 @@ export function SideRail({
       </div>
       <Link
         href={fab.href}
+        prefetch={null}
         className={cn(
           "pressable pressable-glow mt-auto flex h-12 items-center justify-center gap-2 rounded-2xl text-[14px] font-semibold text-white bg-gradient-brand shadow-fab",
-          pathname.startsWith(fab.href) && "ring-2 ring-brand/40"
+          currentPath.startsWith(fab.href) && "ring-2 ring-brand/40"
         )}
       >
         {fab.icon}

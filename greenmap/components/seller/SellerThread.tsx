@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { SupportSender } from "@/types/database";
+import { useRefreshData } from "@/lib/router/refresh";
 
 /**
  * One customer message thread in the grower inbox, with an inline reply. The
@@ -25,6 +26,7 @@ export function SellerThread({
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const refreshData = useRefreshData();
 
   async function send() {
     const body = reply.trim();
@@ -47,6 +49,7 @@ export function SellerThread({
     }
     setMessages((m) => [...m, { sender: "seller", body }]);
     setReply("");
+    refreshData();
   }
 
   return (

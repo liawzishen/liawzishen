@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
 import { LanguageProvider } from "@/lib/i18n/LanguageProvider";
 import { getLang } from "@/lib/i18n/server";
+import { RefreshGuard } from "@/lib/router/refresh";
+import { NavigationProgress } from "@/lib/router/progress";
 import "./globals.css";
 
 /*
@@ -51,9 +53,14 @@ export default async function RootLayout({
           the frame via the .app-frame:has() rule in globals.css.
         */}
         <LanguageProvider initialLang={lang}>
-          <div className="app-frame relative mx-auto min-h-dvh w-full max-w-[430px] bg-bg sm:border-x sm:border-black/5">
-            {children}
-          </div>
+          {/* A new token each time this layout renders — which only a
+              refresh does. See lib/router/refresh.tsx. */}
+          <RefreshGuard renderToken={Date.now()} />
+          <NavigationProgress>
+            <div className="app-frame relative mx-auto min-h-dvh w-full max-w-[430px] bg-bg sm:border-x sm:border-black/5">
+              {children}
+            </div>
+          </NavigationProgress>
         </LanguageProvider>
       </body>
     </html>

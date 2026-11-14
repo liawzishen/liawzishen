@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRefreshData } from "@/lib/router/refresh";
 import { createClient } from "@/lib/supabase/client";
 import type { ManualStatus } from "@/types/database";
 
@@ -23,7 +23,7 @@ export function ManualStatusControl({
   plantId: string;
   current: ManualStatus;
 }) {
-  const router = useRouter();
+  const refreshData = useRefreshData();
   const [status, setStatus] = useState<ManualStatus>(current);
   const [saving, setSaving] = useState(false);
 
@@ -55,7 +55,7 @@ export function ManualStatusControl({
     }
 
     setSaving(false);
-    router.refresh();
+    refreshData();
   }
 
   return (

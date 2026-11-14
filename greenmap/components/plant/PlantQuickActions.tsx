@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Link } from "@/components/ui/Link";
-import { useRouter } from "next/navigation";
+import { useRefreshData } from "@/lib/router/refresh";
 import { LogModal, type LogType } from "@/components/farm/LogModal";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
 import type { Plant } from "@/types/database";
@@ -26,7 +26,7 @@ export function PlantQuickActions({
   plant: Plant;
   scanHref: string;
 }) {
-  const router = useRouter();
+  const refreshData = useRefreshData();
   const { t } = useI18n();
   const [logType, setLogType] = useState<LogType | null>(null);
 
@@ -60,7 +60,7 @@ export function PlantQuickActions({
           plant={plant}
           type={logType}
           onClose={() => setLogType(null)}
-          onLogged={() => router.refresh()}
+          onLogged={() => refreshData()}
         />
       )}
     </>

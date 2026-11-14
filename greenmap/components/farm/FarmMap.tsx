@@ -1,26 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import { useRefreshData } from "@/lib/router/refresh";
 import { AddPlantModal } from "./AddPlantModal";
 import { PlantBottomSheet } from "./PlantBottomSheet";
 import { usePanoramas } from "./tour/usePanoramas";
 import { AddPanoramaSheet } from "./tour/AddPanoramaSheet";
 import { cn } from "@/lib/utils";
+import { shouldSaveData, whenIdle } from "@/lib/network";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
+import {
+  loadFarmMapCanvas,
+  loadFarmTour,
+  preloadFarmTour,
+} from "./mapChunks";
 import type { Farm, Plant, Zone } from "@/types/database";
 
-const FarmMapCanvas = dynamic(
-  () => import("./FarmMapCanvas").then((m) => m.FarmMapCanvas),
-  {
+const FarmMapCanvas = dynamic(loadFarmMapCanvas, {
     ssr: false,
     loading: () => (
       <div className="flex h-full w-full items-center justify-center text-[15px] text-secondary">
         Loading map…
       </div>
     ),
-  }
-);
+});
 
 function TourLoading() {
   const { t } = useI18n();
@@ -31,23 +35,10 @@ function TourLoading() {
   );
 }
 
-const loadFarmTour = () => import("./tour/FarmTour").then((m) => m.FarmTour);
-
 const FarmTour = dynamic(loadFarmTour, {
   ssr: false,
   loading: () => <TourLoading />,
 });
-
-/**
- * Start downloading the 3D code as soon as the farmer reaches for the 3D
- * button (hover, focus or touch), so it is usually ready by the time they
- * press it. The three.js chunk is large, so it is never fetched before that.
- */
-const preloadFarmTour = () => {
-  void loadFarmTour().catch(() => {
-    /* offline — the real load shows its own state */
-  });
-};
 
 export function FarmMap({
   farm,
@@ -62,6 +53,7 @@ export function FarmMap({
   className?: string;
 }) {
   const { t } = useI18n();
+  const refreshData = useRefreshData();
   const [plants, setPlants] = useState<Plant[]>(initialPlants);
   const [placing, setPlacing] = useState(false);
   const [pendingPos, setPendingPos] = useState<{ x: number; y: number } | null>(
@@ -76,6 +68,26 @@ export function FarmMap({
   const pano = usePanoramas(farm.id);
   const [addingPano, setAddingPano] = useState(false);
   const [tourStartId, setTourStartId] = useState<string | null>(null);
+
+  /*
+   * The 3D code (three.js) is large, so it is fetched ahead only when it is
+   * likely to be used: this farm HAS 360° photos, the browser is idle, and
+   * the farmer did not ask to save data. Farms without photos still fetch it
+   * when the farmer reaches for the 3D button (see the toggle below).
+   */
+  const hasPanoramas = pano.panoramas.length > 0;
+  useEffect(() => {
+    if (!hasPanoramas || shouldSaveData()) return;
+    return whenIdle(preloadFarmTour);
+  }, [hasPanoramas]);
+
+  /*
+   * The map keeps its own copy of the plants, so it updates at once. The
+   * other tabs (Home's tasks and counts, the Scan list) were rendered from
+   * the old data and the router keeps visited tabs for a short time —
+   * `refreshData()` drops those kept copies so they are loaded fresh.
+   */
+  const plantsChanged = refreshData;
 
   // Plants needing care (drives the optional highlight filter).
   const careIds = useMemo(
@@ -101,6 +113,7 @@ export function FarmMap({
     setSelectedPlant((prev) =>
       prev && prev.id === plantId ? { ...prev, health_score: newScore } : prev
     );
+    plantsChanged();
   }
 
   return (
@@ -241,6 +254,7 @@ export function FarmMap({
           onCreated={(plant) => {
             setPlants((prev) => [...prev, plant]);
             setPendingPos(null);
+            plantsChanged();
           }}
         />
       )}

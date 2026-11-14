@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { markDataChanged } from "@/lib/router/refresh";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { AIScanResultCard } from "./AIScanResultCard";
@@ -140,8 +141,8 @@ export function ScanUploader({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Save failed");
+      markDataChanged(); // the plant page and the kept tabs load fresh
       router.push(`/farms/${farmId}/plants/${plantId}`);
-      router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
       setPhase("result");

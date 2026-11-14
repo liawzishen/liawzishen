@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { markDataChanged } from "@/lib/router/refresh";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -30,6 +31,7 @@ export function HarvestConfirm({
       if (!res.ok || !data?.qr_token) {
         throw new Error(data?.error ?? "Could not generate the passport.");
       }
+      markDataChanged(); // Home, Map and Scan must not show this plant as active
       router.push(`/passport/${data.qr_token}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");

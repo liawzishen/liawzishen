@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "@/components/ui/Link";
 import type { SupportSender, SupportThread } from "@/types/database";
 import type { SuggestedAction } from "@/lib/ai/gemini-support";
+import { useRefreshData } from "@/lib/router/refresh";
 
 /**
  * Shared support chat — used for both the AI admin thread and the (simulated)
@@ -55,6 +56,7 @@ export function SupportChat({
   );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const refreshData = useRefreshData();
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,6 +85,7 @@ export function SupportChat({
           suggestedAction: data.suggestedAction as SuggestedAction | undefined,
         },
       ]);
+      refreshData(); // a kept copy of this chat must not miss these messages
     } catch {
       setMessages((m) => [
         ...m,
