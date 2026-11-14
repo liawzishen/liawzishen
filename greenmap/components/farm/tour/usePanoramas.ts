@@ -4,6 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { FarmPanorama, PanoramaPlantTag } from "@/types/database";
 
+const EXTENSION_BY_TYPE: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+const ONE_YEAR_SECONDS = "31536000";
+
 /** Heading-slider writes wait for the drag to settle (one write per drag). */
 const HEADING_SAVE_DELAY_MS = 400;
 
@@ -59,16 +66,22 @@ export function usePanoramas(farmId: string) {
   }, [farmId]);
 
   const addPanorama = useCallback(
-    async (input: { file: File; position_x: number; position_y: number }) => {
+    async (input: { file: Blob; position_x: number; position_y: number }) => {
       const supabase = createClient();
-      const ext = input.file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const ext = EXTENSION_BY_TYPE[input.file.type] ?? "jpg";
       // Not crypto.randomUUID(): it only exists in secure contexts, so it
       // throws when the app is opened over plain-http LAN (phone testing).
       const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       const path = `${farmId}/${id}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("farm-panoramas")
-        .upload(path, input.file, { contentType: input.file.type });
+        .upload(path, input.file, {
+          contentType: input.file.type || "image/jpeg",
+          // Every upload gets its own path and is never overwritten, so
+          // browsers may keep it for a year instead of re-downloading it
+          // after the default hour.
+          cacheControl: ONE_YEAR_SECONDS,
+        });
       if (upErr) {
         console.warn("[tour] upload failed:", upErr.message);
         return null;
