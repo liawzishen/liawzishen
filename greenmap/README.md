@@ -206,9 +206,9 @@ components/
   dashboard/ (FarmDashboard — the standalone preview above)
   farm/ (FarmMap, FarmMapCanvas, PlantMarker, PlantBottomSheet, KpiStrip, AddPlantModal, FarmCard, FarmSwitcher, LogModal,
          WeatherToday, WeatherCharts, WeatherStrip, FarmHealthTrend, NeedsCareList, UpcomingHarvests)
-  farm/tour/ (360° photo tour — FarmTour, PanoramaSphere, LookControls, HopCircles, PlantTagPins, TagEditor,
-              AddPanoramaSheet, TourEmptyState, usePanoramas, geometry.ts, markerTexture.ts;
-              lazy three.js, mounted by FarmMap's 2D⇄3D toggle)
+  farm/tour/ (360° photo tour — FarmTour, PanoramaStage, LookControls, HopCircles, PlantTagPins, TagEditor,
+              AddPanoramaSheet, TourEmptyState, usePanoramas, geometry.ts, panoTexture.ts, panoImage.ts,
+              markerTexture.ts; lazy three.js, mounted by FarmMap's 2D⇄3D toggle)
   home/ (TodaysTasks) · layout/ (AppShell, ConsumerShell, TopNav, StepDots)
   passport/ (HarvestPassportCard, TrustBadges, QrBlock, HarvestConfirm)
   plant/ (HealthTrendChart, ActivityTimeline, SuggestionCard, ManualStatusControl, PlantQuickActions)
@@ -245,6 +245,12 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **Long id lists go through `selectInChunks()`** (`lib/supabase/chunked.ts`), because `.in()` filters travel in the URL.
 - **Press feedback is universal** — `.pressable` / `.pressable-glow` in `globals.css` give every button and tappable card a darken-on-press + springy release (Tailwind v4 preflight zeroes `-webkit-tap-highlight-color`, so this is what restores the "it registered my tap" cue). Reuse these utilities; never add per-component `:active` styles.
 - **The Map tab has a 2D⇄3D toggle.** `FarmMap.tsx` holds a `mode` state and lazy-loads `components/farm/tour/` (client-only three.js, `next/dynamic` with `ssr: false`, async chunk so the field's first load stays unchanged). The 3D mode is a Matterport-style **360° photo tour**: farmers shoot 360° photos with their phone's panorama mode, upload them onto spots on the 2D map, then drag to look around, tap white floor circles to hop between spots, and tap plant pins to open the *same* `PlantBottomSheet` as 2D. The 2D map doubles as the floor-plan view via tappable 360° badges. Data: `farm_panoramas` + `panorama_plant_tags` (migration `0009`) + the `farm-panoramas` bucket. All labels go through the EN/BM dictionary `tour` namespace.
+- **The 3D tour is built to be light on phones.** Keep these rules when you change `components/farm/tour/`:
+  - *Render on demand.* The canvas uses `frameloop="demand"`: a still photo draws nothing. React prop changes redraw by themselves; anything you change by hand (camera, material) must call `invalidate()`.
+  - *One photo in GPU memory.* `PanoramaStage` keeps the current photo on screen until the next one is downloaded, decoded and uploaded, then runs a 250 ms crossfade and frees the old texture. A failed load leaves the farmer where they were, with a **Try again** button.
+  - *Never more than 4096 px wide.* `panoTexture.ts` decodes photos off the main thread and caps the texture width; `panoImage.ts` resizes and compresses photos in the browser **before upload**, so farmers do not pay mobile data for pixels nobody sees.
+  - *Prefetch politely.* Only the 3 nearest spots, only after the current photo is on screen, and never when the browser reports Data Saver or 2G.
+  - *Taps are at least 44 px.* Hop circles and plant pins keep their look but get an invisible tap area of at least 44 px (`unitsPerPixel()` in `geometry.ts`); a press that moved more than 6 px is a drag, not a tap.
 
 ## Troubleshooting
 

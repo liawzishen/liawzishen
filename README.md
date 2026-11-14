@@ -51,6 +51,7 @@ The grower app has four tabs (**Home**, **Map**, **Sales**, **Profile**) and a r
    *Why it helps:* you decide what is saved. Photos are made smaller before upload, which helps on mobile data.
 7. **Harvest and create the passport.** On the plant's detail page (**View More Details**), or from **Ready to Harvest** on Home, tap **Mark as Harvested**, then **Mark as Harvested & Generate Passport**. The passport page opens with a QR code and **Share on WhatsApp**. Print the QR or send the link to buyers. Note: your log notes appear on the public passport.
 8. **Optional: walk your farm in 360°.** On **Map**, tap **3D**, then **＋ 360°**. Choose a full 360° photo (2:1 shape), tap where you stood, and tap **Save**. Drag to look around, tap white circles to move, and use **Tag plant** to pin plants on the photo.
+   *Why it helps:* large photos are made smaller on your phone before upload, so they use less mobile data and open faster.
 9. **Sales, plans and language (partly preview).** On **Sales**, try **＋ List a Harvest**, **⚡ Boost** and **🎧 Customer Service** (approve or reject refund requests). In **Profile → My Plan**, check scan usage, then **Upgrade** or **Top up**. In **Profile → 🌐 Language**, switch between **EN** and **BM**.
 
 On a laptop (1024 px or wider), the **Map** tab becomes a dashboard: key numbers, farm health over 14 days, plants that need care, upcoming harvests and a weather panel with charts.
