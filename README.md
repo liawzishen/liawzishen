@@ -167,7 +167,7 @@ Before `npm run db:seed`:
 1. In the Supabase **SQL Editor**, run `greenmap/supabase/migrations/0001_init.sql` to `0009_panoramas.sql`, in order.
 2. In Supabase **Authentication → Sign In / Providers → Email**, turn off **Confirm email**.
 
-Optional keys: `GEMINI_API_KEY` (real AI) and `MAPTILER_API_KEY` (satellite maps). When you deploy, set `NEXT_PUBLIC_APP_URL` to your public URL, so passport QR codes and WhatsApp links open on other phones.
+Optional keys: `GEMINI_API_KEY` (real AI) and `MAPTILER_API_KEY` (satellite maps). When you deploy, set `NEXT_PUBLIC_APP_URL` to your public URL, so passport QR codes and WhatsApp links open on other phones. For a fast app, also run it in the same region as your Supabase project (the developer guide explains how).
 
 Full guide (environment variables, troubleshooting, deploy to Vercel): [greenmap/README.md](greenmap/README.md) and [greenmap/scripts/README.md](greenmap/scripts/README.md).
 

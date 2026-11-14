@@ -193,7 +193,7 @@ app/
   farms/[farmId]/sales/{market,new}/    Marketplace preview + list-harvest form
   farms/[farmId]/plants/[plantId]/{page,scan,activity,harvest}/
   passport/[qrToken]/page.tsx           Public QR view (server, service-role)
-  loading.tsx · error.tsx · not-found.tsx
+  loading.tsx · error.tsx · not-found.tsx    (+ a loading.tsx next to the tab pages, plan, plant detail and passport)
   api/ai/{scan,save-scan,suggest}/route.ts
   api/health/recalculate/route.ts · api/passports/generate/route.ts
   api/tasks/{complete,uncomplete}/route.ts
@@ -209,15 +209,17 @@ components/
   farm/tour/ (360° photo tour — FarmTour, PanoramaStage, LookControls, HopCircles, PlantTagPins, TagEditor,
               AddPanoramaSheet, TourEmptyState, usePanoramas, geometry.ts, panoTexture.ts, panoImage.ts,
               markerTexture.ts; lazy three.js, mounted by FarmMap's 2D⇄3D toggle)
-  home/ (TodaysTasks) · layout/ (AppShell, ConsumerShell, TopNav, StepDots)
+  farm/mapChunks.ts (lazy loaders + idle preload for the Konva and three.js code)
+  home/ (TodaysTasks, WeatherAdvisory) · layout/ (AppShell, ConsumerShell, SideRail, TopNav, StepDots, activeTab)
   passport/ (HarvestPassportCard, TrustBadges, QrBlock, HarvestConfirm)
   plant/ (HealthTrendChart, ActivityTimeline, SuggestionCard, ManualStatusControl, PlantQuickActions)
-  ui/ (Button, Card, Badge, Input, Select, Modal/BottomSheet, SegmentedControl, EmptyState, Skeleton)
+  ui/ (Button, Card, Badge, Input, Select, Modal/BottomSheet, SegmentedControl, EmptyState, Skeleton, Link)
 
 lib/  supabase/{client,server,admin,middleware,chunked} · api/http (shared route helpers)
       ai/{gemini,gemini-vision,gemini-text,gemini-support,validate} · storage/public-url
       health/{calculate,live,recalculate,display} · passport/aggregate · billing/{plans,usage}
-      weather/{fetch,advice} · marketplace/rank · auth/password · farm/{fetch,ownership} · date · utils
+      weather/{fetch,advice} · marketplace/rank · auth/{password,claims,user} · farm/{fetch,ownership} · date · utils
+      router/{refresh,progress,paths} (kept pages + refresh after writes, tap feedback) · network (idle preload, Data Saver)
       **/*.test.ts                       unit tests, next to the module they test
 middleware.ts                            route protection + role-based redirects
 types/  database.ts · index.ts
@@ -243,6 +245,15 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **All Gemini calls go through `lib/ai/gemini.ts`** (one model setting, one timeout, API key in a header). Never call the Gemini REST API directly from a route.
 - **"Today" means today in Malaysia.** Servers run in UTC, so use `localDateISO()` / `APP_TIME_ZONE` from `lib/date.ts` for date comparisons and server-rendered dates, never `new Date().toISOString().slice(0, 10)`.
 - **Long id lists go through `selectInChunks()`** (`lib/supabase/chunked.ts`), because `.in()` filters travel in the URL.
+- **Pages are built to open fast.** Almost all of a page's waiting time is round trips to Supabase, so the rules are about making fewer of them. Keep these when you add or change a page:
+  - *One login check per request, usually without the network.* Server Components call `getAuthUser()` (`lib/auth/user.ts`), never `supabase.auth.getUser()`. It verifies the login token with `auth.getClaims()`: on Supabase projects with **asymmetric JWT signing keys** that is a local signature check, so the middleware and the pages make no call to Supabase Auth at all. Projects on the legacy JWT secret still work — they ask the Auth server, as before. Two places stay strict on purpose and keep `getUser()`: the Profile page (it shows the newest account data) and every API route (`getSessionUser()`), because they write.
+  - *Few waves of queries.* Queries that do not need each other's result go in one `Promise.all`. The farm loaders in `lib/farm/fetch.ts` are wrapped in React `cache()`, so the page and its sections share one fetch per request: wave 1 is the farm, zones and plants; wave 2 is everything keyed by plant id.
+  - *Slow or optional data is streamed.* Weather (Open-Meteo) and the desktop trend chart are async components inside `<Suspense>` with a placeholder of the same size. Start them early with `preload()` so they load while the page awaits its own data.
+  - *Visited pages are kept for 30 seconds* (`staleTimes` in `next.config.ts`), so going back to a tab is instant. The price is the rule below.
+  - **After every write, call `refreshData()`** from `useRefreshData()` (`lib/router/refresh.tsx`) — never a bare `router.refresh()`. It reloads the current page and drops the kept pages, and `<RefreshGuard>` repeats it if the farmer navigated before it landed. Before a `router.push()`, call `markDataChanged()` instead.
+  - *Use `Link` from `components/ui/Link.tsx`*, not `next/link`. It turns prefetch off: every page is rendered per request, so a prefetch only fetched a loading skeleton — one request per visible link. Only the tab bars keep prefetch.
+  - **Keep a `loading.tsx` at or above every page.** It is the instant skeleton, and it is also required: in a production build, a page with a long server-rendered list (the Scan tab with 40+ plants) never finished loading when it had no loading boundary of its own (Next 15.5 / React 19.2). Note that React shows the real page no sooner than 300 ms after a skeleton appeared.
+  - *Heavy code is fetched ahead, politely.* The map canvas (Konva) is fetched while the app is idle; the 3D code (three.js) only when the farm has 360° photos. Both are skipped on Data Saver or 2G (`lib/network.ts`, `components/farm/mapChunks.ts`).
 - **Press feedback is universal** — `.pressable` / `.pressable-glow` in `globals.css` give every button and tappable card a darken-on-press + springy release (Tailwind v4 preflight zeroes `-webkit-tap-highlight-color`, so this is what restores the "it registered my tap" cue). Reuse these utilities; never add per-component `:active` styles.
 - **The Map tab has a 2D⇄3D toggle.** `FarmMap.tsx` holds a `mode` state and lazy-loads `components/farm/tour/` (client-only three.js, `next/dynamic` with `ssr: false`, async chunk so the field's first load stays unchanged). The 3D mode is a Matterport-style **360° photo tour**: farmers shoot 360° photos with their phone's panorama mode, upload them onto spots on the 2D map, then drag to look around, tap white floor circles to hop between spots, and tap plant pins to open the *same* `PlantBottomSheet` as 2D. The 2D map doubles as the floor-plan view via tappable 360° badges. Data: `farm_panoramas` + `panorama_plant_tags` (migration `0009`) + the `farm-panoramas` bucket. All labels go through the EN/BM dictionary `tour` namespace.
 - **The 3D tour is built to be light on phones.** Keep these rules when you change `components/farm/tour/`:
@@ -262,11 +273,17 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **Farm GPS pin doesn't save** → migration `0006_farm_coordinates.sql` hasn't been run yet (see Database setup below); the farm still saves fine without it, just without the exact-forecast pin.
 - **3D mode says "360° storage isn't set up yet"** → migration `0009_panoramas.sql` hasn't been run (Supabase → SQL Editor). Run it, then `npm run seed:panoramas` for the demo farm's sample tour.
 - **`npm install` version error on `@supabase/ssr`** → run `npm install @supabase/ssr@latest`.
+- **A page shows old data after an action** → the action did not call `refreshData()` (see Conventions). Visited pages are kept for 30 seconds.
 - **Stuck in a redirect loop** → clear site cookies for `localhost:3000` and log in again.
 
 ## Deploy (Vercel)
 
 Import the repo → add the same env vars in Project Settings (set `NEXT_PUBLIC_APP_URL` to the deployed URL so QR links resolve) → deploy. Middleware and the app frame work out of the box.
+
+Two settings decide how fast the deployed app feels. Neither needs a code change:
+
+1. **Run the app in the same region as the database.** Every page makes one to three round trips from the server to Supabase. If the server is in the USA (Vercel's default, Washington D.C.) and the database is in Singapore, each round trip costs about a quarter of a second. In Vercel: Project Settings → Functions → Function Region → choose the region closest to your Supabase project (for a Singapore project, `sin1`).
+2. **Use asymmetric JWT signing keys in Supabase.** Supabase dashboard → Project Settings → JWT Keys. With them, the login check is done inside the app and costs no network call (see "Pages are built to open fast" above). On the legacy JWT secret every page view still asks Supabase Auth first.
 
 ---
 
