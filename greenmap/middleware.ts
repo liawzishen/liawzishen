@@ -1,6 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import type { AppUserMetadata } from "@/types";
 
 /**
  * Route protection (Phase 1):
@@ -32,8 +31,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user && path === "/auth") {
-    const role = (user.user_metadata as AppUserMetadata | undefined)?.role;
-    return redirectTo(role === "consumer" ? "/consumer" : "/farms");
+    return redirectTo(user.metadata.role === "consumer" ? "/consumer" : "/farms");
   }
 
   return supabaseResponse;
