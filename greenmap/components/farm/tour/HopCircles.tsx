@@ -1,17 +1,30 @@
 "use client";
 
 import { useMemo } from "react";
+import { useThree } from "@react-three/fiber";
 import type { ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Farm, FarmPanorama } from "@/types/database";
-import { mapBearing, bearingToYaw, toVec } from "./geometry";
+import {
+  MIN_TAP_PX,
+  bearingToYaw,
+  mapBearing,
+  toVec,
+  unitsPerPixel,
+} from "./geometry";
 
 const CIRCLE_PITCH = -0.38; // radians below the horizon — reads as "on the ground"
+
+/** A press that moved further than this (px) was a look-around drag, not a tap. */
+const TAP_SLOP_PX = 6;
 
 /**
  * Matterport-style navigation: one semi-transparent white ring per other
  * panorama, placed at its real map bearing. Nearer spots render larger.
  * Rings live OUTSIDE the heading-rotated group — bearings are world-space.
+ *
+ * The tap area is never smaller than 44 px on screen: a ring keeps its world
+ * size, which is only about 25 px across on a phone-sized canvas.
  */
 export function HopCircles({
   farm,
@@ -24,6 +37,9 @@ export function HopCircles({
   panoramas: FarmPanorama[];
   onHop: (target: FarmPanorama) => void;
 }) {
+  const viewportHeight = useThree((s) => s.size.height);
+  const minTapRadius = (MIN_TAP_PX / 2) * unitsPerPixel(viewportHeight);
+
   const rings = useMemo(() => {
     const w = farm.canvas_width;
     const h = farm.canvas_height;
@@ -51,11 +67,12 @@ export function HopCircles({
           <mesh
             onClick={(e: ThreeEvent<MouseEvent>) => {
               e.stopPropagation();
+              if (e.delta > TAP_SLOP_PX) return; // end of a drag, not a tap
               onHop(pano);
             }}
           >
             {/* invisible fat disc = ≥44px tap target */}
-            <circleGeometry args={[scale * 0.9, 24]} />
+            <circleGeometry args={[Math.max(scale * 0.9, minTapRadius), 24]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
           <mesh>
