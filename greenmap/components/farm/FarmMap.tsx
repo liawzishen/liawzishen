@@ -31,13 +31,23 @@ function TourLoading() {
   );
 }
 
-const FarmTour = dynamic(
-  () => import("./tour/FarmTour").then((m) => m.FarmTour),
-  {
-    ssr: false,
-    loading: () => <TourLoading />,
-  }
-);
+const loadFarmTour = () => import("./tour/FarmTour").then((m) => m.FarmTour);
+
+const FarmTour = dynamic(loadFarmTour, {
+  ssr: false,
+  loading: () => <TourLoading />,
+});
+
+/**
+ * Start downloading the 3D code as soon as the farmer reaches for the 3D
+ * button (hover, focus or touch), so it is usually ready by the time they
+ * press it. The three.js chunk is large, so it is never fetched before that.
+ */
+const preloadFarmTour = () => {
+  void loadFarmTour().catch(() => {
+    /* offline — the real load shows its own state */
+  });
+};
 
 export function FarmMap({
   farm,
@@ -151,6 +161,8 @@ export function FarmMap({
             setPlacing(false);
             setSelectedPlant(null);
           }}
+          onPointerEnter={mode === "2d" ? preloadFarmTour : undefined}
+          onFocus={mode === "2d" ? preloadFarmTour : undefined}
           aria-label={mode === "2d" ? t.map.switchTo3d : t.map.switchTo2d}
           className="pressable absolute right-3 top-3 rounded-full bg-white/95 px-3.5 py-1.5 text-[13px] font-bold text-brand-dark shadow-card backdrop-blur"
         >

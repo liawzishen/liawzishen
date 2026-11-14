@@ -3,6 +3,12 @@ import type { Farm, FarmPanorama } from "@/types/database";
 /** Radius of the photo sphere (camera sits at the origin inside it). */
 export const SPHERE_R = 40;
 
+/** Vertical field of view of the tour camera, in degrees. */
+export const TOUR_FOV = 75;
+
+/** Smallest comfortable touch target, in CSS pixels (WCAG / platform guidance). */
+export const MIN_TAP_PX = 44;
+
 /**
  * Yaw/pitch → position. Convention: yaw θ faces (-sin θ, 0, -cos θ), which is
  * exactly the direction of camera.rotation.set(pitch, yaw, 0, "YXZ").
@@ -47,4 +53,54 @@ export function mapBearing(
 /** Map bearing → tour-space yaw (see toVec convention). */
 export function bearingToYaw(bearing: number): number {
   return -bearing;
+}
+
+/**
+ * World units covered by one CSS pixel, for something `distance` units in
+ * front of the camera. Used to give markers a minimum on-screen tap size:
+ * a fixed world size shrinks to ~20 px on a phone-sized canvas.
+ */
+export function unitsPerPixel(
+  viewportHeightPx: number,
+  distance: number = SPHERE_R - 2,
+  fovDeg: number = TOUR_FOV
+): number {
+  const visibleHeight = 2 * distance * Math.tan((fovDeg * Math.PI) / 360);
+  return visibleHeight / Math.max(1, viewportHeightPx);
+}
+
+/**
+ * Scale (width, height) down so the width is at most `maxWidth`, keeping the
+ * aspect ratio. Never scales up. Sizes are whole pixels, at least 1.
+ */
+export function fitWithin(
+  width: number,
+  height: number,
+  maxWidth: number
+): { width: number; height: number; resized: boolean } {
+  if (width <= maxWidth) return { width, height, resized: false };
+  return {
+    width: maxWidth,
+    height: Math.max(1, Math.round((height * maxWidth) / width)),
+    resized: true,
+  };
+}
+
+/**
+ * The other capture spots, nearest first (map distance, aspect-corrected).
+ * The nearest spots are the likeliest next hop, so they are prefetched first.
+ */
+export function nearestPanoramas(
+  farm: Pick<Farm, "canvas_width" | "canvas_height">,
+  from: FarmPanorama,
+  panoramas: FarmPanorama[]
+): FarmPanorama[] {
+  const distance = (p: FarmPanorama) =>
+    Math.hypot(
+      (p.position_x - from.position_x) * farm.canvas_width,
+      (p.position_y - from.position_y) * farm.canvas_height
+    );
+  return panoramas
+    .filter((p) => p.id !== from.id)
+    .sort((a, b) => distance(a) - distance(b));
 }

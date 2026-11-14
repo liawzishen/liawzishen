@@ -10,9 +10,14 @@ const PITCH_LIMIT = (75 * Math.PI) / 180;
  * Drag to look around from the sphere centre. Tracks a single pointerId so
  * multi-touch can't cross streams; left button only; pitch clamped ±75°.
  * Same feel as the old walk rig — movement removed (you hop, not walk).
+ *
+ * The canvas renders on demand, so every look change asks for one frame
+ * (`invalidate`). When nobody is dragging, nothing is drawn at all.
  */
 export function LookControls() {
-  const { camera, gl } = useThree();
+  const camera = useThree((s) => s.camera);
+  const gl = useThree((s) => s.gl);
+  const invalidate = useThree((s) => s.invalidate);
   const yaw = useRef(0);
   const pitch = useRef(0);
 
@@ -36,21 +41,28 @@ export function LookControls() {
       );
       lastX = e.clientX;
       lastY = e.clientY;
+      invalidate();
     };
     const up = (e: PointerEvent) => {
       if (e.pointerId === activeId) activeId = null;
     };
+    // A restored WebGL context (tab was in the background, GPU reset) has an
+    // empty canvas until something draws again.
+    const restored = () => invalidate();
+
     el.addEventListener("pointerdown", down);
+    el.addEventListener("webglcontextrestored", restored);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
     return () => {
       el.removeEventListener("pointerdown", down);
+      el.removeEventListener("webglcontextrestored", restored);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
     };
-  }, [gl]);
+  }, [gl, invalidate]);
 
   useFrame(() => {
     camera.position.set(0, 0, 0);

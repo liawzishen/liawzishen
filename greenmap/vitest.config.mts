@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
-/** Unit tests for the pure logic in lib/ (no browser, no database). */
+/** Unit tests for pure logic (no browser, no database): lib/ and component helpers. */
 export default defineConfig({
   resolve: {
     // Same "@/…" alias as tsconfig.json.
@@ -9,7 +9,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["lib/**/*.test.ts"],
+    include: ["lib/**/*.test.ts", "components/**/*.test.ts"],
     restoreMocks: true,
     unstubEnvs: true,
     unstubGlobals: true,
