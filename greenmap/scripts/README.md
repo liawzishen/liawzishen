@@ -11,7 +11,7 @@
 > and recreates the demo grower's farms — never run it against a backend
 > holding data you care about.
 
-Run the nine migrations **in order** in the Supabase SQL editor, then seed demo data.
+Run the ten migrations **in order** in the Supabase SQL editor, then seed demo data.
 
 ## 1. Run the migrations
 
@@ -26,8 +26,9 @@ Supabase Dashboard → **SQL Editor** → **New query**. Paste each file's conte
 7. `supabase/migrations/0007_support.sql` — customer service: refund requests, order feedback, support chat (customer-side RLS; refunds can only be created `pending`)
 8. `supabase/migrations/0008_seller_support.sql` — seller side: farm-ownership RLS so growers approve/reject refunds and reply to customers, plus `listing_stock` (in/out-of-stock)
 9. `supabase/migrations/0009_panoramas.sql` — 360° farm tour: `farm_panoramas` + `panorama_plant_tags` and the `farm-panoramas` storage bucket (then `npm run seed:panoramas` for the demo farm's sample tour)
+10. `supabase/migrations/0010_security_hardening.sql` — security rules: only the uploader can replace or delete a file; health scores, AI scans and passports become server-write-only; a seller's farm name cannot be taken over by a second account; scan credits are spent in one atomic step; rate-limit counter. **Deploy the current app code before running it.** `npm run test:smoke` tells you whether it is applied.
 
-Each file is **re-runnable** — running it twice is safe. `0006`–`0009` are additive — the app works without them (the affected panels show a friendly "run migration X" notice instead of breaking).
+Each file is **re-runnable** — running it twice is safe. `0006`–`0010` are additive — the app works without them (the affected panels show a friendly "run migration X" notice instead of breaking). `0010` is different in one way: the app *works* without it, but the security gaps it closes stay open, so do not skip it on a project real people use.
 
 > Prefer the CLI? With the Supabase CLI linked to your project, `supabase db push` applies everything in `supabase/migrations/` automatically.
 
@@ -51,6 +52,7 @@ npm run db:seed
 
 This creates:
 - Demo grower **Ahmad** — login `ahmad@greenmap.demo` / `Demo1234!`
+  (this password is public. For anything but a local demo, put `DEMO_PASSWORD=your-own` in `.env.local` before seeding; `seed:consumer` uses it too)
 - Farm **Ladang Hijau** (Johor, Tomato, satellite background)
 - ~30 plants (mostly healthy, plus 1 attention, 1 critical, 1 harvest-ready, 1 brand-new grey)
 - Backdated water / fertilize / planted logs with badge metadata

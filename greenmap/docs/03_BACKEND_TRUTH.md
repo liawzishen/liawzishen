@@ -106,20 +106,30 @@ Recalculation **writes** only on: water log, fertilize log, scan saved, manual_s
 
 ## 5. RLS Policies
 
-| Table | Policy |
-|---|---|
-| profiles | SELECT/UPDATE own row (`auth.uid() = id`) |
-| farms | ALL where `auth.uid() = user_id` |
-| zones, plants | ALL where `farm_id IN (own farms)` |
-| growth_logs, ai_analyses, health_score_history | ALL where `plant_id IN (plants of own farms)` |
-| harvest_passports | ALL for owner (via farm_id) **+ public SELECT** (safe: `qr_token` is unguessable; page fetches by exact token) |
+The browser talks to Supabase directly, so these rules — not the app's code — decide what a signed-in person can do. State after migration `0010_security_hardening.sql`; tested by `supabase/tests/security.test.ts`.
 
-Writes performed by API routes use the **service role key** (bypasses RLS) — that key exists only in server env. [D3] tightening (Phase 2, optional): revoke client INSERT on `ai_analyses`, `health_score_history`, `harvest_passports` so calculated tables are server-write-only.
+| Table | Browser (role `authenticated`) | Server only (service role) |
+|---|---|---|
+| profiles | SELECT own row; UPDATE own `name` only | plan, scan credits, `is_verified`, role |
+| farms, zones | ALL on own rows. `created_at` / `name_claimed_at` cannot be set or back-dated | — |
+| plants | ALL on own rows, **except** `health_score` and `lifecycle_status` (ignored when sent) | `health_score`, `lifecycle_status` |
+| growth_logs | SELECT own; INSERT `planted` / `water` / `fertilize` / `note` (timestamp is always "now") | INSERT `ai_scan` / `harvested`; UPDATE; DELETE |
+| ai_analyses, health_score_history | SELECT own | all writes |
+| harvest_passports | SELECT own. **No public SELECT** — the QR page reads one passport by its token through the server | all writes |
+| ai_scan_usage, payments, listing_boosts, listing_stock, rate_limits | SELECT (own, or all for boosts/stock; none for rate_limits) | all writes |
+| refund_requests | customer: SELECT/INSERT (`pending` only)/DELETE own. seller: SELECT; UPDATE `status` once, never on their own request | — |
+| support_messages | customer: SELECT own, INSERT as `customer`. seller: SELECT and reply in their farm's `seller` threads | the assistant's and auto replies |
+| order_feedback | customer: SELECT/INSERT own. seller: SELECT their farm's | — |
+
+"Seller" = the signed-in user owns the farm with the **oldest claim** on the row's farm name (`owns_seller_name()`), because demo listings know their seller only by name. Text columns have length limits (CHECK constraints).
+
+Server-side functions (callable with the service role only): `consume_scan_credit` / `release_scan_credit` (reserve a scan credit atomically, give it back on failure), `add_bonus_scans`, `take_rate_limit`.
 
 ## 6. Storage — 3 Public Buckets
 
 `farm-backgrounds` (uploaded aerials) · `plant-scans` (AI scan photos) · `growth-photos` (timeline photos).
 Public because images must render on the public QR page. Client compresses to ≤1MB before upload. Path convention: `{farmId}/...` or `{plantId}/{timestamp}.jpg`.
+Since `0010`: any signed-in user may upload, but only the **uploader** may replace or delete a file (`owner_id`), and each bucket accepts only JPEG/PNG/WebP up to 10 MB (15 MB for `farm-panoramas`, which `0009` added with per-farm write rules).
 
 ## 7. API Routes **[D3 — 5 routes, supersedes the older 4-route set]**
 
@@ -134,8 +144,12 @@ Public because images must render on the public QR page. Client compresses to �
 
 Everything else (farms, zones, plants, water/fertilize/note logs, reads) = client → Supabase direct under RLS.
 
-**Rules every route follows** (helpers in `lib/api/http.ts`):
-- Sign-in is checked first (`401` when signed out), then the JSON body is parsed and validated.
+Later routes: `/api/tasks/{complete,uncomplete}`, `/api/payments`, `/api/satellite`, `/api/support/chat`, `/api/listings/stock` (see the README's project structure).
+
+**Rules every route follows** (`guardRequest()` in `lib/api/guard.ts`, helpers in `lib/api/http.ts`):
+- In this order: the request must come from the app's own pages (`403` for another site), somebody must be signed in (`401`), they must be under the route's rate limit (`429` + `Retry-After`), and the body must be a JSON object under 100 KB (`400`). Ids must be UUIDs.
+- `/api/ai/scan` returns a signed `receipt` with its result; `/api/ai/save-scan` stores a result only if it still matches that receipt (`lib/ai/receipt.ts`). Saving the same scan twice stores it once.
+- A scan credit is reserved before the AI call and released if the scan fails (`lib/billing/credits.ts`).
 - `imageUrl` in `/api/ai/scan` and `/api/ai/save-scan` must be a file in this project's `plant-scans` bucket (`lib/storage/public-url.ts`). The server downloads that image, so any other URL is rejected with `400`. Images over 8 MB or with a non-image content type are not analysed.
 - Free-text inputs are length-capped (chat message 2,000 characters; diagnosis 400; each recommendation 200). Batch routes accept at most 1,000 plant ids.
 - Database and upstream errors are logged on the server. The browser only gets a short, safe message.
