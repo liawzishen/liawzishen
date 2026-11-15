@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 
 /**
- * Security headers sent with every response.
+ * Security headers sent with every response. (The Content-Security-Policy is
+ * not here: it needs a new nonce per page, so the middleware sets it.)
  * - nosniff: browsers must not guess content types.
  * - frame options: other sites cannot embed GreenMap in a frame (clickjacking).
+ * - opener policy: a page opened from GreenMap, or one that opened it, gets
+ *   no handle on our window.
  * - referrer policy: other sites only see our origin, never the full URL
  *   (a passport link contains its secret token).
  * - permissions policy: the app uses geolocation (farm GPS pin) and nothing
@@ -13,6 +16,7 @@ import type { NextConfig } from "next";
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
@@ -38,7 +42,15 @@ const nextConfig: NextConfig = {
     staleTimes: { dynamic: 30 },
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // API answers are personal (and some carry a signed scan receipt):
+      // no browser or proxy may keep a copy.
+      {
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+    ];
   },
   webpack: (config) => {
     // Konva's Node build references the optional native "canvas" package,

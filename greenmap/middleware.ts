@@ -1,13 +1,31 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
+import { buildCsp, createNonce } from "@/lib/security/csp";
 
 /**
- * Route protection (Phase 1):
+ * Runs before every page:
+ *
+ * 1. Content-Security-Policy (lib/security/csp.ts) with a fresh one-time
+ *    nonce. The policy is put on the REQUEST too: Next reads it there while
+ *    rendering and stamps the nonce on its own <script> tags.
+ * 2. Route protection:
  *   - /farms/** and /consumer require a session → otherwise redirect to /auth
  *   - logged-in users visiting /auth are redirected by role
  *   - /, /auth and /passport/** stay public
  */
 export async function middleware(request: NextRequest) {
+  const csp = buildCsp({
+    nonce: createNonce(),
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    isDev: process.env.NODE_ENV === "development",
+  });
+  // Set before updateSession(): it forwards these request headers to the page.
+  request.headers.set("Content-Security-Policy", csp);
+  const withCsp = (response: NextResponse) => {
+    response.headers.set("Content-Security-Policy", csp);
+    return response;
+  };
+
   const { supabaseResponse, user } = await updateSession(request);
   const path = request.nextUrl.pathname;
 
@@ -23,7 +41,7 @@ export async function middleware(request: NextRequest) {
     supabaseResponse.cookies
       .getAll()
       .forEach((cookie) => redirectResponse.cookies.set(cookie));
-    return redirectResponse;
+    return withCsp(redirectResponse);
   };
 
   if (!user && isProtected) {
@@ -34,7 +52,7 @@ export async function middleware(request: NextRequest) {
     return redirectTo(user.metadata.role === "consumer" ? "/consumer" : "/farms");
   }
 
-  return supabaseResponse;
+  return withCsp(supabaseResponse);
 }
 
 export const config = {
