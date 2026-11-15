@@ -46,7 +46,9 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 });
 
 const EMAIL = "siti@greenmap.demo";
-const PASSWORD = "Demo1234!"; // meets the strong-password rules
+// Public default (it is in the README). Set DEMO_PASSWORD in .env.local
+// before seeding a project that real people use.
+const PASSWORD = process.env.DEMO_PASSWORD || "Demo1234!"; // meets the strong-password rules
 const NAME = "Siti Aminah";
 
 async function findUserId(): Promise<string | null> {
@@ -94,6 +96,12 @@ async function main() {
   }
 
   console.log(`✅ Consumer ready — login: ${EMAIL} / ${PASSWORD}`);
+  if (!process.env.DEMO_PASSWORD) {
+    console.log(
+      "   ⚠ This is the public demo password from the README. Do not use it on a\n" +
+        "     live project: set DEMO_PASSWORD in .env.local and run the seed again."
+    );
+  }
   console.log("   Lands on the consumer home (/consumer). Grower data untouched.");
 }
 

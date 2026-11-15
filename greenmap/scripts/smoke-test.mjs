@@ -36,7 +36,7 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 const EMAIL = process.env.SMOKE_EMAIL || "ahmad@greenmap.demo";
-const PASSWORD = process.env.SMOKE_PASSWORD || "Demo1234!";
+const PASSWORD = process.env.SMOKE_PASSWORD || process.env.DEMO_PASSWORD || "Demo1234!";
 const CHECK_APP = process.argv.includes("--app");
 
 const ok = (msg) => console.log(`  \x1b[32m✓\x1b[0m ${msg}`);
@@ -130,6 +130,29 @@ if (!billingProbe.ok || !planProbe.ok) {
   );
 }
 ok("billing tables present (payments + profiles.plan readable)");
+
+// Security rules (migration 0010). The app runs without them, but the gaps
+// that migration closes are then still open — so this is a loud warning.
+const securityProbe = await fetch(`${SUPABASE_URL}/rest/v1/rpc/owns_seller_name`, {
+  method: "POST",
+  headers: { apikey: ANON_KEY, ...authed, "Content-Type": "application/json" },
+  body: JSON.stringify({ seller: farms[0].name }),
+  signal: AbortSignal.timeout(15_000),
+});
+const listable = await (await get("/rest/v1/harvest_passports?select=id&limit=1")).json();
+if (!securityProbe.ok) {
+  bad("security rules missing — migration 0010 is not applied");
+  console.log(
+    "    Open the Supabase dashboard → SQL editor, paste the contents of\n" +
+      "    supabase/migrations/0010_security_hardening.sql and run it.\n" +
+      "    Until then anyone signed in can change other growers' photos, and a\n" +
+      "    grower can write their own health scores and passports."
+  );
+} else if (Array.isArray(listable) && listable.length > 0) {
+  bad("passports can be listed without signing in — re-run migration 0010");
+} else {
+  ok("security rules present (migration 0010)");
+}
 
 // ── stage 3 (optional): app pages render data with a real session ───────────
 if (CHECK_APP) {

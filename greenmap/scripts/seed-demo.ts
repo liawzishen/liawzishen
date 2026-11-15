@@ -51,7 +51,11 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 
 /* ── Demo constants ─────────────────────────────────────────────────────── */
 const DEMO_EMAIL = "ahmad@greenmap.demo";
-const DEMO_PASSWORD = "Demo1234!"; // meets the strong-password rules
+// The default password is printed in this repository's README, so anyone can
+// read it. Fine for a local or throwaway project — for a project real people
+// use, set DEMO_PASSWORD in .env.local before seeding.
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "Demo1234!"; // meets the strong-password rules
+const USING_PUBLIC_PASSWORD = !process.env.DEMO_PASSWORD;
 const DEMO_NAME = "Ahmad bin Abdullah";
 // Fixed so the printed QR keeps working across reseeds:
 const DEMO_QR_TOKEN = "00000000-0000-4000-8000-0000deadbeef";
@@ -134,6 +138,15 @@ async function main() {
     .single();
   if (farmErr) throw farmErr;
   console.log(`  • farm "${farm.name}" created`);
+
+  // The demo marketplace listings name this farm as their seller, and a
+  // seller name belongs to the farm that claimed it FIRST (migration 0010).
+  // A reseed re-creates the farm, so its claim is set older than any copy.
+  // Without 0010 the column does not exist and this update changes nothing.
+  await admin
+    .from("farms")
+    .update({ name_claimed_at: "2020-01-01T00:00:00Z" })
+    .eq("id", farm.id);
 
   // ── Zones ─────────────────────────────────────────────────────────────────
   const { data: zones, error: zoneErr } = await admin
@@ -386,6 +399,12 @@ async function main() {
   );
   console.log("\n✅ Demo seed complete.");
   console.log(`   Login:  ${DEMO_EMAIL}  /  ${DEMO_PASSWORD}`);
+  if (USING_PUBLIC_PASSWORD) {
+    console.log(
+      "   ⚠ This is the public demo password from the README. Do not use it on a\n" +
+        "     live project: set DEMO_PASSWORD in .env.local and run the seed again."
+    );
+  }
   console.log(`   Public passport QR token:  ${DEMO_QR_TOKEN}`);
   console.log(`   → /passport/${DEMO_QR_TOKEN}\n`);
 }
