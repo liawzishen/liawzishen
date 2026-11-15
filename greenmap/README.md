@@ -210,15 +210,16 @@ components/
               AddPanoramaSheet, TourEmptyState, usePanoramas, geometry.ts, panoTexture.ts, panoImage.ts,
               markerTexture.ts; lazy three.js, mounted by FarmMap's 2D⇄3D toggle)
   farm/mapChunks.ts (lazy loaders + idle preload for the Konva and three.js code)
-  home/ (TodaysTasks, WeatherAdvisory) · layout/ (AppShell, ConsumerShell, SideRail, TopNav, StepDots, activeTab)
+  home/ (TodaysTasks, WeatherAdvisory) · layout/ (TabShell — shared by AppShell and ConsumerShell — SideRail, TopNav, StepDots, activeTab)
   passport/ (HarvestPassportCard, TrustBadges, QrBlock, HarvestConfirm)
   plant/ (HealthTrendChart, ActivityTimeline, SuggestionCard, ManualStatusControl, PlantQuickActions)
   ui/ (Button, Card, Badge, Input, Select, Modal/BottomSheet, SegmentedControl, EmptyState, Skeleton, Link)
 
 lib/  supabase/{client,server,admin,middleware,chunked} · api/http (shared route helpers)
       ai/{gemini,gemini-vision,gemini-text,gemini-support,validate} · storage/public-url
-      health/{calculate,live,recalculate,display} · passport/aggregate · billing/{plans,usage}
+      health/{calculate,live,recalculate,display} · passport/aggregate · billing/{plans,usage,payments}
       weather/{fetch,advice} · marketplace/rank · auth/{password,claims,user} · farm/{fetch,ownership} · date · utils
+      page data loaders: farm/fetch · plant/queries · account/queries · marketplace/availability · support/queries · passport/queries
       router/{refresh,progress,paths} (kept pages + refresh after writes, tap feedback) · network (idle preload, Data Saver)
       **/*.test.ts                       unit tests, next to the module they test
 middleware.ts                            route protection + role-based redirects
@@ -245,6 +246,12 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 - **All Gemini calls go through `lib/ai/gemini.ts`** (one model setting, one timeout, API key in a header). Never call the Gemini REST API directly from a route.
 - **"Today" means today in Malaysia.** Servers run in UTC, so use `localDateISO()` / `APP_TIME_ZONE` from `lib/date.ts` for date comparisons and server-rendered dates, never `new Date().toISOString().slice(0, 10)`.
 - **Long id lists go through `selectInChunks()`** (`lib/supabase/chunked.ts`), because `.in()` filters travel in the URL.
+- **Each file has one job (how SOLID is applied here).** The code is functions and TypeScript interfaces, not classes: React components and hooks are functions, React `cache()` works on functions, and a class instance cannot be sent from a Server Component to the browser. The principles still apply:
+  - *A page does not query the database.* Pages under `app/` read their data from a loader and render it. The loaders live in `lib/`, one module per subject: `farm/fetch`, `plant/queries`, `account/queries`, `marketplace/availability`, `support/queries`, `passport/queries`. No page imports the Supabase clients — the service-role client in particular stays inside `lib/`.
+  - *A loader fetches; a pure function shapes.* Anything that turns rows into something else (group, count, pick the latest) is a small exported function with unit tests, e.g. `groupSupportThreads`, `latestBoostExpiry`, `countByFarm`. The loader only runs the queries and calls it.
+  - *Every loader says what it returns* with a named interface (`PlantDetail`, `SellerInbox`, `PublicPassport`…), and answers `null` for "not found or not yours". A page gets exactly the fields it needs.
+  - *Write a rule once.* The tab bar is `TabShell`; the grower and shopper shells only pass it their tabs. The badge colour of a health band is `healthDisplay().tone`. The app link is `components/ui/Link`.
+  - *Low-level details are passed in*, not reached for: helpers such as `getScanAllowance(supabase, userId)` and `lastCareForPlant(supabase, plantId)` take the client as a parameter, so tests can hand them a fake one.
 - **Pages are built to open fast.** Almost all of a page's waiting time is round trips to Supabase, so the rules are about making fewer of them. Keep these when you add or change a page:
   - *One login check per request, usually without the network.* Server Components call `getAuthUser()` (`lib/auth/user.ts`), never `supabase.auth.getUser()`. It verifies the login token with `auth.getClaims()`: on Supabase projects with **asymmetric JWT signing keys** that is a local signature check, so the middleware and the pages make no call to Supabase Auth at all. Projects on the legacy JWT secret still work — they ask the Auth server, as before. Two places stay strict on purpose and keep `getUser()`: the Profile page (it shows the newest account data) and every API route (`getSessionUser()`), because they write.
   - *Few waves of queries.* Queries that do not need each other's result go in one `Promise.all`. The farm loaders in `lib/farm/fetch.ts` are wrapped in React `cache()`, so the page and its sections share one fetch per request: wave 1 is the farm, zones and plants; wave 2 is everything keyed by plant id.
