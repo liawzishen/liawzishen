@@ -178,6 +178,7 @@ export function LogModal({
               {t.log.note}
             </label>
             <textarea
+              maxLength={2000}
               id="note-text"
               value={text}
               onChange={(e) => setText(e.target.value)}

@@ -6,9 +6,13 @@ type InputProps = {
   className?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "className">;
 
+/** Default cap for plain text fields; the database allows 120 for names. */
+const DEFAULT_TEXT_MAX_LENGTH = 120;
+
 /** iOS-style input (06 §8): fill background, no border, radius 12, 48px tall. */
 export function Input({ label, error, className, id, ...inputProps }: InputProps) {
   const inputId = id ?? label.toLowerCase().replace(/\s+/g, "-");
+  const isPlainText = inputProps.type === undefined || inputProps.type === "text";
 
   return (
     <div className={className}>
@@ -25,6 +29,7 @@ export function Input({ label, error, className, id, ...inputProps }: InputProps
           "outline-none transition focus:border-[#8b5a2b] focus:bg-[#f6ecd5]",
           error && "border-critical/70"
         )}
+        maxLength={isPlainText ? DEFAULT_TEXT_MAX_LENGTH : undefined}
         {...inputProps}
       />
       {error && <p className="mt-1 text-[13px] text-critical">{error}</p>}

@@ -235,6 +235,7 @@ function RefundSheet({
       </div>
 
       <textarea
+        maxLength={1000}
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         placeholder="What went wrong? (e.g. items arrived crushed)"
@@ -291,6 +292,7 @@ function FeedbackSheet({
       </div>
 
       <textarea
+        maxLength={1000}
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         placeholder="Add a comment (optional)"

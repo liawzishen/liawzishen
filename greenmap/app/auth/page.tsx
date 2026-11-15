@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { PasswordChecklist } from "@/components/auth/PasswordChecklist";
 import { isPasswordValid } from "@/lib/auth/password";
+import { ssoErrorMessage } from "@/lib/auth/sso-errors";
 import { cn } from "@/lib/utils";
 import { SunflowerScene } from "@/components/auth/SunflowerScene";
 import { TopoBackground } from "@/components/auth/map/TopoBackground";
@@ -266,10 +267,11 @@ export default function AuthPage() {
   const isRegister = mode === "register";
 
   // Surface an OAuth failure passed back by /auth/callback (?sso_error=…),
-  // then clean the URL so a refresh doesn't re-show it.
+  // then clean the URL so a refresh doesn't re-show it. The URL carries a
+  // code; the text shown is always one of our own fixed messages.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ssoError = params.get("sso_error");
+    const ssoError = ssoErrorMessage(params.get("sso_error"));
     if (ssoError) {
       setError(ssoError);
       window.history.replaceState(null, "", "/auth");

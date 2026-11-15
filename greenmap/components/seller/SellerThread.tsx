@@ -76,6 +76,7 @@ export function SellerThread({
 
       <div className="mt-3 flex items-center gap-2">
         <input
+          maxLength={2000}
           value={reply}
           onChange={(e) => setReply(e.target.value)}
           onKeyDown={(e) => {

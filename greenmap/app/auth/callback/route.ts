@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { ssoErrorCode, type SsoErrorCode } from "@/lib/auth/sso-errors";
 import type { Role } from "@/types";
 
 /**
@@ -19,24 +20,29 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const origin = url.origin;
 
-  const fail = (message: string) =>
-    NextResponse.redirect(
-      `${origin}/auth?sso_error=${encodeURIComponent(message)}`
-    );
+  // Only a short code goes back to the sign-in page — never text from the
+  // URL or from the provider (see lib/auth/sso-errors.ts). The detail is
+  // logged here for whoever runs the server.
+  const fail = (reason: SsoErrorCode, detail?: string | null) => {
+    if (detail) console.warn("[/auth/callback] sign-in failed:", detail.slice(0, 300));
+    return NextResponse.redirect(`${origin}/auth?sso_error=${reason}`);
+  };
 
   // Provider / user-cancel errors come back as query params.
-  const providerError =
-    url.searchParams.get("error_description") ?? url.searchParams.get("error");
-  if (providerError) return fail(providerError);
+  const providerError = url.searchParams.get("error");
+  if (providerError) {
+    return fail(
+      ssoErrorCode(providerError),
+      url.searchParams.get("error_description") ?? providerError
+    );
+  }
 
   const code = url.searchParams.get("code");
-  if (!code) return fail("Sign-in was cancelled. Please try again.");
+  if (!code) return fail("cancelled");
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error || !data.user) {
-    return fail(error?.message ?? "Could not complete sign-in. Please try again.");
-  }
+  if (error || !data.user) return fail("failed", error?.message);
 
   const user = data.user;
   const meta = (user.user_metadata ?? {}) as {
@@ -51,9 +57,10 @@ export async function GET(request: Request) {
   // on the auth page (default grower) and a display name from the provider.
   if (meta.role !== "grower" && meta.role !== "consumer") {
     role = url.searchParams.get("role") === "consumer" ? "consumer" : "grower";
-    const name =
+    const name = (
       (meta.name ?? meta.full_name ?? "").trim() ||
-      (user.email?.split("@")[0] ?? "");
+      (user.email?.split("@")[0] ?? "")
+    ).slice(0, 80);
 
     await supabase.auth.updateUser({ data: { role, name } });
 
