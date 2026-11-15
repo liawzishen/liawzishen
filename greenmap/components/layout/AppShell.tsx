@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { Link } from "@/components/ui/Link";
-import { cn } from "@/lib/utils";
 import { shouldSaveData, whenIdle } from "@/lib/network";
 import { preloadMapCanvas } from "@/components/farm/mapChunks";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
-import { SideRail, type RailTab } from "@/components/layout/SideRail";
-import { tabMatches, useHighlightedPath } from "@/components/layout/activeTab";
+import type { RailTab } from "@/components/layout/SideRail";
+import { TabShell } from "@/components/layout/TabShell";
 
 /*
  * 5-tab grower shell (06 §9): Home · Map · Scan(FAB) · Sales · Profile.
@@ -97,66 +95,12 @@ export function AppShell({
     { href: `${base}/profile`, label: t.tabs.profile, icon: <ProfileIcon />, exact: false },
   ];
 
-  const scanHref = `${base}/scan`;
-  // The tapped tab lights up at once, before its page has loaded.
-  const currentPath = useHighlightedPath([
-    ...tabs,
-    { href: scanHref, exact: false },
-  ]);
-  const isActive = (tab: { href: string; exact: boolean }) =>
-    tabMatches(currentPath, tab);
-
-  const tabLink = (tab: (typeof tabs)[number]) => (
-    <Link
-      key={tab.href}
-      href={tab.href}
-      prefetch={null} // always visible, tapped all the time → skeleton ready
-      className={cn(
-        "pressable flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
-        isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
-      )}
-    >
-      {tab.icon}
-      {tab.label}
-    </Link>
-  );
-
   return (
-    <>
-      {/* Room for the floating bar + raised FAB; at lg the rail owns nav */}
-      <div className="shell-breakout pb-[128px] lg:pb-8 lg:pl-[248px]">
-        {children}
-      </div>
-
-      <SideRail
-        tabs={tabs}
-        fab={{ href: scanHref, label: "AI Scan", icon: <SparkleIcon /> }}
-        currentPath={currentPath}
-      />
-
-      <nav
-        aria-label="Main"
-        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong lg:hidden"
-      >
-        {tabLink(tabs[0])}
-        {tabLink(tabs[1])}
-
-        {/* Centre Scan FAB — the signature action (06 §9) */}
-        <Link
-          href={scanHref}
-          prefetch={null}
-          aria-label="AI Scan"
-          className={cn(
-            "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",
-            currentPath.startsWith(scanHref) && "ring-2 ring-brand/40"
-          )}
-        >
-          <SparkleIcon />
-        </Link>
-
-        {tabLink(tabs[2])}
-        {tabLink(tabs[3])}
-      </nav>
-    </>
+    <TabShell
+      tabs={tabs}
+      fab={{ href: `${base}/scan`, label: "AI Scan", icon: <SparkleIcon /> }}
+    >
+      {children}
+    </TabShell>
   );
 }

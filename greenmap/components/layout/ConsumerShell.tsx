@@ -1,10 +1,8 @@
 "use client";
 
-import { Link } from "@/components/ui/Link";
-import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/LanguageProvider";
-import { SideRail, type RailTab } from "@/components/layout/SideRail";
-import { tabMatches, useHighlightedPath } from "@/components/layout/activeTab";
+import type { RailTab } from "@/components/layout/SideRail";
+import { TabShell } from "@/components/layout/TabShell";
 
 /*
  * Consumer tab shell — the buyer-side mirror of the grower AppShell.
@@ -73,65 +71,12 @@ export function ConsumerShell({ children }: { children: React.ReactNode }) {
     { href: "/consumer/profile", label: t.tabs.profile, icon: <ProfileIcon />, exact: false },
   ];
 
-  const scanHref = "/consumer/scan";
-  // The tapped tab lights up at once, before its page has loaded.
-  const currentPath = useHighlightedPath([
-    ...tabs,
-    { href: scanHref, exact: false },
-  ]);
-  const isActive = (tab: { href: string; exact: boolean }) =>
-    tabMatches(currentPath, tab);
-
-  const tabLink = (tab: (typeof tabs)[number]) => (
-    <Link
-      key={tab.href}
-      href={tab.href}
-      prefetch={null} // always visible, tapped all the time → skeleton ready
-      className={cn(
-        "pressable flex min-w-[56px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[10px] font-medium transition-colors",
-        isActive(tab) ? "bg-brand/12 text-brand" : "text-secondary"
-      )}
-    >
-      {tab.icon}
-      {tab.label}
-    </Link>
-  );
-
   return (
-    <>
-      <div className="shell-breakout pb-[128px] lg:pb-8 lg:pl-[248px]">
-        {children}
-      </div>
-
-      <SideRail
-        tabs={tabs}
-        fab={{ href: scanHref, label: "Scan QR", icon: <ScanIcon /> }}
-        currentPath={currentPath}
-      />
-
-      <nav
-        aria-label="Main"
-        className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-30 flex h-16 w-[calc(100%-2rem)] max-w-[398px] -translate-x-1/2 items-center justify-around rounded-[26px] px-2 glass-strong lg:hidden"
-      >
-        {tabLink(tabs[0])}
-        {tabLink(tabs[1])}
-
-        {/* Centre Scan FAB — the signature consumer action */}
-        <Link
-          href={scanHref}
-          prefetch={null}
-          aria-label="Scan QR"
-          className={cn(
-            "pressable -mt-9 flex h-[50px] w-[50px] items-center justify-center rounded-full text-white bg-gradient-brand shadow-fab",
-            currentPath.startsWith(scanHref) && "ring-2 ring-brand/40"
-          )}
-        >
-          <ScanIcon />
-        </Link>
-
-        {tabLink(tabs[2])}
-        {tabLink(tabs[3])}
-      </nav>
-    </>
+    <TabShell
+      tabs={tabs}
+      fab={{ href: "/consumer/scan", label: "Scan QR", icon: <ScanIcon /> }}
+    >
+      {children}
+    </TabShell>
   );
 }
