@@ -1,48 +1,21 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/user";
+import { getActivePlantCounts, getFarmList } from "@/lib/farm/fetch";
 import { displayName } from "@/lib/auth/claims";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { FarmCard } from "@/components/farm/FarmCard";
-import type { Farm } from "@/types/database";
 
 export default async function FarmSelectorPage() {
-  const supabase = await createClient();
-
-  // The user check and the farm list run together.
-  // (RLS limits the rows to this user's own farms.)
-  const [user, { data: farms }] = await Promise.all([
-    getAuthUser(),
-    supabase.from("farms").select("*").order("created_at", { ascending: false }),
-  ]);
+  const { user, farms: farmList } = await getFarmList();
   const name = displayName(user, user?.email ?? "Grower");
-
-  const farmList = (farms ?? []) as Farm[];
 
   // Smart entry: only show the chooser when there's a real choice to make.
   if (farmList.length === 0) redirect("/farms/new/profile");
   if (farmList.length === 1) redirect(`/farms/${farmList[0].id}`);
 
-  // ACTIVE plant counts per farm, in one query. Harvested plants are excluded
-  // so this number matches the Home/Map "Plants" stat (they'd disagree
-  // otherwise — e.g. "30" here vs "25" inside the farm).
-  const counts: Record<string, number> = {};
-  if (farmList.length > 0) {
-    const { data: plants } = await supabase
-      .from("plants")
-      .select("farm_id")
-      .eq("lifecycle_status", "active")
-      .in(
-        "farm_id",
-        farmList.map((f) => f.id)
-      );
-    for (const row of plants ?? []) {
-      const id = (row as { farm_id: string }).farm_id;
-      counts[id] = (counts[id] ?? 0) + 1;
-    }
-  }
+  // Only the chooser shows plant counts, so they load after the redirects.
+  const counts = await getActivePlantCounts(farmList.map((farm) => farm.id));
 
   return (
     <main className="desktop-breakout px-6 pb-12 pt-14 lg:mx-auto lg:w-full lg:max-w-[1100px] lg:px-8 lg:pt-16">

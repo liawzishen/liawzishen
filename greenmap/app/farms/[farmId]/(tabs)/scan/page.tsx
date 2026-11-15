@@ -5,17 +5,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getFarmBundle } from "@/lib/farm/fetch";
-import { healthDisplay, type HealthBand } from "@/lib/health/display";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/user";
-import { getScanAllowance, type ScanAllowance } from "@/lib/billing/usage";
-
-const BADGE_TONE: Record<HealthBand, "brand" | "warning" | "critical" | "neutral"> = {
-  healthy: "brand",
-  attention: "warning",
-  critical: "critical",
-  new: "neutral",
-};
+import { healthDisplay } from "@/lib/health/display";
+import { getMyScanAllowance } from "@/lib/account/queries";
 
 /**
  * Scan tab (the centre FAB) — pick a plant, then run the existing per-plant
@@ -30,10 +21,7 @@ export default async function ScanPickerPage({
   const { farmId } = await params;
   const [bundle, allowance] = await Promise.all([
     getFarmBundle(farmId),
-    (async (): Promise<ScanAllowance | null> => {
-      const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
-      return user ? getScanAllowance(supabase, user.id) : null;
-    })(),
+    getMyScanAllowance(),
   ]);
   if (!bundle) notFound();
 
@@ -98,7 +86,7 @@ export default async function ScanPickerPage({
                     {p.type}
                   </p>
                 </div>
-                <Badge tone={BADGE_TONE[display.band]}>{display.label}</Badge>
+                <Badge tone={display.tone}>{display.label}</Badge>
                 <span aria-hidden className="text-[18px] text-tertiary">
                   ›
                 </span>

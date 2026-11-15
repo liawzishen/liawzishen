@@ -214,3 +214,50 @@ export const getUserAndFarms = cache(
     return { user, farms: (data ?? []) as { id: string; name: string }[] };
   }
 );
+
+/** Farm id → how many rows belong to it. */
+export function countByFarm(
+  rows: readonly { farm_id: string }[]
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const row of rows) counts[row.farm_id] = (counts[row.farm_id] ?? 0) + 1;
+  return counts;
+}
+
+export interface FarmList {
+  user: AuthUser | null;
+  /** The signed-in grower's farms, newest first. */
+  farms: Farm[];
+}
+
+/**
+ * The signed-in grower and their farms. The user check and the farm list
+ * run together (RLS limits the rows to this user's own farms).
+ */
+export const getFarmList = cache(async (): Promise<FarmList> => {
+  const supabase = await createClient();
+  const [user, { data }] = await Promise.all([
+    getAuthUser(),
+    supabase.from("farms").select("*").order("created_at", { ascending: false }),
+  ]);
+  return { user, farms: (data ?? []) as Farm[] };
+});
+
+/**
+ * Farm id → number of ACTIVE plants, in one query. Harvested plants are not
+ * counted, so the number matches the "Plants" stat inside the farm.
+ * Separate from `getFarmList` on purpose: the farm chooser usually redirects
+ * (zero or one farm) and must not pay for counts it will not show.
+ */
+export async function getActivePlantCounts(
+  farmIds: string[]
+): Promise<Record<string, number>> {
+  if (farmIds.length === 0) return {};
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("plants")
+    .select("farm_id")
+    .eq("lifecycle_status", "active")
+    .in("farm_id", farmIds);
+  return countByFarm((data ?? []) as { farm_id: string }[]);
+}

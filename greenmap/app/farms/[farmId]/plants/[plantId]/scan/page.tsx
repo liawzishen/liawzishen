@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/user";
+import { getPlantScanContext } from "@/lib/plant/queries";
 import { TopNav } from "@/components/layout/TopNav";
 import { Button } from "@/components/ui/Button";
 import { ScanUploader } from "@/components/ai/ScanUploader";
-import { getScanAllowance } from "@/lib/billing/usage";
 import { formatRM, TOPUP_PRICE_RM } from "@/lib/billing/plans";
 
 export default async function PlantScanPage({
@@ -13,18 +11,9 @@ export default async function PlantScanPage({
   params: Promise<{ farmId: string; plantId: string }>;
 }) {
   const { farmId, plantId } = await params;
-  const supabase = await createClient();
-
-  // The plant does not wait for the user check; the allowance starts as soon
-  // as the user id is known.
-  const [{ data: plant }, allowance] = await Promise.all([
-    supabase.from("plants").select("name, type").eq("id", plantId).single(),
-    getAuthUser().then((user) =>
-      user ? getScanAllowance(supabase, user.id) : null
-    ),
-  ]);
-  if (!plant) notFound();
-  const p = plant as { name: string; type: string };
+  const scan = await getPlantScanContext(plantId);
+  if (!scan) notFound();
+  const { allowance } = scan;
 
   const blocked = allowance !== null && allowance.remaining === 0;
   const resetLabel = allowance
@@ -38,7 +27,7 @@ export default async function PlantScanPage({
     <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="AI Scan" backHref={`/farms/${farmId}/plants/${plantId}`} />
       <div className="px-6 pt-2">
-        <h1 className="text-[24px] font-bold leading-tight">{p.name}</h1>
+        <h1 className="text-[24px] font-bold leading-tight">{scan.name}</h1>
         <p className="mt-0.5 text-[14px] text-secondary">
           Snap a leaf for an instant Gemini health check.
         </p>
@@ -69,7 +58,7 @@ export default async function PlantScanPage({
             <ScanUploader
               plantId={plantId}
               farmId={farmId}
-              cropType={p.type}
+              cropType={scan.type}
               scansLeft={allowance ? allowance.remaining : undefined}
             />
           )}

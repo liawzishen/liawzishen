@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/user";
+import { getSupportHistory } from "@/lib/support/queries";
 import { TopNav } from "@/components/layout/TopNav";
 import { SupportChat } from "@/components/consumer/SupportChat";
 import { getOrder, STATUS_META } from "@/components/consumer/demo-consumer";
-import type { SupportMessage, SupportThread } from "@/types/database";
 
 /**
  * Support chat page — /consumer/support/admin or /consumer/support/seller,
@@ -33,28 +31,7 @@ export default async function SupportChatPage({
       }
     : null;
 
-  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
-
-  let initialMessages: { sender: SupportMessage["sender"]; body: string }[] = [];
-  if (user) {
-    try {
-      let q = supabase
-        .from("support_messages")
-        .select("sender, body, created_at")
-        .eq("user_id", user.id)
-        .eq("thread", thread)
-        .order("created_at", { ascending: true })
-        .limit(50);
-      q = order ? q.eq("order_ref", order.id) : q.is("order_ref", null);
-      const { data } = await q;
-      initialMessages = (data ?? []).map((r) => ({
-        sender: (r as SupportMessage).sender,
-        body: (r as SupportMessage).body,
-      }));
-    } catch {
-      /* table not there yet — start fresh */
-    }
-  }
+  const initialMessages = await getSupportHistory(thread, order?.id ?? null);
 
   const title =
     thread === "admin" ? "GreenMap Admin" : `Chat · ${order?.farm ?? "Seller"}`;
@@ -64,7 +41,7 @@ export default async function SupportChatPage({
     <main>
       <TopNav title={title} backHref={backHref} />
       <SupportChat
-        thread={thread as SupportThread}
+        thread={thread}
         orderRef={order?.id ?? null}
         sellerName={order?.farm ?? null}
         orderContext={orderContext}

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getMarketAvailability } from "@/lib/marketplace/availability";
 import { TopNav } from "@/components/layout/TopNav";
 import { Marketplace } from "@/components/sales/Marketplace";
 
@@ -13,18 +13,7 @@ export default async function MarketplacePage({
 }) {
   const { farmId } = await params;
 
-  const supabase = await createClient();
-  const [{ data }, { data: stock }] = await Promise.all([
-    supabase
-      .from("listing_boosts")
-      .select("listing_id")
-      .gt("expires_at", new Date().toISOString()),
-    supabase.from("listing_stock").select("listing_id, in_stock"),
-  ]);
-  const boostedIds = [...new Set((data ?? []).map((b) => b.listing_id as string))];
-  const outOfStockIds = (stock ?? [])
-    .filter((s) => s.in_stock === false)
-    .map((s) => s.listing_id as string);
+  const { boostedIds, outOfStockIds } = await getMarketAvailability();
 
   return (
     <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">

@@ -1,9 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import type { ServerClient } from "@/lib/supabase/server";
 import { selectInChunks } from "@/lib/supabase/chunked";
 import { liveDisplayScore } from "./calculate";
 import type { Plant } from "@/types/database";
-
-type ServerClient = Awaited<ReturnType<typeof createClient>>;
 
 type CareLogRow = { plant_id: string; event_type: string; created_at: string };
 type ScanRow = { plant_id: string; ai_sub_score: number; created_at: string };

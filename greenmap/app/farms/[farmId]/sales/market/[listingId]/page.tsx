@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getListingAvailability } from "@/lib/marketplace/availability";
 import { TopNav } from "@/components/layout/TopNav";
 import { ListingDetail } from "@/components/sales/ListingDetail";
 import { getListing } from "@/components/sales/demo-listings";
@@ -18,28 +18,15 @@ export default async function ListingDetailPage({
   const listing = getListing(listingId);
   if (!listing) notFound();
 
-  const supabase = await createClient();
-  const [{ data }, { data: stock }] = await Promise.all([
-    supabase
-      .from("listing_boosts")
-      .select("id")
-      .eq("listing_id", listingId)
-      .gt("expires_at", new Date().toISOString())
-      .limit(1),
-    supabase
-      .from("listing_stock")
-      .select("in_stock")
-      .eq("listing_id", listingId)
-      .maybeSingle(),
-  ]);
+  const { promoted, inStock } = await getListingAvailability(listingId);
 
   return (
     <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title={listing.name} backHref={`/farms/${farmId}/sales/market`} />
       <ListingDetail
         listing={listing}
-        promoted={(data ?? []).length > 0}
-        inStock={(stock as { in_stock: boolean } | null)?.in_stock !== false}
+        promoted={promoted}
+        inStock={inStock}
         marketHref={`/farms/${farmId}/sales/market`}
         secondaryHref={`/farms/${farmId}/sales`}
         secondaryLabel="My Sales"

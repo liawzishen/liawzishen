@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/user";
+import { getOrderSupport } from "@/lib/support/queries";
 import { TopNav } from "@/components/layout/TopNav";
 import { OrderSupport } from "@/components/consumer/OrderSupport";
 import { getOrder, STATUS_META } from "@/components/consumer/demo-consumer";
-import type { OrderFeedback, RefundRequest } from "@/types/database";
 
 /**
  * Consumer order detail + customer-service hub. The order is mock data; the
@@ -21,36 +19,9 @@ export default async function OrderDetailPage({
   const order = getOrder(orderId);
   if (!order) notFound();
 
-  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
-
-  let refund: RefundRequest | null = null;
-  let feedback: OrderFeedback | null = null;
-  let supportReady = true;
-  if (user) {
-    const [{ data: r, error: rErr }, { data: f, error: fErr }] = await Promise.all([
-      supabase
-        .from("refund_requests")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("order_ref", order.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("order_feedback")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("order_ref", order.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-    ]);
-    // A PostgREST error here (e.g. undefined_table 42P01) means migration 0007
-    // hasn't been applied — Supabase returns it in `error`, it doesn't throw.
-    if (rErr || fErr) supportReady = false;
-    refund = (r as RefundRequest) ?? null;
-    feedback = (f as OrderFeedback) ?? null;
-  }
+  const { userId, refund, feedback, supportReady } = await getOrderSupport(
+    order.id
+  );
 
   const status = STATUS_META[order.status];
 
@@ -86,7 +57,7 @@ export default async function OrderDetailPage({
       </div>
 
       <OrderSupport
-        userId={user?.id ?? null}
+        userId={userId}
         order={order}
         existingRefund={refund}
         existingFeedback={feedback}

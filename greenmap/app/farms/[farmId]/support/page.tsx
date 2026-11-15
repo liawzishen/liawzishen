@@ -1,13 +1,9 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSellerInbox } from "@/lib/support/queries";
 import { TopNav } from "@/components/layout/TopNav";
 import { RefundActions } from "@/components/seller/RefundActions";
 import { SellerThread } from "@/components/seller/SellerThread";
-import type {
-  OrderFeedback,
-  RefundRequest,
-  SupportMessage,
-} from "@/types/database";
+import type { RefundRequest } from "@/types/database";
 
 /**
  * Grower Customer Service inbox. RLS (migration 0008) returns only support
@@ -21,50 +17,9 @@ export default async function SellerSupportPage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const supabase = await createClient();
-
-  let refunds: RefundRequest[] = [];
-  let messages: SupportMessage[] = [];
-  let feedback: OrderFeedback[] = [];
-  let ready = true;
-
-  // The ownership check only needs the farm row (RLS returns it to its owner
-  // alone), and it runs together with the three inbox queries.
-  const [{ data: farm }, r, m, f] = await Promise.all([
-    supabase.from("farms").select("id").eq("id", farmId).maybeSingle(),
-    supabase
-      .from("refund_requests")
-      .select("*")
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("support_messages")
-      .select("*")
-      .eq("thread", "seller")
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("order_feedback")
-      .select("*")
-      .order("created_at", { ascending: false }),
-  ]);
-  if (!farm) notFound();
-  if (r.error || m.error || f.error) ready = false;
-  refunds = (r.data as RefundRequest[]) ?? [];
-  messages = (m.data as SupportMessage[]) ?? [];
-  feedback = (f.data as OrderFeedback[]) ?? [];
-
-  // Group seller messages into threads keyed by customer + order.
-  const threads = new Map<string, SupportMessage[]>();
-  for (const msg of messages) {
-    const key = `${msg.user_id}::${msg.order_ref ?? ""}`;
-    const arr = threads.get(key) ?? [];
-    arr.push(msg);
-    threads.set(key, arr);
-  }
-  const threadList = [...threads.values()].sort(
-    (a, b) =>
-      new Date(b[b.length - 1].created_at).getTime() -
-      new Date(a[a.length - 1].created_at).getTime()
-  );
+  const inbox = await getSellerInbox(farmId);
+  if (!inbox) notFound();
+  const { refunds, threads: threadList, feedback, ready } = inbox;
 
   const pending = refunds.filter((x) => x.status === "pending");
   const closed = refunds.filter((x) => x.status !== "pending");

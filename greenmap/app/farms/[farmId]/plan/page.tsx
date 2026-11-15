@@ -1,12 +1,7 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/user";
+import { getPlanOverview } from "@/lib/account/queries";
 import { TopNav } from "@/components/layout/TopNav";
-import { getScanAllowance } from "@/lib/billing/usage";
-import {
-  PlanPageClient,
-  type PaymentRow,
-} from "@/components/billing/PlanPageClient";
+import { PlanPageClient } from "@/components/billing/PlanPageClient";
 
 /**
  * My Plan — current tier + usage, upgrade/downgrade, scan top-up, and the
@@ -19,23 +14,13 @@ export default async function PlanPage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const [supabase, user] = await Promise.all([createClient(), getAuthUser()]);
-  if (!user) redirect("/auth");
-
-  const [allowance, paymentsRes] = await Promise.all([
-    getScanAllowance(supabase, user.id),
-    supabase
-      .from("payments")
-      .select("id, kind, amount_rm, method, created_at, meta")
-      .order("created_at", { ascending: false })
-      .limit(20),
-  ]);
-  const payments = (paymentsRes.data ?? []) as PaymentRow[];
+  const plan = await getPlanOverview();
+  if (!plan) redirect("/auth");
 
   return (
     <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
       <TopNav title="My Plan" backHref={`/farms/${farmId}/profile`} />
-      <PlanPageClient allowance={allowance} payments={payments} />
+      <PlanPageClient allowance={plan.allowance} payments={plan.payments} />
     </main>
   );
 }

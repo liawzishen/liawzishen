@@ -19,4 +19,11 @@ describe("healthDisplay", () => {
     const icons = [100, 50, 10, null].map((s) => healthDisplay(s).icon);
     expect(new Set(icons).size).toBe(4);
   });
+
+  it("gives every band the badge tone that matches its colour", () => {
+    expect(healthDisplay(90).tone).toBe("brand");
+    expect(healthDisplay(55).tone).toBe("warning");
+    expect(healthDisplay(10).tone).toBe("critical");
+    expect(healthDisplay(null).tone).toBe("neutral");
+  });
 });

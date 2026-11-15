@@ -17,15 +17,7 @@ import {
   type PlanId,
 } from "@/lib/billing/plans";
 import type { ScanAllowance } from "@/lib/billing/usage";
-
-export type PaymentRow = {
-  id: string;
-  kind: string;
-  amount_rm: number;
-  method: string;
-  created_at: string;
-  meta: Record<string, unknown> | null;
-};
+import type { PaymentRow } from "@/lib/billing/payments";
 
 const KIND_LABEL: Record<string, string> = {
   plan: "Plan change",

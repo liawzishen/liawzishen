@@ -24,6 +24,8 @@ export interface HealthDisplay {
   icon: string;
   /** Tailwind text class for DOM use. */
   textClass: string;
+  /** Tone for the <Badge> pill that shows the label. */
+  tone: "brand" | "warning" | "critical" | "neutral";
 }
 
 const HEALTHY: HealthDisplay = {
@@ -32,6 +34,7 @@ const HEALTHY: HealthDisplay = {
   color: "#34C759",
   icon: "✓",
   textClass: "text-brand",
+  tone: "brand",
 };
 const ATTENTION: HealthDisplay = {
   band: "attention",
@@ -39,6 +42,7 @@ const ATTENTION: HealthDisplay = {
   color: "#FF9F0A",
   icon: "!",
   textClass: "text-warning",
+  tone: "warning",
 };
 const CRITICAL: HealthDisplay = {
   band: "critical",
@@ -46,6 +50,7 @@ const CRITICAL: HealthDisplay = {
   color: "#FF3B30",
   icon: "✕",
   textClass: "text-critical",
+  tone: "critical",
 };
 const NEW: HealthDisplay = {
   band: "new",
@@ -53,6 +58,7 @@ const NEW: HealthDisplay = {
   color: "#C7C7CC",
   icon: "+",
   textClass: "text-secondary",
+  tone: "neutral",
 };
 
 export function healthDisplay(score: number | null): HealthDisplay {

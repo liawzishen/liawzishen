@@ -1,9 +1,7 @@
 import { Link } from "@/components/ui/Link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthUser } from "@/lib/auth/user";
+import { getAccountOverview } from "@/lib/account/queries";
 import { ProfileClient } from "@/components/profile/ProfileClient";
-import { getScanAllowance } from "@/lib/billing/usage";
 
 export default async function ProfilePage({
   params,
@@ -11,32 +9,9 @@ export default async function ProfilePage({
   params: Promise<{ farmId: string }>;
 }) {
   const { farmId } = await params;
-  const [supabase, authUser] = await Promise.all([
-    createClient(),
-    getAuthUser(),
-  ]);
-  if (!authUser) redirect("/auth");
-
-  // This is the account page, so it shows the NEWEST account data: it asks
-  // the Auth server for the user (the login token only holds a snapshot).
-  // That call runs together with the two profile queries.
-  // profiles mirrors name + holds the Verified Grower flag.
-  const [
-    {
-      data: { user },
-    },
-    { data: profile },
-    allowance,
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase
-      .from("profiles")
-      .select("name, is_verified")
-      .eq("id", authUser.id)
-      .maybeSingle(),
-    getScanAllowance(supabase, authUser.id),
-  ]);
-  if (!user) redirect("/auth");
+  const account = await getAccountOverview();
+  if (!account) redirect("/auth");
+  const { user, profile: p, allowance } = account;
 
   const meta = (user.user_metadata ?? {}) as {
     name?: string;
@@ -44,7 +19,6 @@ export default async function ProfilePage({
     headline?: string;
     avatar_url?: string;
   };
-  const p = profile as { name: string; is_verified: boolean } | null;
 
   const name = (meta.name || p?.name || "").toString();
   const role = meta.role === "consumer" ? "consumer" : "grower";

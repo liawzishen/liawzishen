@@ -1,18 +1,16 @@
 import { Link } from "@/components/ui/Link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { TopNav } from "@/components/layout/TopNav";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { daysSince, liveDisplayScore } from "@/lib/health/calculate";
+import { daysSince } from "@/lib/health/calculate";
 import { healthDisplay } from "@/lib/health/display";
-import { lastCareForPlant } from "@/lib/health/live";
+import { getPlantDetail } from "@/lib/plant/queries";
 import { HealthTrendChart } from "@/components/plant/HealthTrendChart";
 import { ActivityTimeline } from "@/components/plant/ActivityTimeline";
 import { ManualStatusControl } from "@/components/plant/ManualStatusControl";
 import { PlantQuickActions } from "@/components/plant/PlantQuickActions";
 import { SuggestionCard } from "@/components/plant/SuggestionCard";
-import type { AiAnalysis, GrowthLog, Plant, Zone } from "@/types/database";
 
 export default async function PlantDetailPage({
   params,
@@ -20,71 +18,17 @@ export default async function PlantDetailPage({
   params: Promise<{ farmId: string; plantId: string }>;
 }) {
   const { farmId, plantId } = await params;
-  const supabase = await createClient();
-
-  // Everything on this page is keyed by the plant id (zones by the farm id
-  // from the URL), so it all loads in ONE round trip instead of "the plant,
-  // then the rest".
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
-  const [
-    { data: plant },
-    { data: zoneRows },
-    care,
-    { data: history },
-    { data: logs },
-    { data: analyses },
-  ] = await Promise.all([
-    supabase.from("plants").select("*").eq("id", plantId).single(),
-    supabase.from("zones").select("*").eq("farm_id", farmId),
-    lastCareForPlant(supabase, plantId),
-    supabase
-      .from("health_score_history")
-      .select("score, created_at")
-      .eq("plant_id", plantId)
-      .gte("created_at", sevenDaysAgo)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("growth_logs")
-      .select("*")
-      .eq("plant_id", plantId)
-      .order("created_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("ai_analyses")
-      .select("*")
-      .eq("plant_id", plantId)
-      .order("created_at", { ascending: false })
-      .limit(10),
-  ]);
-
-  if (!plant) notFound();
-  const p = plant as Plant;
-
-  const zone =
-    ((zoneRows ?? []) as Zone[]).find((z) => z.id === p.zone_id) ?? null;
-  const points = (history ?? []) as { score: number; created_at: string }[];
-  const recentLogs = (logs ?? []) as GrowthLog[];
-  const analysisRows = (analyses ?? []) as AiAnalysis[];
-
-  // Live (passively decayed) score — the same pure formula and the same
-  // inputs as the farm map: newest scan, newest water, newest fertilize.
-  // `analysisRows` is newest-first, so [0] is the latest scan.
-  const liveScore = liveDisplayScore(p.health_score, {
-    aiSubScore: analysisRows[0]?.ai_sub_score ?? null,
-    lastWaterAt: care.lastWaterAt,
-    lastFertilizeAt: care.lastFertilizeAt,
-    manualStatus: p.manual_status,
-  });
+  const detail = await getPlantDetail(farmId, plantId);
+  if (!detail) notFound();
+  const {
+    plant: p,
+    zone,
+    liveScore,
+    history: points,
+    recentLogs,
+    analyses: analysisRows,
+  } = detail;
   const display = healthDisplay(liveScore);
-
-  const badgeTone =
-    display.band === "healthy"
-      ? "brand"
-      : display.band === "attention"
-        ? "warning"
-        : display.band === "critical"
-          ? "critical"
-          : "neutral";
 
   return (
     <main className="desktop-breakout pb-12 lg:mx-auto lg:w-full lg:max-w-[720px]">
@@ -108,7 +52,7 @@ export default async function PlantDetailPage({
             {liveScore === null ? "—" : `${liveScore}%`}
           </p>
           <div className="mt-2 flex justify-center">
-            <Badge tone={badgeTone}>{display.label}</Badge>
+            <Badge tone={display.tone}>{display.label}</Badge>
           </div>
           {liveScore === null && (
             <p className="mt-2 text-[13px] text-secondary">

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getMarketAvailability } from "@/lib/marketplace/availability";
 import { Marketplace } from "@/components/sales/Marketplace";
 
 /**
@@ -7,18 +7,7 @@ import { Marketplace } from "@/components/sales/Marketplace";
  * organic score), linked to the consumer listing-detail route.
  */
 export default async function ConsumerMarketPage() {
-  const supabase = await createClient();
-  const [{ data }, { data: stock }] = await Promise.all([
-    supabase
-      .from("listing_boosts")
-      .select("listing_id")
-      .gt("expires_at", new Date().toISOString()),
-    supabase.from("listing_stock").select("listing_id, in_stock"),
-  ]);
-  const boostedIds = [...new Set((data ?? []).map((b) => b.listing_id as string))];
-  const outOfStockIds = (stock ?? [])
-    .filter((s) => s.in_stock === false)
-    .map((s) => s.listing_id as string);
+  const { boostedIds, outOfStockIds } = await getMarketAvailability();
 
   return (
     <main className="lg:mx-auto lg:w-full lg:max-w-[720px]">

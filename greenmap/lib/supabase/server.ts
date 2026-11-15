@@ -41,3 +41,6 @@ export const createClient = cache(async () => {
     },
   });
 });
+
+/** The server client's type, for data loaders that take the client as input. */
+export type ServerClient = Awaited<ReturnType<typeof createClient>>;
