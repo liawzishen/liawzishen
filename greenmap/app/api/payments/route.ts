@@ -11,14 +11,10 @@ import {
   type PlanId,
 } from "@/lib/billing/plans";
 import { getListing } from "@/components/sales/demo-listings";
-import {
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  serverError,
-  unauthorized,
-} from "@/lib/api/http";
+import { addBonusScans } from "@/lib/billing/credits";
+import { guardRequest } from "@/lib/api/guard";
+import { jsonError, serverError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 
 const SCOPE = "/api/payments";
 const FAILED = "Payment could not be completed. Please try again.";
@@ -32,11 +28,9 @@ const FAILED = "Payment could not be completed. Please try again.";
  * call (Revenue Monster / Stripe Malaysia) and keep everything else.
  */
 export async function POST(req: Request) {
-  const { user } = await getSessionUser();
-  if (!user) return unauthorized();
-
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
+  const guard = await guardRequest(req, { limit: LIMITS.payment });
+  if (!guard.ok) return guard.response;
+  const { user, body } = guard;
 
   const method = body.method;
   if (method !== "fpx" && method !== "tng") {
@@ -107,20 +101,8 @@ export async function POST(req: Request) {
           400
         );
       }
-      const { data: profile, error: pErr } = await admin
-        .from("profiles")
-        .select("bonus_scans")
-        .eq("id", user.id)
-        .single();
-      if (pErr) return serverError(SCOPE, pErr, FAILED);
-
-      const bonus = Math.max(0, profile?.bonus_scans ?? 0) + qty;
-      const { error: uErr } = await admin
-        .from("profiles")
-        .update({ bonus_scans: bonus })
-        .eq("id", user.id);
-      if (uErr) return serverError(SCOPE, uErr, FAILED);
-
+      // One atomic step: two top-ups finishing together both count.
+      const bonus = await addBonusScans(user.id, qty);
       await record("topup", qty * TOPUP_PRICE_RM, { qty });
       return NextResponse.json({ ok: true, bonus });
     }

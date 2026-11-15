@@ -1,18 +1,15 @@
 import { NextResponse } from "next/server";
-import {
-  cleanText,
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  unauthorized,
-} from "@/lib/api/http";
+import { guardRequest } from "@/lib/api/guard";
+import { cleanText, jsonError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 
 const SCOPE = "/api/satellite";
 
 /** Map services must answer quickly or the wizard falls back. */
 const UPSTREAM_TIMEOUT_MS = 10_000;
 const MAX_QUERY_LENGTH = 200;
+/** A 1280×720 satellite JPEG is well under 1 MB; anything huge is not ours. */
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const upstream = (url: string) =>
   fetch(url, { cache: "no-store", signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
@@ -34,11 +31,9 @@ export async function POST(req: Request) {
     );
   }
 
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
-
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
+  const guard = await guardRequest(req, { limit: LIMITS.satellite });
+  if (!guard.ok) return guard.response;
+  const { supabase, user, body } = guard;
   const query = cleanText(body.query, MAX_QUERY_LENGTH);
   if (!query) return jsonError("An address or place is required.", 400);
 
@@ -51,7 +46,7 @@ export async function POST(req: Request) {
     if (!geoRes.ok) return jsonError("Geocoding failed.", 502);
     const geo = (await geoRes.json()) as {
       features?: {
-        center: [number, number];
+        center?: [number, number];
         place_name?: string;
         text?: string;
       }[];
@@ -60,7 +55,11 @@ export async function POST(req: Request) {
     if (!feature) {
       return jsonError("No matching place found. Try a more specific address.", 404);
     }
-    const [lng, lat] = feature.center;
+    const [lng, lat] = feature.center ?? [NaN, NaN];
+    // The numbers go into the next URLs — they must really be numbers.
+    if (!Number.isFinite(lng) || !Number.isFinite(lat) || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      return jsonError("No matching place found. Try a more specific address.", 404);
+    }
 
     // 2. Static satellite image (16:9) for that point. Try MapTiler first; if
     //    the satellite map isn't available on this key/plan, fall back to the
@@ -84,10 +83,15 @@ export async function POST(req: Request) {
       return jsonError("Could not load a satellite image for that place.", 502);
     }
     const bytes = await imgRes.arrayBuffer();
-    const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
+    // Only ever store an image, whatever the map service answered with.
+    const isPng = (imgRes.headers.get("content-type") ?? "").includes("png");
+    const contentType = isPng ? "image/png" : "image/jpeg";
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_IMAGE_BYTES) {
+      return jsonError("Could not load a satellite image for that place.", 502);
+    }
 
     // 3. Store it in the public bucket (key-free, permanent URL).
-    const ext = contentType.includes("png") ? "png" : "jpg";
+    const ext = isPng ? "png" : "jpg";
     const path = `${user.id}/satellite-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from("farm-backgrounds")

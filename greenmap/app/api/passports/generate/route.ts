@@ -2,14 +2,9 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { aggregatePassport } from "@/lib/passport/aggregate";
 import { localDateISO } from "@/lib/date";
-import {
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  serverError,
-  unauthorized,
-} from "@/lib/api/http";
+import { guardRequest } from "@/lib/api/guard";
+import { isUuid, jsonError, serverError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 import type { Plant } from "@/types/database";
 
 const SCOPE = "/api/passports/generate";
@@ -26,13 +21,12 @@ const UNIQUE_VIOLATION = "23505";
  * plant is already harvested. The passport is never recalculated afterwards.
  */
 export async function POST(req: Request) {
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
+  const guard = await guardRequest(req, { limit: LIMITS.write });
+  if (!guard.ok) return guard.response;
+  const { supabase, body } = guard;
 
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
-  const plantId = typeof body.plantId === "string" ? body.plantId : "";
-  if (!plantId) return jsonError("plantId is required", 400);
+  const plantId = body.plantId;
+  if (!isUuid(plantId)) return jsonError("plantId is required", 400);
 
   const { data: plant } = await supabase
     .from("plants")

@@ -4,15 +4,9 @@ import { recalculateManyPlantScores } from "@/lib/health/recalculate";
 import { ownedPlantIds } from "@/lib/farm/ownership";
 import { ID_FILTER_CHUNK } from "@/lib/supabase/chunked";
 import { chunk } from "@/lib/utils";
-import {
-  cleanIdList,
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  serverError,
-  unauthorized,
-} from "@/lib/api/http";
+import { guardRequest } from "@/lib/api/guard";
+import { cleanIdList, jsonError, serverError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 
 const SCOPE = "/api/tasks/uncomplete";
 
@@ -27,11 +21,9 @@ const MAX_PLANTS_PER_REQUEST = 1000;
  * the score. Powers the "uncheck" in the Completed Today tray.
  */
 export async function POST(req: Request) {
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
-
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
+  const guard = await guardRequest(req, { limit: LIMITS.write });
+  if (!guard.ok) return guard.response;
+  const { supabase, body } = guard;
 
   const action = body.action;
   if (action !== "water" && action !== "fertilize") {

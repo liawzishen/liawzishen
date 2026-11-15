@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { hasGeminiKey } from "@/lib/ai/gemini";
 import { geminiVision } from "@/lib/ai/gemini-vision";
-import { parseScanResult, fallbackResult, mockResult } from "@/lib/ai/validate";
-import { getScanAllowance, type ScanAllowance } from "@/lib/billing/usage";
-import { publicStorageUrl } from "@/lib/storage/public-url";
+import { signScan } from "@/lib/ai/receipt";
 import {
-  cleanText,
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  unauthorized,
-} from "@/lib/api/http";
+  parseScanResult,
+  fallbackResult,
+  mockResult,
+  type ScanResult,
+} from "@/lib/ai/validate";
+import {
+  reserveScanCredit,
+  scansLeft,
+  settleScanCredit,
+} from "@/lib/billing/credits";
+import { getScanAllowance } from "@/lib/billing/usage";
+import { publicStorageUrl } from "@/lib/storage/public-url";
+import { guardRequest } from "@/lib/api/guard";
+import { cleanText, isUuid, jsonError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 
 /** Vision calls can be slow; allow up to a minute on serverless hosts. */
 export const maxDuration = 60;
@@ -20,37 +25,6 @@ export const maxDuration = 60;
 /** The browser compresses photos to ~1 MB, so anything much larger is not ours. */
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const IMAGE_FETCH_TIMEOUT_MS = 10_000;
-
-/**
- * Record one consumed credit (service role — billing tables are read-only
- * for clients). Called ONLY on a successful analysis: failures cost nothing.
- * When the monthly allowance is exhausted the scan is funded by a purchased
- * bonus credit, so bonus_scans is decremented too. Accounting must never
- * break a scan that already succeeded — errors are logged, not thrown.
- */
-async function consumeScanCredit(userId: string, allowance: ScanAllowance) {
-  if (allowance.degraded) return; // 0005 not applied — nothing to write to
-  try {
-    const admin = createAdminClient();
-    const { error } = await admin.from("ai_scan_usage").insert({ user_id: userId });
-    if (error) throw error;
-    if (
-      allowance.limit !== null &&
-      allowance.used >= allowance.limit &&
-      allowance.bonus > 0
-    ) {
-      await admin
-        .from("profiles")
-        .update({ bonus_scans: allowance.bonus - 1 })
-        .eq("id", userId);
-    }
-  } catch (e) {
-    console.error("[/api/ai/scan] credit accounting failed:", e);
-  }
-}
-
-const scansLeftAfter = (a: ScanAllowance) =>
-  a.remaining === null ? null : Math.max(0, a.remaining - 1);
 
 /** Download the uploaded photo from our own storage as base64. */
 async function loadImage(url: URL): Promise<{ base64: string; mimeType: string }> {
@@ -80,15 +54,20 @@ async function loadImage(url: URL): Promise<{ base64: string; mimeType: string }
  *
  * `imageUrl` must be a file in this project's `plant-scans` bucket: the server
  * downloads it, so an arbitrary URL would be a request-forgery hole.
+ *
+ * Credits: one is RESERVED before the AI call and released if the scan fails
+ * (lib/billing/credits.ts). The reply carries a signed `receipt`; the save
+ * route only stores a result that still matches it (lib/ai/receipt.ts).
  */
 export async function POST(req: Request) {
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
+  const guard = await guardRequest(req, { limit: LIMITS.scan });
+  if (!guard.ok) return guard.response;
+  const { supabase, user, body } = guard;
 
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
-
-  const plantId = typeof body.plantId === "string" ? body.plantId : undefined;
+  if (body.plantId !== undefined && !isUuid(body.plantId)) {
+    return jsonError("plantId is not a valid id", 400);
+  }
+  const plantId = body.plantId as string | undefined;
   const cropType = cleanText(body.cropType, 60);
   if (!body.imageUrl) return jsonError("imageUrl is required", 400);
   const imageUrl = publicStorageUrl(body.imageUrl, "plant-scans");
@@ -106,33 +85,35 @@ export async function POST(req: Request) {
   }
 
   // Credit gate — checked before any Gemini/image cost (spec: enforce for real).
+  const outOfCredits = (resetsOn: string) =>
+    jsonError("No scan credits left", 402, { code: "out_of_credits", resetsOn });
   const allowance = await getScanAllowance(supabase, user.id);
-  if (allowance.remaining === 0) {
-    return jsonError("No scan credits left", 402, {
-      code: "out_of_credits",
-      resetsOn: allowance.resetsOn,
-    });
-  }
+  if (allowance.remaining === 0) return outOfCredits(allowance.resetsOn);
+  const reservation = await reserveScanCredit(user.id, allowance);
+  if (reservation.kind === "denied") return outOfCredits(allowance.resetsOn);
 
-  if (!hasGeminiKey()) {
-    // Mock scans consume too, so the paywall arc works without an API key.
-    await consumeScanCredit(user.id, allowance);
+  /** Settle the credit and build the reply for a finished scan. */
+  const finish = async (result: ScanResult, succeeded: boolean) => {
+    await settleScanCredit(user.id, allowance, reservation, succeeded);
     return NextResponse.json({
-      result: mockResult(cropType),
-      scansLeft: scansLeftAfter(allowance),
+      result,
+      scansLeft: scansLeft(allowance, reservation, succeeded),
+      // Failed scans cannot be saved, so they get no receipt.
+      receipt: succeeded
+        ? signScan({ userId: user.id, plantId: plantId ?? "", imageUrl: imageUrl.href, result })
+        : null,
     });
-  }
+  };
+
+  // Mock scans consume too, so the paywall arc works without an API key.
+  if (!hasGeminiKey()) return finish(mockResult(cropType), true);
 
   let image: { base64: string; mimeType: string };
   try {
     image = await loadImage(imageUrl);
   } catch (e) {
     console.error("[/api/ai/scan] image fetch failed:", e);
-    // Failed analyses consume nothing — balance unchanged.
-    return NextResponse.json({
-      result: fallbackResult("image"),
-      scansLeft: allowance.remaining,
-    });
+    return finish(fallbackResult("image"), false);
   }
 
   const input = { imageBase64: image.base64, mimeType: image.mimeType, cropType };
@@ -145,13 +126,9 @@ export async function POST(req: Request) {
       // Unparseable reply → one retry with a stricter prompt.
       parsed = parseScanResult(await geminiVision(input, { strict: true }));
     }
-    await consumeScanCredit(user.id, allowance);
-    return NextResponse.json({ result: parsed, scansLeft: scansLeftAfter(allowance) });
+    return finish(parsed, true);
   } catch (e) {
     console.error("[/api/ai/scan] Gemini Vision failed:", e);
-    return NextResponse.json({
-      result: fallbackResult("ai"),
-      scansLeft: allowance.remaining,
-    });
+    return finish(fallbackResult("ai"), false);
   }
 }

@@ -1,38 +1,43 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { verifyScan } from "@/lib/ai/receipt";
 import { sanitizeResult } from "@/lib/ai/validate";
 import { recalculatePlantScore } from "@/lib/health/recalculate";
-import { isPublicStorageUrl } from "@/lib/storage/public-url";
-import {
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  serverError,
-  unauthorized,
-} from "@/lib/api/http";
+import { publicStorageUrl } from "@/lib/storage/public-url";
+import { guardRequest } from "@/lib/api/guard";
+import { isUuid, jsonError, serverError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 
 const SCOPE = "/api/ai/save-scan";
+const SAVE_FAILED = "Could not save the scan. Please try again.";
+
+/** Postgres unique-violation: this scan is already saved (see 0010). */
+const UNIQUE_VIOLATION = "23505";
 
 /**
- * POST /api/ai/save-scan  { plantId, imageUrl, result }
- * Grower-confirmed save. Rejects unanalysed (error) results, re-sanitises the
- * rest (ai_sub_score recomputed server-side from severity — never trusted),
- * inserts ai_analyses + an ai_scan log, then recalculates the score.
+ * POST /api/ai/save-scan  { plantId, imageUrl, result, receipt }
+ * Grower-confirmed save of a scan that /api/ai/scan produced.
+ *
+ * The result travels through the browser, so it is not trusted: it must match
+ * the `receipt` the scan route signed for this user, plant and photo
+ * (lib/ai/receipt.ts). A result typed in by hand — "Healthy, 100% sure" —
+ * has no valid receipt and is refused, which keeps "AI verified" on the
+ * Harvest Passport true.
+ *
+ * Saving the same scan twice (double tap, replayed request) stores it once.
  */
 export async function POST(req: Request) {
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
+  const guard = await guardRequest(req, { limit: LIMITS.write });
+  if (!guard.ok) return guard.response;
+  const { supabase, user, body } = guard;
 
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
-
-  const { plantId, imageUrl, result } = body;
-  if (typeof plantId !== "string" || !plantId || !imageUrl || !result) {
+  const { plantId, result, receipt } = body;
+  if (!isUuid(plantId) || !body.imageUrl || !result) {
     return jsonError("plantId, imageUrl and result are required", 400);
   }
   // Only photos from our own scan bucket may be attached to a plant record.
-  if (!isPublicStorageUrl(imageUrl, "plant-scans")) {
+  const imageUrl = publicStorageUrl(body.imageUrl, "plant-scans")?.href;
+  if (!imageUrl) {
     return jsonError("imageUrl must be a photo uploaded to GreenMap", 400);
   }
 
@@ -41,6 +46,13 @@ export async function POST(req: Request) {
     (result as Record<string, unknown>).error === true
   ) {
     return jsonError("This scan couldn't be analysed, so it can't be saved.", 400);
+  }
+  if (!verifyScan({ userId: user.id, plantId, imageUrl, result }, receipt)) {
+    return jsonError(
+      "This scan result could not be verified. Please scan the plant again.",
+      400,
+      { code: "invalid_receipt" }
+    );
   }
 
   const { data: plant } = await supabase
@@ -53,28 +65,44 @@ export async function POST(req: Request) {
   const clean = sanitizeResult(result);
   const admin = createAdminClient();
 
-  const { error: aErr } = await admin.from("ai_analyses").insert({
-    plant_id: plantId,
-    image_url: imageUrl,
-    diagnosis: clean.diagnosis,
-    confidence: clean.confidence,
-    severity: clean.severity,
-    ai_sub_score: clean.ai_sub_score,
-    recommendations: clean.recommendations,
-  });
-  if (aErr) return serverError(SCOPE, aErr, "Could not save the scan. Please try again.");
+  // Already saved? Then there is nothing to add — answer with the score.
+  const { data: existing, error: findErr } = await admin
+    .from("ai_analyses")
+    .select("id")
+    .eq("plant_id", plantId)
+    .eq("image_url", imageUrl)
+    .limit(1);
+  if (findErr) return serverError(SCOPE, findErr, SAVE_FAILED);
 
-  const { error: lErr } = await admin.from("growth_logs").insert({
-    plant_id: plantId,
-    event_type: "ai_scan",
-    note: clean.diagnosis,
-    metadata: {
+  if (!existing || existing.length === 0) {
+    const { error: aErr } = await admin.from("ai_analyses").insert({
+      plant_id: plantId,
+      image_url: imageUrl,
       diagnosis: clean.diagnosis,
-      severity: clean.severity,
       confidence: clean.confidence,
-    },
-  });
-  if (lErr) return serverError(SCOPE, lErr, "Could not save the scan. Please try again.");
+      severity: clean.severity,
+      ai_sub_score: clean.ai_sub_score,
+      recommendations: clean.recommendations,
+    });
+    // A unique violation means a second request saved it a moment ago.
+    if (aErr && aErr.code !== UNIQUE_VIOLATION) {
+      return serverError(SCOPE, aErr, SAVE_FAILED);
+    }
+
+    if (!aErr) {
+      const { error: lErr } = await admin.from("growth_logs").insert({
+        plant_id: plantId,
+        event_type: "ai_scan",
+        note: clean.diagnosis,
+        metadata: {
+          diagnosis: clean.diagnosis,
+          severity: clean.severity,
+          confidence: clean.confidence,
+        },
+      });
+      if (lErr) return serverError(SCOPE, lErr, SAVE_FAILED);
+    }
+  }
 
   try {
     const score = await recalculatePlantScore(admin, plantId);

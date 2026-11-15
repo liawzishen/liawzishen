@@ -2,13 +2,9 @@ import { NextResponse } from "next/server";
 import { hasGeminiKey } from "@/lib/ai/gemini";
 import { geminiSuggest } from "@/lib/ai/gemini-text";
 import { daysSince } from "@/lib/health/calculate";
-import {
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  unauthorized,
-} from "@/lib/api/http";
+import { guardRequest } from "@/lib/api/guard";
+import { cleanText, isUuid, jsonError } from "@/lib/api/http";
+import { LIMITS, rateLimit } from "@/lib/api/rate-limit";
 
 /**
  * Keyless fallback tip. Tone follows the plant's health band so the advice
@@ -40,16 +36,17 @@ function mockSuggestion(
 /**
  * POST /api/ai/suggest  { plantId }
  * Returns a 1-2 sentence next-action suggestion. The client session-caches it
- * for 60 minutes; this route is never counted as a scan. Mock when no key.
+ * for 60 minutes; this route is never counted as a scan. Mock when no key,
+ * and the general tip when the caller is over the rate limit.
  */
 export async function POST(req: Request) {
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
+  // No limit in the guard: a limited caller still gets a (general) tip below.
+  const guard = await guardRequest(req, { limit: null });
+  if (!guard.ok) return guard.response;
+  const { supabase, user, body } = guard;
 
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
-  const plantId = typeof body.plantId === "string" ? body.plantId : "";
-  if (!plantId) return jsonError("plantId is required", 400);
+  const plantId = body.plantId;
+  if (!isUuid(plantId)) return jsonError("plantId is required", 400);
 
   const { data: plant } = await supabase
     .from("plants")
@@ -57,12 +54,23 @@ export async function POST(req: Request) {
     .eq("id", plantId)
     .single();
   if (!plant) return jsonError("Plant not found", 404);
-  const p = plant as { type: string; plant_date: string; health_score: number | null };
+  const row = plant as { type: string; plant_date: string; health_score: number | null };
+  // The crop name is the grower's own text and goes into the AI prompt, so
+  // it is cut to one short line first.
+  const p = { ...row, type: cleanText(row.type, 60) };
 
   if (!hasGeminiKey()) {
     return NextResponse.json({
       suggestion: mockSuggestion(p.type, p.health_score),
       mock: true,
+    });
+  }
+
+  // Each tailored tip is a paid AI call. Past the limit the plant page still
+  // gets an answer — the general tip — instead of an error.
+  if ((await rateLimit(user.id, LIMITS.suggest)) > 0) {
+    return NextResponse.json({
+      suggestion: mockSuggestion(p.type, p.health_score, "ai-failed"),
     });
   }
 

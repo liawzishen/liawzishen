@@ -144,7 +144,6 @@ export function SalesDashboard({
             {l.farm === farmName ? (
               <StockToggle
                 listingId={l.id}
-                sellerFarm={l.farm}
                 initialInStock={stock[l.id] ?? true}
               />
             ) : (

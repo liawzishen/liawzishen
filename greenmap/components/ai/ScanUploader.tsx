@@ -55,6 +55,9 @@ export function ScanUploader({
   const [blob, setBlob] = useState<Blob | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
+  // The server's signature over the result. It is sent back on Save so the
+  // server can tell the result is the one it produced (lib/ai/receipt.ts).
+  const [receipt, setReceipt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -67,6 +70,7 @@ export function ScanUploader({
       setBlob(compressed);
       setPreviewUrl(URL.createObjectURL(compressed));
       setResult(null);
+      setReceipt(null);
       setImageUrl(null);
       setPhase("preview");
     } catch {
@@ -80,6 +84,7 @@ export function ScanUploader({
     setBlob(null);
     setImageUrl(null);
     setResult(null);
+    setReceipt(null);
     setError(null);
     setPhase("idle");
     if (inputRef.current) inputRef.current.value = "";
@@ -122,6 +127,7 @@ export function ScanUploader({
       if (!res.ok || !data?.result) throw new Error(data?.error ?? "Scan failed");
       if (data.scansLeft !== undefined) setLeft(data.scansLeft);
       setResult(data.result as ScanResult);
+      setReceipt(typeof data.receipt === "string" ? data.receipt : null);
       setPhase("result");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Scan failed");
@@ -137,7 +143,7 @@ export function ScanUploader({
       const res = await fetch("/api/ai/save-scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plantId, imageUrl, result }),
+        body: JSON.stringify({ plantId, imageUrl, result, receipt }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error ?? "Save failed");

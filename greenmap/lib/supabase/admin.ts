@@ -3,12 +3,15 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 /**
  * Service-role client — BYPASSES Row Level Security.
  *
- * Server-only. Used from Phase 2/5 onward by:
- *   - scripts/seed-demo.ts
- *   - /api/health/recalculate, /api/ai/save-scan, /api/passports/generate
- *   - the public /passport/[qrToken] page (fetch by token)
+ * Server-only. It is the ONLY way to write the data a grower must not be
+ * able to write for themselves (migration 0010): health scores, AI analyses,
+ * passports, billing, stock, the assistant's chat replies. So every use must
+ * come AFTER a check that the signed-in user may do this — see the API
+ * routes, which all start with guardRequest() and then check ownership.
  *
- * Never import this from a Client Component.
+ * Used by the API routes, the public passport loader (lib/passport/queries.ts)
+ * and the seed scripts. Never import this from a Client Component, and never
+ * from a page: pages read through the loaders in lib/.
  */
 export function createAdminClient() {
   if (typeof window !== "undefined") {

@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recalculatePlantScore } from "@/lib/health/recalculate";
-import {
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  serverError,
-  unauthorized,
-} from "@/lib/api/http";
+import { guardRequest } from "@/lib/api/guard";
+import { isUuid, jsonError, serverError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 
 /**
  * POST /api/health/recalculate  { plantId }
@@ -16,13 +11,12 @@ import {
  * snapshot via the shared recalculatePlantScore() helper.
  */
 export async function POST(req: Request) {
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
+  const guard = await guardRequest(req, { limit: LIMITS.write });
+  if (!guard.ok) return guard.response;
+  const { supabase, body } = guard;
 
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
-  const plantId = typeof body.plantId === "string" ? body.plantId : "";
-  if (!plantId) return jsonError("plantId is required", 400);
+  const plantId = body.plantId;
+  if (!isUuid(plantId)) return jsonError("plantId is required", 400);
 
   // Ownership: RLS only returns the caller's own plants.
   const { data: plant } = await supabase

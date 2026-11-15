@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRefreshData } from "@/lib/router/refresh";
 
 /**
- * In/out-of-stock switch for one of the grower's own listings. Upserts
- * listing_stock (0008 RLS lets the owning seller write it); the marketplace
- * reads the same table and hides Buy / drops promotion for out-of-stock items.
+ * In/out-of-stock switch for one of the grower's own listings. The change
+ * goes through /api/listings/stock, which checks that the caller is the
+ * listing's seller before writing; the marketplace reads the same table and
+ * hides Buy / drops promotion for out-of-stock items.
  */
 export function StockToggle({
   listingId,
-  sellerFarm,
   initialInStock,
 }: {
   listingId: string;
-  sellerFarm: string;
   initialInStock: boolean;
 }) {
   const [inStock, setInStock] = useState(initialInStock);
@@ -27,18 +25,19 @@ export function StockToggle({
     const next = !inStock;
     setBusy(true);
     setInStock(next); // optimistic
-    const supabase = createClient();
-    const { error } = await supabase.from("listing_stock").upsert(
-      {
-        listing_id: listingId,
-        seller_farm: sellerFarm,
-        in_stock: next,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "listing_id" }
-    );
+    let saved = false;
+    try {
+      const res = await fetch("/api/listings/stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ listingId, inStock: next }),
+      });
+      saved = res.ok;
+    } catch {
+      // network error — handled as "not saved" below
+    }
     setBusy(false);
-    if (error) {
+    if (!saved) {
       setInStock(!next); // revert on failure
       return;
     }

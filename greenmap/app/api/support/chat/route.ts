@@ -7,18 +7,16 @@ import {
   type SupportReply,
 } from "@/lib/ai/gemini-support";
 import { hasGeminiKey } from "@/lib/ai/gemini";
-import {
-  cleanText,
-  getSessionUser,
-  invalidJson,
-  jsonError,
-  readJsonObject,
-  unauthorized,
-} from "@/lib/api/http";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { guardRequest } from "@/lib/api/guard";
+import { cleanText, jsonError } from "@/lib/api/http";
+import { LIMITS } from "@/lib/api/rate-limit";
 import type { SupportMessage } from "@/types/database";
 
 /** Longest chat message accepted (it is stored and sent to the AI model). */
 const MAX_MESSAGE_LENGTH = 2000;
+/** Longest stored reply (the database allows 4000 characters per message). */
+const MAX_REPLY_LENGTH = 2000;
 
 /**
  * The order summary comes from the browser and is placed in the AI prompt, so
@@ -50,11 +48,9 @@ function cleanOrderContext(value: unknown): NonNullable<SupportContext["order"]>
  * reply still comes back (persisted:false) so the chat works in-session.
  */
 export async function POST(req: Request) {
-  const { supabase, user } = await getSessionUser();
-  if (!user) return unauthorized();
-
-  const body = await readJsonObject(req);
-  if (!body) return invalidJson();
+  const guard = await guardRequest(req, { limit: LIMITS.chat });
+  if (!guard.ok) return guard.response;
+  const { supabase, user, body } = guard;
 
   const thread = body.thread;
   if (thread !== "admin" && thread !== "seller") {
@@ -91,22 +87,36 @@ export async function POST(req: Request) {
     /* table missing — continue without history */
   }
 
+  // The shopper's own message is written as the shopper (Row Level Security
+  // checks it is theirs). The replies are written by the SERVER: since 0010 a
+  // shopper may only write rows with sender "customer", so nobody can put
+  // words in the assistant's or the seller's mouth.
   let persisted = true;
   const insert = async (row: {
     sender: SupportMessage["sender"];
     body: string;
     intent?: string | null;
   }) => {
+    const values = {
+      user_id: user.id,
+      thread,
+      order_ref: orderRef,
+      seller_name: sellerName,
+      sender: row.sender,
+      body: row.body.slice(0, MAX_REPLY_LENGTH),
+      intent: row.intent ?? null,
+    };
     try {
-      const { error } = await supabase.from("support_messages").insert({
-        user_id: user.id,
-        thread,
-        order_ref: orderRef,
-        seller_name: sellerName,
-        sender: row.sender,
-        body: row.body,
-        intent: row.intent ?? null,
-      });
+      if (row.sender !== "customer") {
+        try {
+          const { error } = await createAdminClient().from("support_messages").insert(values);
+          if (!error) return;
+        } catch {
+          // No service-role key (local demo): fall through to the shopper's
+          // own client, which a database without 0010 still accepts.
+        }
+      }
+      const { error } = await supabase.from("support_messages").insert(values);
       if (error) persisted = false;
     } catch {
       persisted = false;
