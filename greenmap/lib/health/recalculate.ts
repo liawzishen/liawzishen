@@ -7,20 +7,27 @@ type Admin = ReturnType<typeof createAdminClient>;
 
 /**
  * Recompute + persist a plant's health score, and snapshot it to
- * health_score_history. Shared by /api/health/recalculate and
- * /api/ai/save-scan so the write path lives in exactly one place. Call only
+ * health_score_history. Shared by the care-log and status writes
+ * (lib/plant/write.ts), the task routes and /api/ai/save-scan, so the write
+ * path lives in exactly one place. Call only
  * AFTER verifying the caller owns the plant (this uses the service role).
  */
 export async function recalculatePlantScore(
   admin: Admin,
-  plantId: string
+  plantId: string,
+  /** Pass the grower's status when the caller has just read or set it — saves a round trip. */
+  knownManualStatus?: ManualStatus
 ): Promise<number> {
-  const { data: plant } = await admin
-    .from("plants")
-    .select("manual_status")
-    .eq("id", plantId)
-    .single();
-  if (!plant) throw new Error("Plant not found");
+  let manualStatus = knownManualStatus;
+  if (!manualStatus) {
+    const { data: plant } = await admin
+      .from("plants")
+      .select("manual_status")
+      .eq("id", plantId)
+      .single();
+    if (!plant) throw new Error("Plant not found");
+    manualStatus = (plant as { manual_status: ManualStatus }).manual_status;
+  }
 
   const [{ data: water }, { data: fert }, { data: ai }] = await Promise.all([
     admin
@@ -52,7 +59,7 @@ export async function recalculatePlantScore(
     aiSubScore: ai?.ai_sub_score ?? null,
     lastWaterAt: water?.created_at ?? null,
     lastFertilizeAt: fert?.created_at ?? null,
-    manualStatus: (plant as { manual_status: ManualStatus }).manual_status,
+    manualStatus,
   });
 
   const { error: updateErr } = await admin

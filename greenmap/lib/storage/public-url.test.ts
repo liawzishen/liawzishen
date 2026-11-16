@@ -14,7 +14,7 @@ describe("publicStorageUrl", () => {
   it("rejects other hosts (server-side request forgery)", () => {
     expect(check("https://evil.example/storage/v1/object/public/plant-scans/a.jpg")).toBe(false);
     expect(check("http://169.254.169.254/latest/meta-data/")).toBe(false);
-    expect(check("http://localhost:3000/api/health/recalculate")).toBe(false);
+    expect(check("http://localhost:3000/api/plants/status")).toBe(false);
     expect(check(`${SUPABASE}.evil.example/storage/v1/object/public/plant-scans/a.jpg`)).toBe(false);
   });
 

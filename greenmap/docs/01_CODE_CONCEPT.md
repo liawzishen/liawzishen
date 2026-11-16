@@ -19,7 +19,7 @@ GreenMap is a Next.js (App Router) app where **Supabase is the backend** and the
             │ Postgres+RLS │◄── service role ──│ /api/ai/scan      (Gemini)   │
             │ Auth         │                   │ /api/ai/save-scan (writes)   │
             │ Storage ×3   │                   │ /api/ai/suggest   (Gemini)   │
-            └──────────────┘                   │ /api/health/recalculate      │
+            └──────────────┘                   │ /api/farms · /api/plants/*   │
                                                │ /api/passports/generate      │
                                                └──────────────────────────────┘
 ```
@@ -62,7 +62,8 @@ GreenMap is a Next.js (App Router) app where **Supabase is the backend** and the
 | `POST /api/ai/scan` | `GEMINI_API_KEY` secret; output validation | image URL, crop type | nothing (returns result only) |
 | `POST /api/ai/save-scan` | calculated `ai_sub_score` must be trusted | validated result | `ai_analyses`, `growth_logs(ai_scan)`, then recalc |
 | `POST /api/ai/suggest` | Gemini key | plant context | nothing (session-cached client-side) |
-| `POST /api/health/recalculate` | score is a trusted calculated value | latest scan/logs/status | `plants.health_score`, `health_score_history` |
+| `POST /api/farms` · `POST /api/plants` | input, limits and owner are checked in one place | the form's fields | `farms` + `zones` · `plants` + `growth_logs(planted)` |
+| `POST /api/plants/log` · `POST /api/plants/status` | score is a trusted calculated value; badge metadata is built by the server | the form's fields, latest scan/logs/status | `growth_logs` or `plants.manual_status`, then `plants.health_score`, `health_score_history` |
 | `POST /api/passports/generate` | multi-table aggregate snapshot must be consistent | logs, analyses, history | `harvest_passports`, `growth_logs(harvested)`, `plants.lifecycle_status` |
 | `POST /api/mapbox/satellite` *(optional)* | Mapbox token secret | address/coords | nothing |
 
@@ -87,7 +88,7 @@ Access control flows down the `farms.user_id` chain — see `03_BACKEND_TRUTH.md
 
 `lib/health/calculate.ts` is a **pure function** — no DB calls — used in two places:
 
-1. **Server (writes):** `/api/health/recalculate` runs after the four explicit events (water log, fertilize log, scan saved, manual status change) → updates `plants.health_score` → inserts a `health_score_history` snapshot.
+1. **Server (writes):** `lib/health/recalculate.ts` runs after the four explicit events (water log, fertilize log, scan saved, manual status change) → updates `plants.health_score` → inserts a `health_score_history` snapshot.
 2. **Client (display only):** Plant Detail and Farm Map recompute on load using stored dates, so the displayed number reflects passive decay. **Never written back.** This is why the map and detail page always agree.
 
 ```
@@ -128,7 +129,7 @@ grow_days = harvest − plant_date · avg_health = mean(history) · ai_scan_coun
 
 ## 9. How Data Moves (one example, end to end)
 
-Grower taps "Log Water" → modal confirm → **client** inserts `growth_logs` (RLS allows: plant→farm→own) → client calls **`/api/health/recalculate`** → route (service role) fetches inputs, runs `calculate.ts`, updates `plants.health_score`, inserts history row, returns score → **UI** updates the ring; Farm Map shows it on next load; weeks later the passport's `avg_health` averages those snapshots; the consumer's QR page renders the same log in the public timeline via a service-role server fetch.
+Grower taps "Log Water" → modal confirm → client POSTs to **`/api/plants/log`** → the route checks the plant is the caller's (an RLS read), then (service role) inserts `growth_logs`, fetches inputs, runs `calculate.ts`, updates `plants.health_score`, inserts a history row and returns the score → **UI** updates the ring; Farm Map shows it on next load; weeks later the passport's `avg_health` averages those snapshots; the consumer's QR page renders the same log in the public timeline via a service-role server fetch.
 
 ---
 

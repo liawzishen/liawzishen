@@ -39,6 +39,12 @@ All eight build phases are **complete**. `npm run check` (lint, type-check, unit
   rate limits, saved AI scans must carry the server's signature, every page is sent with a
   Content-Security-Policy, and the passport QR code is drawn by the app itself. See **Security**
   below — it also lists what to switch on in Supabase for a live project.
+- **Farm data is written by the server.** Creating a farm, adding a plant, logging care and
+  setting a plant's status used to be two or three writes from the browser straight into the
+  database. Each is now ONE request to an API route that checks the input, the limits and the
+  owner, then writes (`/api/farms`, `/api/plants`, `/api/plants/log`, `/api/plants/status`).
+  Migration `0011` then makes those tables read-only for the browser, and gives the tables the
+  browser still writes (360° photos, chat, refunds, feedback) a per-person row limit.
 - **Responsive Farm Map dashboard + live weather.** At ≥1024px the Map tab breaks out of the
   430px phone frame into a two-column dashboard: the Konva map and a full KPI grid on the left,
   a sticky weather panel (today's conditions, 9-day temperature chart, soil-moisture & rain
@@ -159,13 +165,13 @@ Never commit `.env.local`; never expose the server-only keys in the browser.
 | `npm test` | Vitest unit tests for the pure logic in `lib/` (`*.test.ts` next to each module), plus the database rule tests in `supabase/tests/`. |
 | `npm run test:watch` | The same tests, re-run on every save. |
 | `npm run check` | Lint + type-check + tests. Run it before every push. |
-| `npm run test:smoke` | Checks a real Supabase project: connection, demo login, data reads, and whether the security migration (`0010`) is applied. |
+| `npm run test:smoke` | Checks a real Supabase project: connection, demo login, data reads, and whether the security migrations (`0010`, `0011`) are applied. |
 
 GitHub Actions (`../.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test` and `build` on every pull request and on every push to `main`.
 
 The unit tests cover the rules that must never drift: the health-score formula, AI reply parsing, passport badges, plan limits, marketplace ranking, password rules, the storage-URL check, scan receipts, rate limits and the Content-Security-Policy. They need no database and no network.
 
-The **database rule tests** (`supabase/tests/security.test.ts`) run every migration on a real Postgres that lives inside the test process (PGlite), then act as a browser would: as one grower, as another grower, as a shopper, signed out. Each test is an attack that must fail ("another account deletes my photo", "a grower writes their own passport") or a normal action that must keep working. A new migration with a syntax error, or one that opens a hole these tests know about, fails `npm test`. Supabase's own schemas are small stand-ins (`supabase/tests/harness.ts`), so this tests our rules, not Supabase.
+The **database rule tests** (`supabase/tests/`) run the migrations on a real Postgres that lives inside the test process (PGlite) — once with everything applied and once stopping at `0010`, because a live database can be in either state — then act as a browser would: as one grower, as another grower, as a shopper, signed out. Each test is an attack that must fail ("another account deletes my photo", "a grower writes their own passport") or a normal action that must keep working. A new migration with a syntax error, or one that opens a hole these tests know about, fails `npm test`. Supabase's own schemas are small stand-ins (`supabase/tests/harness.ts`), so this tests our rules, not Supabase.
 
 ## What works today (smoke test)
 
@@ -207,7 +213,9 @@ app/
   passport/[qrToken]/page.tsx           Public QR view (server, service-role)
   loading.tsx · error.tsx · not-found.tsx    (+ a loading.tsx next to the tab pages, plan, plant detail and passport)
   api/ai/{scan,save-scan,suggest}/route.ts
-  api/health/recalculate/route.ts · api/passports/generate/route.ts
+  api/farms/route.ts                    Create a farm with its zones (last step of the wizard)
+  api/plants/route.ts · api/plants/{log,status}/route.ts   Add a plant · log care · set the grower's status
+  api/passports/generate/route.ts
   api/tasks/{complete,uncomplete}/route.ts
   api/payments/route.ts · api/satellite/route.ts · api/support/chat/route.ts
   api/listings/stock/route.ts           Seller's in/out-of-stock switch (checks who the seller is)
@@ -230,9 +238,11 @@ components/
 
 lib/  supabase/{client,server,admin,middleware,chunked}
       api/{guard,http,rate-limit}        the front door of every API route (see Security)
+      api/parse (reading request fields) · api/client (postJson, for the forms)
       ai/{gemini,gemini-vision,gemini-text,gemini-support,validate,receipt} · storage/public-url
       health/{calculate,live,recalculate,display} · passport/{aggregate,qr} · billing/{plans,usage,payments,credits}
-      weather/{fetch,advice} · marketplace/{rank,seller} · auth/{password,claims,user,sso-errors} · farm/{fetch,ownership}
+      weather/{fetch,advice} · marketplace/{rank,seller} · auth/{password,claims,user,sso-errors}
+      farm/{fetch,ownership,options,validate,write} · plant/{queries,validate,write}
       security/csp · date · utils
       page data loaders: farm/fetch · plant/queries · account/queries · marketplace/availability · support/queries · passport/queries
       router/{refresh,progress,paths} (kept pages + refresh after writes, tap feedback) · network (idle preload, Data Saver)
@@ -240,7 +250,7 @@ lib/  supabase/{client,server,admin,middleware,chunked}
 middleware.ts                            Content-Security-Policy + route protection + role-based redirects
 types/  database.ts · index.ts
 docs/   00_BUILD_PLAN · 01_CODE_CONCEPT · 02_PROTOTYPE_MAPPING · 03_BACKEND_TRUTH · 08_DEMO
-supabase/migrations/  0001_init … 0010_security_hardening
+supabase/migrations/  0001_init … 0011_server_writes
 supabase/tests/       database rule tests (run by `npm test`, no server needed)
 # ../docs/superpowers/specs/ (repo root, one level up) — design specs for
 # later features, e.g. the 2026-07-06 map-dashboard/weather spec
@@ -253,6 +263,7 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
   The rustic auth tokens are additive and only apply inside `.auth-rustic` — every other screen stays on the Liquid Glass tokens.
 - Tab pages render `<AppShell>`; pushed sub-pages render `<TopNav>` — never both.
 - Calculated values (health score, scan results, passports) are written **server-side only**, via the API routes — never trusted from the client.
+- **Farm data is written through the server, in three steps.** A route that writes farms, zones, plants or care logs (1) turns the body into a typed value with a pure `parse…` function (`lib/farm/validate.ts`, `lib/plant/validate.ts` — every rule has a unit test), (2) asks the database whether the row is the caller's, through the caller's own client (`lib/farm/ownership.ts`: Row Level Security answers, the code does not compare ids), and only then (3) writes with the service-role client (`lib/farm/write.ts`, `lib/plant/write.ts`). A form calls it with `postJson()` from `lib/api/client.ts`. Limits a form and the server share (lengths, lists of choices, ceilings) live in `lib/farm/options.ts`, which has no server imports.
 - The health score is the deterministic **40/25/20/15** formula in `lib/health/calculate.ts` (one pure function shared by server writes and client display). Decay: watering −10/day, fertilizer −8/day; AI default 50; manual healthy/attention/critical = 100/50/0.
 - `growth_logs.event_type` uses exactly six strings — `planted`, `water`, `fertilize`, `ai_scan`, `note`, `harvested` (see `docs/03_BACKEND_TRUTH.md` §3).
 - Weather (`lib/weather/fetch.ts`) always degrades to a deterministic sample dataset on any network/parse failure — the Map tab and Home advisory must never break on stage. A farm's GPS pin (if set) beats geocoding its state name for forecast accuracy.
@@ -290,17 +301,16 @@ scripts/  seed-demo.ts · seed-billing.ts · seed-consumer.ts · seed-support.ts
 
 The browser talks to Supabase directly. So **a rule that only lives in the app's code is not a rule**: anyone signed in can open the browser console and call the database themselves. Whatever a person must not do is therefore refused by the database, and tested there.
 
-**Who may write what** (migration `0010_security_hardening.sql`; "server" means an API route using the service-role key after it has checked the caller):
+**Who may write what** (migrations `0010_security_hardening.sql` and `0011_server_writes.sql`; "server" means an API route using the service-role key after it has checked the caller):
 
 | Data | The browser may | Only the server may |
 |---|---|---|
-| Farms, zones, plants, 360° photos and tags | create, edit and delete its own | — |
-| A plant's health score and "harvested" flag | nothing (what it sends is ignored) | write them |
-| Care log (`growth_logs`) | add `planted` / `water` / `fertilize` / `note` rows to its own plants | add `ai_scan` / `harvested` rows; edit or delete any row |
+| Farms, zones, plants, care log (`growth_logs`) | read its own (migration `0011`) | write them — the app asks through `/api/farms`, `/api/plants`, `/api/plants/log`, `/api/plants/status`, `/api/tasks/*` |
+| 360° photos and tags | create, edit and delete its own (row limit per person) | — |
 | AI analyses, score history, passports | read its own | write them |
 | Plan, scan credits, payments, boosts, stock | read | write them |
-| Support chat | write as `customer` in its own thread; a seller replies in their own farm's threads | write the assistant's and the auto replies |
-| Refund request | open one as `pending`; the seller decides it once | — |
+| Support chat | write as `customer` in its own thread; a seller replies in their own farm's threads (row limit per person) | write the assistant's and the auto replies |
+| Refund request, feedback | open one as `pending`; the seller decides it once (row limit per person) | — |
 | Files in storage | upload images (size- and type-limited); replace or delete **its own** uploads | — |
 
 Other rules worth knowing when you change the code:
@@ -308,6 +318,7 @@ Other rules worth knowing when you change the code:
 - **A saved scan must carry the server's signature.** `/api/ai/scan` signs its result (`lib/ai/receipt.ts`); `/api/ai/save-scan` refuses a result that does not match — edited, for another plant or photo, from another user, or older than two hours. That is what makes "AI verified" on a passport true. Saving the same scan twice stores it once.
 - **Scan credits are reserved, then used.** One database step takes the credit before the AI call and gives it back if the scan fails (`lib/billing/credits.ts`). Reading the balance and writing it later would let ten requests share one credit.
 - **Rate limits** (`lib/api/rate-limit.ts`) are per signed-in person. The routes that cost money per call (AI scan, tip, chat, satellite search, payment) count in the database, so the limit holds across all server instances; everyday writes use a free in-memory counter. Over the limit the answer is `429` with `Retry-After` — except the care tip, which falls back to the general tip.
+- **Ceilings and row limits.** An account can have 25 farms and a farm 2,000 plants (`lib/farm/options.ts`) — far above real use, low enough that one account cannot fill the database. The tables the browser still inserts into allow a fixed number of new rows per person in 10 minutes, enforced by a database trigger (`0011`), because that is where those writes land. A database test fails if a table becomes insertable from the browser without such a limit.
 - **A seller is known by farm name** while marketplace listings are demo data. The name belongs to the farm that has held it the longest (`owns_seller_name` in the database), so copying a seller's farm name gives nothing. *Limit:* a name nobody uses yet can be taken by the first account that asks. This goes away when listings become database rows with a `farm_id`.
 - **Content-Security-Policy** (`lib/security/csp.ts`, set in `middleware.ts`). Scripts only run with the page's one-time nonce, and the page may only talk to this app and to Supabase. If you add a third-party script or API, add its origin there — the browser console names what was blocked. Images from any `https:` origin and inline `style=""` attributes are allowed on purpose (React needs the second).
 - **The public passport page reads only the columns it shows** (`lib/passport/queries.ts`), and its QR code is drawn by the app (`lib/passport/qr.ts`), so the passport link is not sent to any other service.
@@ -315,14 +326,15 @@ Other rules worth knowing when you change the code:
 
 **Still open** (known, and why):
 
-- Farm, plant and care-log writes still go from the browser straight to Supabase, protected by the rules above but not rate-limited. A signed-in person can fill their own account with rows. Closing this means moving those writes behind API routes.
+- **Uploads still go from the browser straight to Supabase Storage.** They are limited to images of a bounded size and only the uploader can replace or delete a file, but nothing limits how MANY files a signed-in person uploads. The fix is uploads through links the server signs (`createSignedUploadUrl`), so the server can count them and choose the path. It was left out on purpose: it changes the photo upload of every scan and could not be tested against a real Supabase Storage from here.
+- Growers cannot yet rename or delete a farm or a plant (there was never a screen for it, and since `0011` the browser cannot do it directly). Each needs a small API route when the screen is built.
 - A grower's own claims are still a grower's own claims: "no pesticide" on a passport comes from what they logged.
 - Payments are simulated; a real gateway needs its own review (webhooks, signatures, idempotency).
 - A session signed out on another device stays valid here until its token expires (about an hour) when the project uses asymmetric JWT keys.
 
 **Before real people use it** — settings in the Supabase dashboard that no code can set:
 
-1. Run migration `0010` (after deploying this code), then `npm run test:smoke` — it reports whether the security rules are in place.
+1. Run migrations `0010` and `0011` (after deploying this code), then `npm run test:smoke` — it reports whether both are in place.
 2. *Authentication → Sign In / Providers → Email*: turn **Confirm email** on (the Quick start turns it off for demos), and turn on **leaked password protection** and a minimum password length of 8 or more. The password rules on the sign-up form are only a guide; these settings are the lock.
 3. *Authentication → Attack Protection*: turn on CAPTCHA for sign-up and sign-in if you see abuse. Supabase Auth rate-limits its own sign-in endpoints; the "3 tries" on the login screen is decoration, not a lock.
 4. Change or delete the demo accounts. Their default password is in this README (`DEMO_PASSWORD` sets another one when seeding).
@@ -342,6 +354,8 @@ Other rules worth knowing when you change the code:
 - **"This scan result could not be verified"** → the result was scanned more than two hours ago, the page was open across a deploy that changed the service-role key, or the key is missing on the server. Scan the plant again.
 - **Server log says "shared rate limits are off"** → migration `0010` is not applied, or `SUPABASE_SERVICE_ROLE_KEY` is missing. The app still works, with per-instance limits only.
 - **The stock switch or the assistant's replies stopped saving** → the database has migration `0010` but the deployed code is older. Deploy the current code.
+- **"permission denied for table farms / plants / growth_logs" when creating a farm, adding a plant or logging care** → the database has migration `0011` but the deployed code is older. Deploy the current code.
+- **"Too many changes in a short time"** → the row limit of migration `0011` (360° tags, chat messages, refund requests, feedback). The numbers are in that file.
 - **Something stopped loading after adding a script, font or API from another site** → the Content-Security-Policy blocked it. The browser console names it; allow its origin in `lib/security/csp.ts`.
 - **A page shows old data after an action** → the action did not call `refreshData()` (see Conventions). Visited pages are kept for 30 seconds.
 - **Stuck in a redirect loop** → clear site cookies for `localhost:3000` and log in again.
@@ -362,7 +376,7 @@ Two settings decide how fast the deployed app feels. Neither needs a code change
 The schema, RLS, storage and seed live in `supabase/` and `scripts/`.
 Full instructions: **[`scripts/README.md`](./scripts/README.md)**. In short:
 
-1. Run the 10 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor). `0010_security_hardening.sql` is the one not to skip on a project real people use.
+1. Run the 11 SQL files in `supabase/migrations/` in order (Supabase → SQL Editor). `0010_security_hardening.sql` and `0011_server_writes.sql` are the two not to skip on a project real people use — deploy the current code before you run them.
 2. Add `SUPABASE_SERVICE_ROLE_KEY` to `.env.local` (Settings → API → service_role).
 3. `npm run db:seed` → demo grower `ahmad@greenmap.demo` / `Demo1234!` (public password — set `DEMO_PASSWORD` in `.env.local` first for anything but a local demo), farm *Ladang Hijau*, ~30 plants, backdated logs, a 7-day trend, saved AI analyses, and one harvested plant with a fixed passport at `/passport/00000000-0000-4000-8000-0000deadbeef`.
 

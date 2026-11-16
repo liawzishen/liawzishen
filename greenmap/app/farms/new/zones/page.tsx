@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { markDataChanged } from "@/lib/router/refresh";
 import { useFarmSetup } from "@/contexts/farm-setup-context";
-import { createClient } from "@/lib/supabase/client";
+import { postJson } from "@/lib/api/client";
+import { MAX_ZONE_NAME_LENGTH } from "@/lib/farm/options";
 import { TopNav } from "@/components/layout/TopNav";
 import { StepDots } from "@/components/layout/StepDots";
 import { Input } from "@/components/ui/Input";
@@ -41,81 +42,36 @@ export default function SetupZonesPage() {
     setShowForm(false);
   }
 
-  /** The one DB write of the whole wizard: farm → zones → go to dashboard. */
+  /** The one write of the whole wizard: the server creates farm + zones together. */
   async function finish() {
     setError(null);
     setSaving(true);
-    const supabase = createClient();
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError("Your session expired. Please log in again.");
-      setSaving(false);
-      return;
-    }
-
-    // 1. Insert the farm.
-    const base = {
-      user_id: user.id,
+    const result = await postJson<{ farm: { id: string } }>("/api/farms", {
       name: setup.name,
       location: setup.location,
       size: setup.size,
-      crop_type: setup.cropType,
-      background_type: setup.backgroundType,
-      background_url: setup.backgroundUrl,
-    };
-    const hasPin = setup.latitude !== null && setup.longitude !== null;
-    let { data: farm, error: farmError } = await supabase
-      .from("farms")
-      .insert({
-        ...base,
-        ...(hasPin
-          ? { latitude: setup.latitude, longitude: setup.longitude }
-          : {}),
-      })
-      .select()
-      .single();
-
-    // If the 0006 coordinates migration hasn't been applied yet, saving the
-    // GPS pin fails on the unknown column — retry without it so farm
-    // creation never breaks (weather falls back to geocoding the state).
-    if (farmError && hasPin && /latitude|longitude/i.test(farmError.message)) {
-      ({ data: farm, error: farmError } = await supabase
-        .from("farms")
-        .insert(base)
-        .select()
-        .single());
-    }
-
-    if (farmError || !farm) {
-      setError(farmError?.message ?? "Could not create the farm.");
+      cropType: setup.cropType,
+      backgroundType: setup.backgroundType,
+      backgroundUrl: setup.backgroundUrl,
+      latitude: setup.latitude,
+      longitude: setup.longitude,
+      zones,
+    });
+    if (!result.ok) {
+      setError(
+        result.status === 401
+          ? "Your session expired. Please log in again."
+          : result.error
+      );
       setSaving(false);
       return;
     }
 
-    // 2. Insert zones (if any) in one batch.
-    if (zones.length > 0) {
-      const { error: zoneError } = await supabase.from("zones").insert(
-        zones.map((z) => ({
-          farm_id: farm.id,
-          name: z.name,
-          color: z.color,
-        }))
-      );
-      if (zoneError) {
-        // Farm exists; zones failed. Tell the user but still continue.
-        setError(
-          "Farm created, but zones could not be saved. You can add them later."
-        );
-      }
-    }
-
-    // 3. Go to the new farm's dashboard.
+    // Go to the new farm's dashboard.
     setup.reset();
     markDataChanged(); // the farm switcher on kept pages must list the new farm
-    router.push(`/farms/${farm.id}`);
+    router.push(`/farms/${result.data.farm.id}`);
   }
 
   return (
@@ -178,6 +134,7 @@ export default function SetupZonesPage() {
           <div className="mt-4 rounded-card p-4 glass">
             <Input
               label="Zone Name"
+              maxLength={MAX_ZONE_NAME_LENGTH}
               placeholder="e.g. Tomato Rows"
               value={zoneName}
               onChange={(e) => setZoneName(e.target.value)}

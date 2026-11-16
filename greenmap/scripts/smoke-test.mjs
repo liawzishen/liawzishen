@@ -154,6 +154,31 @@ if (!securityProbe.ok) {
   ok("security rules present (migration 0010)");
 }
 
+// Migration 0011: the browser can no longer write farm data. Probed with an
+// update that matches NO row, so nothing changes either way: the database
+// answers "permission denied" when the write permission is gone.
+const writeProbe = await fetch(
+  `${SUPABASE_URL}/rest/v1/farms?id=eq.00000000-0000-0000-0000-000000000000`,
+  {
+    method: "PATCH",
+    headers: { apikey: ANON_KEY, ...authed, "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "smoke-test" }),
+    signal: AbortSignal.timeout(15_000),
+  }
+);
+if (writeProbe.ok) {
+  bad("the browser can still write farm data directly — migration 0011 is not applied");
+  console.log(
+    "    Open the Supabase dashboard → SQL editor, paste the contents of\n" +
+      "    supabase/migrations/0011_server_writes.sql and run it\n" +
+      "    (after the current app code is deployed)."
+  );
+} else if (writeProbe.status === 401 || writeProbe.status === 403) {
+  ok("farm data is written by the server only (migration 0011)");
+} else {
+  bad(`could not check migration 0011 (HTTP ${writeProbe.status})`);
+}
+
 // ── stage 3 (optional): app pages render data with a real session ───────────
 if (CHECK_APP) {
   console.log(`\nStage 3 · app  (${APP_URL})`);

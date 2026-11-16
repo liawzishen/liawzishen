@@ -2,9 +2,9 @@
  * Health-score ENGINE — the deterministic formula, as a pure function.
  *
  * One source of truth, used in two places (docs/01 §5, docs/03 §4):
- *   - SERVER (writes): POST /api/health/recalculate runs this after each
- *     scoring event, then writes plants.health_score + a
- *     health_score_history snapshot.
+ *   - SERVER (writes): lib/health/recalculate.ts runs this after each
+ *     scoring event (a care log, a saved scan, a status change), then writes
+ *     plants.health_score + a health_score_history snapshot.
  *   - CLIENT (display only): Plant Detail + Farm Map recompute on load so the
  *     shown number reflects passive decay. Never written back — which is why
  *     the map and the detail page always agree.

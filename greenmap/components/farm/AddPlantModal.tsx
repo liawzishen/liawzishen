@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { postJson } from "@/lib/api/client";
+import { MAX_PLANT_NAME_LENGTH } from "@/lib/farm/options";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -17,7 +18,7 @@ interface Props {
 
 /**
  * Modal shown after the grower taps a spot in placement mode.
- * Inserts the plant (health_score = null → grey "New") plus a 'planted' log.
+ * /api/plants adds the plant (no score yet → grey "New") plus a 'planted' log.
  */
 export function AddPlantModal({
   farmId,
@@ -39,40 +40,23 @@ export function AddPlantModal({
     if (!valid) return;
     setError(null);
     setSaving(true);
-    const supabase = createClient();
 
-    const { data: plant, error: plantError } = await supabase
-      .from("plants")
-      .insert({
-        farm_id: farmId,
-        zone_id: zoneId || null,
-        name: name.trim(),
-        type: type.trim(),
-        expected_harvest_date: harvestDate || null,
-        position_x: position.x,
-        position_y: position.y,
-        health_score: null, // grey "New" until first scoring event (D4)
-        manual_status: "attention",
-        lifecycle_status: "active",
-      })
-      .select()
-      .single();
-
-    if (plantError || !plant) {
-      setError(plantError?.message ?? "Could not add the plant.");
+    // One request: the server adds the plant and its "planted" log entry.
+    const result = await postJson<{ plant: Plant }>("/api/plants", {
+      farmId,
+      zoneId: zoneId || null,
+      name: name.trim(),
+      type: type.trim(),
+      expectedHarvestDate: harvestDate || null,
+      position,
+    });
+    if (!result.ok) {
+      setError(result.error);
       setSaving(false);
       return;
     }
 
-    // 'planted' timeline event (badge metadata empty for now).
-    await supabase.from("growth_logs").insert({
-      plant_id: plant.id,
-      event_type: "planted",
-      note: `Planted ${plant.name}`,
-      metadata: {},
-    });
-
-    onCreated(plant as Plant);
+    onCreated(result.data.plant);
   }
 
   return (
@@ -86,6 +70,7 @@ export function AddPlantModal({
         <div className="mt-4 space-y-4">
           <Input
             label="Plant Name"
+            maxLength={MAX_PLANT_NAME_LENGTH}
             placeholder="e.g. Tomato A"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -93,6 +78,7 @@ export function AddPlantModal({
           />
           <Input
             label="Type"
+            maxLength={MAX_PLANT_NAME_LENGTH}
             placeholder="e.g. Tomato"
             value={type}
             onChange={(e) => setType(e.target.value)}

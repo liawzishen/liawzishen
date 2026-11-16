@@ -104,10 +104,10 @@ Modal opens with fields:
 Grower confirms
     ↓
 Client:
-  1. INSERT into growth_logs (plant_id, event_type, note, photo_url, metadata)
-     metadata includes fertilizer_category, pesticide_used, etc.
-  2. If photo: upload to Supabase Storage (growth-photos bucket) first
-  3. Call POST /api/health/recalculate with plantId
+  1. POST /api/plants/log with the form's fields (type, method, fertilizer, pesticide…)
+     The server checks the plant is the caller's, builds the metadata
+     (fertilizer_category, pesticide_used, etc.), inserts the growth_logs row
+     and recalculates. The browser cannot write growth_logs itself (migration 0011).
     ↓
 API route:
   1. Fetches latest water date, fertilizer date, AI sub-score, plant status
@@ -172,7 +172,8 @@ Health score updates. Farm Map marker updates on next load.
 ## Flow 6 — Health Score Recalculation
 
 ```
-Triggered by: POST /api/health/recalculate with { plantId }
+Triggered by: a care log (/api/plants/log, /api/tasks/*), a status change
+(/api/plants/status) or a saved scan (/api/ai/save-scan) — lib/health/recalculate.ts
     ↓
 API route fetches from Supabase (using service role key):
   1. Latest ai_analyses.ai_sub_score for this plant (or default 50)

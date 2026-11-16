@@ -10,26 +10,7 @@ import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import type { FarmSize } from "@/types/database";
-
-/** 16 Malaysian states + federal territories. */
-const MALAYSIAN_STATES = [
-  "Johor",
-  "Kedah",
-  "Kelantan",
-  "Melaka",
-  "Negeri Sembilan",
-  "Pahang",
-  "Perak",
-  "Perlis",
-  "Pulau Pinang",
-  "Sabah",
-  "Sarawak",
-  "Selangor",
-  "Terengganu",
-  "Kuala Lumpur",
-  "Labuan",
-  "Putrajaya",
-];
+import { MALAYSIAN_STATES } from "@/lib/farm/options";
 
 const SIZE_OPTIONS: { value: FarmSize; label: string; hint: string }[] = [
   { value: "small", label: "Small", hint: "< 1 acre" },

@@ -36,7 +36,7 @@ Always read these first. They are the source of truth (the app is built, so **co
 |---|---|
 | `lib/health/calculate.ts` | **The real formula** — weights, decay rates, defaults (authoritative) |
 | `lib/passport/aggregate.ts` + `types/database.ts` | Real passport + table fields |
-| `app/api/ai/*` · `app/api/health/recalculate` | Actual scan / suggest / save-scan / recalc routes |
+| `app/api/ai/*` · `app/api/plants/{log,status}` · `lib/health/recalculate.ts` | Actual scan / suggest / save-scan routes, and the care-log and status routes that recalculate |
 | `docs/03_BACKEND_TRUTH.md` | Canonical backend doc (schema, AI touchpoints, health formula) |
 | `docs/01_CODE_CONCEPT.md` | Data model, tech stack, MVP scope, where logic lives |
 | `docs/02_PROTOTYPE_MAPPING.md` | Page-level UI the AI logic must support |

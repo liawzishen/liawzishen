@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRefreshData } from "@/lib/router/refresh";
-import { createClient } from "@/lib/supabase/client";
+import { postJson } from "@/lib/api/client";
 import type { ManualStatus } from "@/types/database";
 
 const OPTS: { value: ManualStatus; label: string; color: string }[] = [
@@ -12,9 +12,9 @@ const OPTS: { value: ManualStatus; label: string; color: string }[] = [
 ];
 
 /**
- * Grower-set health status. Optimistically highlights the choice, writes
- * plants.manual_status, then asks the server to recalculate the score and
- * refreshes the page so the score, trend and timeline update.
+ * Grower-set health status. Optimistically highlights the choice, then
+ * /api/plants/status saves it and recalculates the score; the page is
+ * refreshed so the score, trend and timeline update.
  */
 export function ManualStatusControl({
   plantId,
@@ -33,25 +33,11 @@ export function ManualStatusControl({
     setStatus(next);
     setSaving(true);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("plants")
-      .update({ manual_status: next })
-      .eq("id", plantId);
-    if (error) {
+    const result = await postJson("/api/plants/status", { plantId, status: next });
+    if (!result.ok) {
       setStatus(prev);
       setSaving(false);
       return;
-    }
-
-    try {
-      await fetch("/api/health/recalculate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plantId }),
-      });
-    } catch {
-      // log saved; score refresh is best-effort
     }
 
     setSaving(false);

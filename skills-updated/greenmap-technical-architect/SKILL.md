@@ -120,7 +120,8 @@ These have been discussed and agreed. Do not re-debate unless the user explicitl
 | `POST /api/ai/scan` | Image URL + crop type → Gemini Vision, validates JSON, maps severity → sub-score, returns result only (never saves). Labelled mock when no `GEMINI_API_KEY` |
 | `POST /api/ai/save-scan` | Re-sanitises the reviewed result, inserts `ai_analyses` + `growth_logs(ai_scan)`, recalculates + snapshots |
 | `POST /api/ai/suggest` | Plant context → Gemini Text, returns a suggestion string (session-cached client-side) |
-| `POST /api/health/recalculate` | plantId → fetch latest data, run formula, save `plants.health_score` + `health_score_history` |
+| `POST /api/farms` · `POST /api/plants` | Create a farm with its zones · add a plant (input, limits and owner checked on the server) |
+| `POST /api/plants/log` · `POST /api/plants/status` | Save a care log or the grower's status, then run the formula and save `plants.health_score` + `health_score_history` (replaced `/api/health/recalculate`) |
 | `POST /api/passports/generate` | Aggregates the journey, sets `lifecycle_status='harvested'`, mints `qr_token`, inserts passport + `harvested` log (idempotent) |
 | `POST /api/tasks/complete` · `POST /api/tasks/uncomplete` | Home "Today's Tasks" batch water/fertilize complete + undo (RLS-checked, admin write) |
 

@@ -105,29 +105,7 @@ export async function readJsonObject(
   }
 }
 
-/**
- * A trimmed, single-line string no longer than `max`, or "" when the value is
- * not a string. Use for short free-text fields that end up in prompts or rows.
- */
-export function cleanText(value: unknown, max: number): string {
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+/g, " ").trim().slice(0, max);
-}
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** True for a database id. Every id in this app is a UUID. */
-export function isUuid(value: unknown): value is string {
-  return typeof value === "string" && UUID.test(value);
-}
-
-/** Unique database ids from an unknown value, capped at `max` entries. */
-export function cleanIdList(value: unknown, max: number): string[] {
-  if (!Array.isArray(value)) return [];
-  const ids = new Set<string>();
-  for (const v of value) {
-    if (isUuid(v)) ids.add(v.toLowerCase());
-    if (ids.size >= max) break;
-  }
-  return [...ids];
-}
+// Pure helpers for reading request fields live in ./parse (no server
+// imports, so validators and forms can use them too). Re-exported here
+// because routes have always imported them from this module.
+export { cleanIdList, cleanText, isUuid } from "./parse";

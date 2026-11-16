@@ -37,7 +37,8 @@ greenmap/
 │   ├── passport/[qrToken]/page.tsx      # Consumer QR view (server, public)
 │   └── api/
 │       ├── ai/{scan,save-scan,suggest}/route.ts
-│       ├── health/recalculate/route.ts
+│       ├── farms/route.ts
+│       ├── plants/route.ts · plants/{log,status}/route.ts
 │       ├── passports/generate/route.ts
 │       └── tasks/{complete,uncomplete}/route.ts
 │

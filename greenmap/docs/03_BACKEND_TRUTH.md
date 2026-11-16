@@ -102,28 +102,27 @@ score = round(ai×0.40 + watering×0.25 + fertilizer×0.20 + manual×0.15)
 watering   = max(0, 100 − daysSinceWater×10)      (never watered → 0)
 fertilizer = max(0, 100 − daysSinceFertilize×8)   (never fertilized → 0)
 ```
-Recalculation **writes** only on: water log, fertilize log, scan saved, manual_status change — via `/api/health/recalculate`, which also snapshots to `health_score_history`. Passive decay is computed client-side on Map/Detail load for **display only**. Plant creation triggers **no** recalculation [D4].
+Recalculation **writes** only on: water log, fertilize log, scan saved, manual_status change — done by the route that handled the event (`/api/plants/log`, `/api/plants/status`, `/api/tasks/*`, `/api/ai/save-scan`) through `lib/health/recalculate.ts`, which also snapshots to `health_score_history`. Passive decay is computed client-side on Map/Detail load for **display only**. Plant creation triggers **no** recalculation [D4].
 
 ## 5. RLS Policies
 
-The browser talks to Supabase directly, so these rules — not the app's code — decide what a signed-in person can do. State after migration `0010_security_hardening.sql`; tested by `supabase/tests/security.test.ts`.
+The browser talks to Supabase directly, so these rules — not the app's code — decide what a signed-in person can do. State after migrations `0010_security_hardening.sql` and `0011_server_writes.sql`; tested by `supabase/tests/`.
 
 | Table | Browser (role `authenticated`) | Server only (service role) |
 |---|---|---|
 | profiles | SELECT own row; UPDATE own `name` only | plan, scan credits, `is_verified`, role |
-| farms, zones | ALL on own rows. `created_at` / `name_claimed_at` cannot be set or back-dated | — |
-| plants | ALL on own rows, **except** `health_score` and `lifecycle_status` (ignored when sent) | `health_score`, `lifecycle_status` |
-| growth_logs | SELECT own; INSERT `planted` / `water` / `fertilize` / `note` (timestamp is always "now") | INSERT `ai_scan` / `harvested`; UPDATE; DELETE |
+| farms, zones, plants, growth_logs | SELECT own. No direct writes since `0011` (with `0010` alone: own rows, minus `health_score`, `lifecycle_status`, back-dating and `ai_scan` / `harvested` logs) | all writes, via the API routes in §7 |
+| farm_panoramas, panorama_plant_tags | ALL on own farms' rows; new rows per person are limited (`0011`) | — |
 | ai_analyses, health_score_history | SELECT own | all writes |
 | harvest_passports | SELECT own. **No public SELECT** — the QR page reads one passport by its token through the server | all writes |
 | ai_scan_usage, payments, listing_boosts, listing_stock, rate_limits | SELECT (own, or all for boosts/stock; none for rate_limits) | all writes |
-| refund_requests | customer: SELECT/INSERT (`pending` only)/DELETE own. seller: SELECT; UPDATE `status` once, never on their own request | — |
-| support_messages | customer: SELECT own, INSERT as `customer`. seller: SELECT and reply in their farm's `seller` threads | the assistant's and auto replies |
-| order_feedback | customer: SELECT/INSERT own. seller: SELECT their farm's | — |
+| refund_requests | customer: SELECT/INSERT (`pending` only)/DELETE own. seller: SELECT; UPDATE `status` once, never on their own request. New rows limited | — |
+| support_messages | customer: SELECT own, INSERT as `customer`. seller: SELECT and reply in their farm's `seller` threads. New rows limited | the assistant's and auto replies |
+| order_feedback | customer: SELECT/INSERT own. seller: SELECT their farm's. New rows limited | — |
 
 "Seller" = the signed-in user owns the farm with the **oldest claim** on the row's farm name (`owns_seller_name()`), because demo listings know their seller only by name. Text columns have length limits (CHECK constraints).
 
-Server-side functions (callable with the service role only): `consume_scan_credit` / `release_scan_credit` (reserve a scan credit atomically, give it back on failure), `add_bonus_scans`, `take_rate_limit`.
+Server-side functions (callable with the service role only): `consume_scan_credit` / `release_scan_credit` (reserve a scan credit atomically, give it back on failure), `add_bonus_scans`, `take_rate_limit`. "New rows limited" is the trigger `limit_client_writes` (`0011`): a fixed number of inserts per person per table in 10 minutes, answered with HTTP 429 beyond that.
 
 ## 6. Storage — 3 Public Buckets
 
@@ -138,11 +137,14 @@ Since `0010`: any signed-in user may upload, but only the **uploader** may repla
 | `POST /api/ai/scan` | Gemini Vision call; validate (JSON parse + 1 retry → severity enum → confidence clamp); map severity→sub-score; **returns only** | — |
 | `POST /api/ai/save-scan` | grower-confirmed save; re-validate payload | `ai_analyses`, `growth_logs('ai_scan')`, then runs recalculation |
 | `POST /api/ai/suggest` | Gemini Text 1–2 sentence suggestion (client session-caches 60 min; never counts as a scan credit) | — |
-| `POST /api/health/recalculate` | fetch inputs → formula → save | `plants.health_score`, `health_score_history` |
+| `POST /api/farms` | farm + zones in one request, all or nothing (max 25 farms per account) | `farms`, `zones` |
+| `POST /api/plants` | add a plant to an own farm (max 2,000 per farm) | `plants`, `growth_logs('planted')` |
+| `POST /api/plants/log` | one care event (`water` / `fertilize` / `note`); the server builds `metadata` from typed fields, then recalculates | `growth_logs`, `plants.health_score`, `health_score_history` |
+| `POST /api/plants/status` | the grower's own status, then recalculates | `plants.manual_status`, `plants.health_score`, `health_score_history` |
 | `POST /api/passports/generate` | aggregates + badges + `qr_token` | `harvest_passports`, `growth_logs('harvested')`, `plants.lifecycle_status='harvested'` |
 | `POST /api/mapbox/satellite` *(optional stretch)* | address → static image URL (token server-side). Demo uses a pre-captured asset in `public/demo/` — zero stage dependency | — |
 
-Everything else (farms, zones, plants, water/fertilize/note logs, reads) = client → Supabase direct under RLS.
+Reads, and writes to the tables the browser may still write (§5), go client → Supabase direct under RLS. (Farms, zones, plants and care logs were written that way too until `0011`; `/api/health/recalculate` existed for that flow and is gone.)
 
 Later routes: `/api/tasks/{complete,uncomplete}`, `/api/payments`, `/api/satellite`, `/api/support/chat`, `/api/listings/stock` (see the README's project structure).
 
@@ -167,7 +169,7 @@ Server-only: `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `MAPBOX_ACCESS_TOKEN
 1. **Auth:** signUp with `{name, role}` metadata → trigger creates `profiles` row → middleware redirects grower→`/farms`, consumer→`/consumer`.
 2. **Farm setup:** Steps 1–3 in React Context → single batch write on Step 3 (farm insert → zones insert) → navigate to farm.
 3. **Add plant:** tap canvas → modal → client inserts plant (`health_score=NULL`, `manual_status='attention'`, `lifecycle_status='active'`, positions 0–1) + `growth_logs('planted')`. No score, no history row [D4].
-4. **Log water/fertilize/note:** photo→Storage if any → client inserts `growth_logs` with `metadata` → calls `/api/health/recalculate`.
+4. **Log water/fertilize/note:** client POSTs the form fields to `/api/plants/log` → the server checks the plant is the caller's, inserts `growth_logs` with `metadata`, recalculates and returns the score.
 5. **AI scan:** §7 scan→review→save-scan chain.
 6. **Recalculate:** route fetches latest sub-score inputs → formula → update + snapshot → returns score.
 7. **Harvest:** confirm modal → `/api/passports/generate` → passport page.

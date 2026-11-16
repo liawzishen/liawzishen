@@ -110,7 +110,7 @@ Other commands (run inside `greenmap/`):
 - **The AI helper cannot move money.** It can only suggest a next step. Buyers can only create *pending* refund requests, and only the seller can approve or reject them. The database enforces this, not just the screen.
 - **Built for Malaysia.** English and Bahasa Melayu, prices in RM, plan names in Malay (Percuma, Asas, Petani Pro, Tanpa Had), FPX and Touch 'n Go (simulated), 16 states and federal territories in farm setup, and WhatsApp sharing.
 - **Low prices.** The free plan gives 5 AI scans a month. Paid plans are RM 6.90 (20 scans), RM 19.90 (60) and RM 39.90 (unlimited). Extra scans are RM 1.50 each. The server enforces the limits.
-- **Clear security model, tested.** Row Level Security is on for every table, so a user can only change their own farm's data, and the numbers a buyer relies on (health scores, AI scans, passports) can only be written by the server. The service-role key never reaches the browser. Prices are set on the server, so a browser cannot give itself a plan or free scans. The test suite attacks these rules on a real Postgres every time it runs. Details: the Security section of [greenmap/README.md](greenmap/README.md).
+- **Clear security model, tested.** Row Level Security is on for every table, so a user can only change their own farm's data, and the numbers a buyer relies on (health scores, AI scans, passports) can only be written by the server. Farm data itself is written through the app's server too, which checks every request. The service-role key never reaches the browser. Prices are set on the server, so a browser cannot give itself a plan or free scans. The test suite attacks these rules on a real Postgres every time it runs. Details: the Security section of [greenmap/README.md](greenmap/README.md).
 - **Phone first, desktop too.** Large buttons and a bottom tab bar on a phone. A full farm dashboard on a wide screen.
 - **Hard to break in a live demo.** Weather (free Open-Meteo, no key) times out after 3.5 seconds and shows a labelled sample week. Without a MapTiler key, the Satellite option falls back to the generated Smart Background; with a key, Esri World Imagery steps in if MapTiler's image fails. Missing optional setup shows a friendly message instead of a crash.
 
@@ -166,7 +166,7 @@ npm run dev                  # open http://localhost:3000
 
 Before `npm run db:seed`:
 
-1. In the Supabase **SQL Editor**, run `greenmap/supabase/migrations/0001_init.sql` to `0010_security_hardening.sql`, in order.
+1. In the Supabase **SQL Editor**, run `greenmap/supabase/migrations/0001_init.sql` to `0011_server_writes.sql`, in order.
 2. In Supabase **Authentication → Sign In / Providers → Email**, turn off **Confirm email**.
 
 Optional keys: `GEMINI_API_KEY` (real AI) and `MAPTILER_API_KEY` (satellite maps). When you deploy, set `NEXT_PUBLIC_APP_URL` to your public URL, so passport QR codes and WhatsApp links open on other phones. For a fast app, also run it in the same region as your Supabase project (the developer guide explains how).
@@ -190,7 +190,7 @@ npm run build   # production build
 │   ├── app/                    Pages and API routes
 │   ├── components/             Screens and UI parts
 │   ├── lib/                    Health score, AI, weather, billing, languages, Supabase
-│   ├── supabase/migrations/    10 SQL migrations (0001–0010)
+│   ├── supabase/migrations/    11 SQL migrations (0001–0011)
 │   ├── supabase/tests/         Tests that attack the database rules (run by npm test)
 │   ├── scripts/                Seed scripts and smoke test
 │   └── docs/                   Build plan, code concept, backend reference, demo script
@@ -214,4 +214,4 @@ npm run build   # production build
 | [greenmap/docs/08_DEMO.md](greenmap/docs/08_DEMO.md) | 3-minute demo script |
 | [skills-updated/greenmap-business-strategist/](skills-updated/greenmap-business-strategist/) | Business model and pricing plan (planning assumptions) |
 
-Some docs are older than the code. Where they disagree, the code is right. For example, there are now 10 migrations (not 4), and scan limits are enforced.
+Some docs are older than the code. Where they disagree, the code is right. For example, there are now 11 migrations (not 4), and scan limits are enforced.
