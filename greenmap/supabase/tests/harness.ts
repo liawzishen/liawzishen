@@ -144,3 +144,71 @@ export class TestDatabase {
     }
   }
 }
+
+/** The people and things most tests need. */
+export interface World {
+  db: TestDatabase;
+  /** Grower. Owns the farm "Ladang Hijau" and was the first to use that name. */
+  ahmad: string;
+  /** A second grower, who tries to break the rules. */
+  bad: string;
+  /** Shopper. */
+  siti: string;
+  farm: string;
+  plant: string;
+  badFarm: string;
+  badPlant: string;
+}
+
+/**
+ * Build a database with the given migrations and the standard cast.
+ * Farms and plants are created the way the server creates them (service
+ * role), which works whether or not the browser may still write them.
+ */
+export async function createWorld(files: string[] = migrationFiles()): Promise<World> {
+  const db = await TestDatabase.create(files);
+  const ahmad = await db.createUser("ahmad@test.local");
+  const bad = await db.createUser("bad@test.local");
+  const siti = await db.createUser("siti@test.local");
+
+  const farm = await newFarm(db, ahmad, "Ladang Hijau");
+  const plant = await newPlant(db, farm);
+  const badFarm = await newFarm(db, bad, "Kebun Lain");
+  const badPlant = await newPlant(db, badFarm);
+  return { db, ahmad, bad, siti, farm, plant, badFarm, badPlant };
+}
+
+/** Create a farm as the server does. Returns its id. */
+export async function newFarm(db: TestDatabase, userId: string, name: string): Promise<string> {
+  const [row] = await db.asService(
+    `insert into farms (user_id, name, location, crop_type)
+     values ($1, $2, 'Johor', 'Tomato') returning id`,
+    [userId, name]
+  );
+  return row.id as string;
+}
+
+/** Create a plant as the server does. Returns its id. */
+export async function newPlant(db: TestDatabase, farmId: string): Promise<string> {
+  const [row] = await db.asService(
+    `insert into plants (farm_id, name, type) values ($1, 'Tomato 1', 'Tomato') returning id`,
+    [farmId]
+  );
+  return row.id as string;
+}
+
+/** The Postgres error code of a statement that must fail ("no error" if it did not). */
+export async function errorCode(run: Promise<unknown>): Promise<string> {
+  try {
+    await run;
+  } catch (e) {
+    return (e as { code?: string }).code ?? "unknown";
+  }
+  return "no error";
+}
+
+export const PERMISSION_DENIED = "42501"; // also what a failed RLS check reports
+export const CHECK_VIOLATION = "23514";
+export const UNIQUE_VIOLATION = "23505";
+/** Raised by the row limits in 0011; the API turns it into HTTP 429. */
+export const TOO_MANY = "PT429";
